@@ -136,8 +136,7 @@ export default function App() {
 
           {page === 'nouveau' && <NouveauDossier onRetour={() => setPage('accueil')} />}
 
-          {page === 'dossiers' && !dossierId && <ListeDossiers onOuvrir={id => setDossierId(id)} onRetour={() => setPage('accueil')} />
-
+          {page === 'dossiers' && !dossierId && <ListeDossiers onOuvrir={id => setDossierId(id)} onRetour={() => setPage('accueil')} />}
           {page === 'dossiers' && dossierId && (
             <DossierDetail dossierId={dossierId} onRetour={() => setDossierId(null)}
               onDevis={() => setPage('devis')} onDocuments={() => setPage('documents')} />
