@@ -1,0 +1,18 @@
+npm install @supabase/supabase-js<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Vite + React + TS</title>
+    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAjBYx7ghcGMM41Tuf7dNwmGv1S6Dfaa94&libraries=places&language=fr"></script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
+import { createClient } from '@supabase/supabase-js' const SUPABASE_URL =
+"https://uvubrbxcvpvdxtobrfjj.supabase.co" const SUPABASE_KEY =
+"sb_publishable_kBwTwoJ7eKzhh2SO1auMsA_9kkClbMF" export const supabase =
+createClient(SUPABASE_URL, SUPABASE_KEY)

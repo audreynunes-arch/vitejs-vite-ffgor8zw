@@ -1,0 +1,2057 @@
+import { useState, useEffect } from 'react';
+import { supabase } from '../supabase';
+
+interface Props {
+  dossierId: string;
+  onRetour: () => void;
+}
+
+interface Ligne {
+  id?: string;
+  libelle: string;
+  tva: 'exonere' | 'tva_10' | 'tva_20';
+  categorie: 'prestations_obligatoires' | 'prestations_non_obligatoires';
+  section: string;
+  prix_ttc: number;
+  inclus: boolean;
+  ordre: number;
+}
+
+type Onglet = 'devis' | 'facture' | 'bon_commande';
+
+const LIGNES_DEFAUT: Ligne[] = [
+  {
+    libelle:
+      '* Cercueil Local Adulte (essence de peuplier, forme lyonnaise, 22mm, 4 poignées, cuvette étanche, capiton) (*)',
+    tva: 'tva_20',
+    categorie: 'prestations_obligatoires',
+    section: '3 - Cercueil & Accessoires',
+    prix_ttc: 960,
+    inclus: true,
+    ordre: 1,
+  },
+  {
+    libelle: "* Plaque d'identité apposée sur le cercueil (*)",
+    tva: 'tva_20',
+    categorie: 'prestations_obligatoires',
+    section: '3 - Cercueil & Accessoires',
+    prix_ttc: 20,
+    inclus: true,
+    ordre: 2,
+  },
+  {
+    libelle: 'Creusement',
+    tva: 'tva_20',
+    categorie: 'prestations_obligatoires',
+    section: '7A - Inhumation / Exhumation',
+    prix_ttc: 500,
+    inclus: true,
+    ordre: 3,
+  },
+  {
+    libelle: '* Taille : 1m50 Adulte',
+    tva: 'tva_20',
+    categorie: 'prestations_obligatoires',
+    section: '7A - Inhumation / Exhumation',
+    prix_ttc: 0,
+    inclus: true,
+    ordre: 4,
+  },
+  {
+    libelle: '* Exhumation (**)',
+    tva: 'tva_20',
+    categorie: 'prestations_obligatoires',
+    section: '7A - Inhumation / Exhumation',
+    prix_ttc: 0,
+    inclus: false,
+    ordre: 5,
+  },
+  {
+    libelle:
+      "* Démarches et formalités administratives (demandes d'autorisation auprès de la Mairie, Préfecture, Consulat, Organisation de départ…) (**)",
+    tva: 'tva_20',
+    categorie: 'prestations_non_obligatoires',
+    section: '1 - Préparation / Organisation des Obsèques',
+    prix_ttc: 150,
+    inclus: true,
+    ordre: 1,
+  },
+  {
+    libelle:
+      '* Coffret Adulte toilette rituelle (Linceul musulman, savon & musk…) (**)',
+    tva: 'tva_20',
+    categorie: 'prestations_non_obligatoires',
+    section: '1 - Préparation / Organisation des Obsèques',
+    prix_ttc: 20,
+    inclus: true,
+    ordre: 2,
+  },
+  {
+    libelle: '* Housse Mortuaire de transfert (*)',
+    tva: 'tva_20',
+    categorie: 'prestations_non_obligatoires',
+    section: '1 - Préparation / Organisation des Obsèques',
+    prix_ttc: 0,
+    inclus: false,
+    ordre: 3,
+  },
+  {
+    libelle: '* Personnel supplémentaire pour le transfert (hors forfait) (**)',
+    tva: 'tva_20',
+    categorie: 'prestations_non_obligatoires',
+    section: '1 - Préparation / Organisation des Obsèques',
+    prix_ttc: 0,
+    inclus: false,
+    ordre: 4,
+  },
+  {
+    libelle: "* Retrait d'une prothèse fonctionnant au moyen d'une pile (**)",
+    tva: 'tva_20',
+    categorie: 'prestations_non_obligatoires',
+    section: '1 - Préparation / Organisation des Obsèques',
+    prix_ttc: 0,
+    inclus: false,
+    ordre: 5,
+  },
+  {
+    libelle: '* Forfait transport de base (60 km) (*)',
+    tva: 'tva_10',
+    categorie: 'prestations_non_obligatoires',
+    section: '5 - Transport du défunt après mise en bière',
+    prix_ttc: 350,
+    inclus: true,
+    ordre: 1,
+  },
+  {
+    libelle: '* Transport pour un trajet de km aller (sans défunt) (**)',
+    tva: 'tva_20',
+    categorie: 'prestations_non_obligatoires',
+    section: '5 - Transport du défunt après mise en bière',
+    prix_ttc: 0,
+    inclus: false,
+    ordre: 2,
+  },
+  {
+    libelle: '* Transport pour un trajet de km retour (sans défunt) (**)',
+    tva: 'tva_10',
+    categorie: 'prestations_non_obligatoires',
+    section: '5 - Transport du défunt après mise en bière',
+    prix_ttc: 0,
+    inclus: false,
+    ordre: 3,
+  },
+  {
+    libelle:
+      '* Supplément pour transport durant les heures de nuit, le dimanche et les jours fériés (**)',
+    tva: 'tva_10',
+    categorie: 'prestations_non_obligatoires',
+    section: '5 - Transport du défunt après mise en bière',
+    prix_ttc: 0,
+    inclus: false,
+    ordre: 4,
+  },
+  {
+    libelle: '* Personnel (dont nombre de porteur) (**)',
+    tva: 'tva_20',
+    categorie: 'prestations_non_obligatoires',
+    section: '5 - Transport du défunt après mise en bière',
+    prix_ttc: 0,
+    inclus: false,
+    ordre: 5,
+  },
+  {
+    libelle: '* Forfait transport Adulte (60km) (*)',
+    tva: 'tva_10',
+    categorie: 'prestations_non_obligatoires',
+    section: '5 - Transport du défunt après mise en bière',
+    prix_ttc: 0,
+    inclus: false,
+    ordre: 6,
+  },
+  {
+    libelle: '* Péage Aller / Retour (**)',
+    tva: 'tva_20',
+    categorie: 'prestations_non_obligatoires',
+    section: '5 - Transport du défunt après mise en bière',
+    prix_ttc: 0,
+    inclus: false,
+    ordre: 7,
+  },
+  {
+    libelle: '* Véhicule de cérémonie (**)',
+    tva: 'tva_20',
+    categorie: 'prestations_non_obligatoires',
+    section: '6 - Cérémonie funéraire',
+    prix_ttc: 0,
+    inclus: false,
+    ordre: 1,
+  },
+  {
+    libelle: '* Personnel (dont nombre de porteur) (**)',
+    tva: 'tva_20',
+    categorie: 'prestations_non_obligatoires',
+    section: '6 - Cérémonie funéraire',
+    prix_ttc: 0,
+    inclus: false,
+    ordre: 2,
+  },
+  {
+    libelle: '* Toilette rituelle offerte (**)',
+    tva: 'exonere',
+    categorie: 'prestations_non_obligatoires',
+    section: '6 - Cérémonie funéraire',
+    prix_ttc: 0,
+    inclus: true,
+    ordre: 3,
+  },
+  {
+    libelle:
+      '* Chambre Funéraire ou Maison Funéraire ou Funérarium ou Athanée (**)',
+    tva: 'exonere',
+    categorie: 'prestations_non_obligatoires',
+    section: '6 - Cérémonie funéraire',
+    prix_ttc: 0,
+    inclus: false,
+    ordre: 4,
+  },
+  {
+    libelle: '* Vacation de police (**)',
+    tva: 'exonere',
+    categorie: 'prestations_non_obligatoires',
+    section: '6 - Cérémonie funéraire',
+    prix_ttc: 0,
+    inclus: false,
+    ordre: 5,
+  },
+  {
+    libelle: '* Toilette rituelle Mosquée de Paris (**)',
+    tva: 'exonere',
+    categorie: 'prestations_non_obligatoires',
+    section: '6 - Cérémonie funéraire',
+    prix_ttc: 0,
+    inclus: false,
+    ordre: 6,
+  },
+  {
+    libelle: '* Taxes Institut Médico Légal (**)',
+    tva: 'exonere',
+    categorie: 'prestations_non_obligatoires',
+    section: '6 - Cérémonie funéraire',
+    prix_ttc: 0,
+    inclus: false,
+    ordre: 7,
+  },
+  {
+    libelle: '* Stèle en pierre de granit (*)',
+    tva: 'tva_20',
+    categorie: 'prestations_non_obligatoires',
+    section: '7A - Inhumation / Exhumation',
+    prix_ttc: 70,
+    inclus: true,
+    ordre: 1,
+  },
+  {
+    libelle: "* Plaque d'identité apposée sur la stèle (*)",
+    tva: 'tva_20',
+    categorie: 'prestations_non_obligatoires',
+    section: '7A - Inhumation / Exhumation',
+    prix_ttc: 20,
+    inclus: true,
+    ordre: 2,
+  },
+  {
+    libelle: '* Fourniture et pose semelle ciment adulte (**)',
+    tva: 'tva_20',
+    categorie: 'prestations_non_obligatoires',
+    section: '7A - Inhumation / Exhumation',
+    prix_ttc: 490,
+    inclus: true,
+    ordre: 3,
+  },
+  {
+    libelle: '* Construction fausse case béton (**)',
+    tva: 'tva_20',
+    categorie: 'prestations_non_obligatoires',
+    section: '7A - Inhumation / Exhumation',
+    prix_ttc: 0,
+    inclus: false,
+    ordre: 4,
+  },
+  {
+    libelle: '* Frais de Déplacement plus de 50 km (**)',
+    tva: 'tva_20',
+    categorie: 'prestations_non_obligatoires',
+    section: '7A - Inhumation / Exhumation',
+    prix_ttc: 0,
+    inclus: false,
+    ordre: 5,
+  },
+  {
+    libelle: '* Dépose monument (**)',
+    tva: 'tva_20',
+    categorie: 'prestations_non_obligatoires',
+    section: '7A - Inhumation / Exhumation',
+    prix_ttc: 0,
+    inclus: false,
+    ordre: 6,
+  },
+  {
+    libelle: '* Achat Concession Adulte & Enfant (**)',
+    tva: 'exonere',
+    categorie: 'prestations_non_obligatoires',
+    section: '7A - Inhumation / Exhumation',
+    prix_ttc: 0,
+    inclus: false,
+    ordre: 7,
+  },
+  {
+    libelle: '* Taxe municipale (**)',
+    tva: 'exonere',
+    categorie: 'prestations_non_obligatoires',
+    section: '7A - Inhumation / Exhumation',
+    prix_ttc: 0,
+    inclus: false,
+    ordre: 8,
+  },
+  {
+    libelle: '* Taxe Mairie (**)',
+    tva: 'exonere',
+    categorie: 'prestations_non_obligatoires',
+    section: '7A - Inhumation / Exhumation',
+    prix_ttc: 0,
+    inclus: false,
+    ordre: 9,
+  },
+  {
+    libelle: '* Taxe exhumation (**)',
+    tva: 'exonere',
+    categorie: 'prestations_non_obligatoires',
+    section: '7A - Inhumation / Exhumation',
+    prix_ttc: 0,
+    inclus: false,
+    ordre: 10,
+  },
+];
+
+export default function Devis({ dossierId, onRetour }: Props) {
+  const [onglet, setOnglet] = useState<Onglet>('devis');
+  const [lignes, setLignes] = useState<Ligne[]>(LIGNES_DEFAUT);
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+  const [dossier, setDossier] = useState<any>(null);
+  const [cimetiere, setCimetiere] = useState<any>(null);
+  const [concessionChoisie, setConcessionChoisie] = useState('');
+  const [statutDevis, setStatutDevis] = useState('en_attente');
+  const [statutFacture, setStatutFacture] = useState('non_payee');
+  const [acompte, setAcompte] = useState(0);
+  const [datePaiement, setDatePaiement] = useState('');
+  const [remise] = useState(0);
+  const [tarifsRapatriement, setTarifsRapatriement] = useState<any[]>([]);
+  const [destinationChoisie, setDestinationChoisie] = useState('');
+  const [catalogueCercueils, setCatalogueCercueils] = useState<any[]>([]);
+
+  useEffect(() => {
+    chargerDossier();
+  }, [dossierId]);
+
+  async function chargerDossier() {
+    const { data } = await supabase
+      .from('dossiers')
+      .select(
+        '*, cimetieres!dossiers_cimetiere_id_fkey(*), defunts(*), agences(*), pouvoirs(*), mairies!dossiers_mairie_deces_id_fkey(commune)'
+      )
+      .eq('id', dossierId)
+      .single();
+    if (data) {
+      setDossier(data);
+      if (data.cimetieres) setCimetiere(data.cimetieres);
+      setStatutDevis(data.statut_devis || 'en_attente');
+      setStatutFacture(data.statut_facture || 'non_payee');
+      setAcompte(data.acompte_verse || 0);
+      setDatePaiement(data.date_paiement || '');
+      if (data.type_dossier === 'rapatriement') {
+        const { data: tarifs } = await supabase
+          .from('tarifs_rapatriement')
+          .select('*')
+          .order('ordre');
+        setTarifsRapatriement(tarifs || []);
+      }
+      const { data: cercueils } = await supabase
+        .from('catalogue_cercueils')
+        .select('*')
+        .eq('actif', true)
+        .order('nom');
+      setCatalogueCercueils(cercueils || []);
+    }
+    const { data: lignesSaved } = await supabase
+      .from('lignes_dossier')
+      .select('*')
+      .eq('dossier_id', dossierId)
+      .eq('type_document', 'devis')
+      .order('ordre');
+    if (lignesSaved && lignesSaved.length > 0) {
+      setLignes(
+        lignesSaved.map((l) => ({
+          libelle: l.libelle,
+          tva: l.tva,
+          categorie: l.categorie,
+          section: l.section || '',
+          prix_ttc: l.prix_ttc,
+          inclus: l.inclus,
+          ordre: l.ordre,
+        }))
+      );
+      if (data?.achat_concession) setConcessionChoisie(data.achat_concession);
+    } else {
+      let lignesInit = [...LIGNES_DEFAUT];
+      const cim = data?.cimetieres;
+      if (data?.achat_concession && data?.montant_concession && cim) {
+        setConcessionChoisie(data.achat_concession);
+        lignesInit = lignesInit.map((l) =>
+          l.libelle.includes('Achat Concession')
+            ? {
+                ...l,
+                prix_ttc: parseFloat(data.montant_concession) || 0,
+                inclus: parseFloat(data.montant_concession) > 0,
+                libelle: `Achat Concession ${data.achat_concession.replace(
+                  /_/g,
+                  ' '
+                )} — ${cim.nom}`,
+              }
+            : l
+        );
+      }
+      if (cim?.semelle_imposee)
+        lignesInit = lignesInit.map((l) =>
+          l.libelle.includes('semelle ciment') ? { ...l, inclus: true } : l
+        );
+      if (cim?.fausse_case_imposee)
+        lignesInit = lignesInit.map((l) =>
+          l.libelle.includes('fausse case') ? { ...l, inclus: true } : l
+        );
+      // Pré-remplir cercueil depuis le catalogue
+      if (data?.cercueil_id && cim === null) {
+        const cercueil = catalogueCercueils?.find(
+          (c: any) => c.id === data.cercueil_id
+        );
+        if (cercueil) {
+          lignesInit = lignesInit.map((l) =>
+            l.libelle.toLowerCase().includes('cercueil') &&
+            l.categorie === 'prestations_obligatoires'
+              ? {
+                  ...l,
+                  libelle: cercueil.nom,
+                  prix_ttc: cercueil.prix_ttc || 0,
+                  inclus: true,
+                }
+              : l
+          );
+        }
+      }
+
+      // Plaque d'identité
+      if (data?.plaque_identite) {
+        const prix = data.plaque_identite === '2' ? 40 : 20;
+        const libelle =
+          data.plaque_identite === '2'
+            ? "* 2 Plaques d'identité (**)"
+            : "* 1 Plaque d'identité (**)";
+        lignesInit = lignesInit.map((l) =>
+          l.libelle.toLowerCase().includes("plaque d'identité") &&
+          l.categorie === 'prestations_obligatoires'
+            ? { ...l, libelle, prix_ttc: prix, inclus: true }
+            : l
+        );
+      }
+
+      // Housse mortuaire
+      if (data?.housse_mortuaire) {
+        const prix = data.housse_mortuaire === 'requise' ? 100 : 50;
+        lignesInit = lignesInit.map((l) =>
+          l.libelle.toLowerCase().includes('housse mortuaire')
+            ? { ...l, prix_ttc: prix, inclus: true }
+            : l
+        );
+      }
+
+      // Zinc rapatriement
+      if (data?.zinc) {
+        lignesInit = lignesInit.map((l) =>
+          l.libelle.toLowerCase().includes('zinc') ? { ...l, inclus: true } : l
+        );
+      }
+
+      // Housse cercueil rapatriement
+      if (data?.housse_cercueil_rapat) {
+        lignesInit = lignesInit.map((l) =>
+          l.libelle.toLowerCase().includes('housse cercueil')
+            ? { ...l, inclus: true }
+            : l
+        );
+      }
+      setLignes(lignesInit);
+    }
+  }
+
+  function updateLigne(index: number, champ: keyof Ligne, valeur: any) {
+    setLignes((prev) =>
+      prev.map((l, i) => (i === index ? { ...l, [champ]: valeur } : l))
+    );
+  }
+
+  function ajouterLigne(categorie: Ligne['categorie'], section: string) {
+    setLignes((prev) => [
+      ...prev,
+      {
+        libelle: '',
+        tva: 'tva_20',
+        categorie,
+        section,
+        prix_ttc: 0,
+        inclus: true,
+        ordre: 99,
+      },
+    ]);
+  }
+
+  function supprimerLigne(index: number) {
+    setLignes((prev) => prev.filter((_, i) => i !== index));
+  }
+
+  function choisirConcession(val: string) {
+    setConcessionChoisie(val);
+    if (!val || !cimetiere) return;
+    const prix =
+      val === '10ans_adulte'
+        ? cimetiere.tarif_10ans_adulte
+        : val === '15ans_adulte'
+        ? cimetiere.tarif_15ans_adulte
+        : val === '30ans_adulte'
+        ? cimetiere.tarif_30ans_adulte
+        : val === '50ans_adulte'
+        ? cimetiere.tarif_50ans_adulte
+        : val === 'perpet_adulte'
+        ? cimetiere.tarif_perpet_adulte
+        : val === '10ans_enfant'
+        ? cimetiere.tarif_10ans_enfant
+        : val === '15ans_enfant'
+        ? cimetiere.tarif_15ans_enfant
+        : val === '30ans_enfant'
+        ? cimetiere.tarif_30ans_enfant
+        : val === '50ans_enfant'
+        ? cimetiere.tarif_50ans_enfant
+        : val === 'perpet_enfant'
+        ? cimetiere.tarif_perpet_enfant
+        : 0;
+    setLignes((prev) =>
+      prev.map((l) =>
+        l.libelle.includes('Achat Concession')
+          ? {
+              ...l,
+              prix_ttc: prix || 0,
+              inclus: (prix || 0) > 0,
+              libelle: `Achat Concession ${val.replace(/_/g, ' ')} — ${
+                cimetiere.nom
+              }`,
+            }
+          : l
+      )
+    );
+  }
+
+  function choisirDestination(id: string) {
+    setDestinationChoisie(id);
+    if (!id) return;
+    const t = tarifsRapatriement.find((t) => t.id === id);
+    if (!t) return;
+    setLignes([
+      {
+        libelle:
+          '* Cercueil Prestige couleur bois (essence de peuplier, forme lyonnaise, avec cuvette étanche, 4 poignées, capiton) (*)',
+        tva: 'tva_20',
+        categorie: 'prestations_obligatoires',
+        section: '3 - Cercueil & Accessoires',
+        prix_ttc: t.cercueil_adulte || 960,
+        inclus: true,
+        ordre: 1,
+      },
+      {
+        libelle: '* Zinc pour transport aérien (*)',
+        tva: 'exonere',
+        categorie: 'prestations_obligatoires',
+        section: '3 - Cercueil & Accessoires',
+        prix_ttc: t.zinc || 70,
+        inclus: true,
+        ordre: 2,
+      },
+      {
+        libelle: "* Plaque d'identité apposée sur le cercueil (*)",
+        tva: 'exonere',
+        categorie: 'prestations_obligatoires',
+        section: '3 - Cercueil & Accessoires',
+        prix_ttc: 20,
+        inclus: true,
+        ordre: 3,
+      },
+      {
+        libelle: '* Housse cercueil (**)',
+        tva: 'exonere',
+        categorie: 'prestations_obligatoires',
+        section: '3 - Cercueil & Accessoires',
+        prix_ttc: t.housse_cercueil || 18,
+        inclus: true,
+        ordre: 4,
+      },
+      {
+        libelle:
+          "* Démarches et formalités administratives (demandes d'autorisation auprès de la Mairie, Préfecture, Consulat, Organisation de départ…) (**)",
+        tva: 'tva_20',
+        categorie: 'prestations_non_obligatoires',
+        section: '1 - Préparation / Organisation des Obsèques',
+        prix_ttc: 150,
+        inclus: true,
+        ordre: 1,
+      },
+      {
+        libelle:
+          '* Coffret Adulte toilette rituelle (Linceul musulman, savon & musk…) (**)',
+        tva: 'tva_20',
+        categorie: 'prestations_non_obligatoires',
+        section: '1 - Préparation / Organisation des Obsèques',
+        prix_ttc: 20,
+        inclus: true,
+        ordre: 2,
+      },
+      {
+        libelle: '* Housse Mortuaire de transfert (*)',
+        tva: 'tva_20',
+        categorie: 'prestations_non_obligatoires',
+        section: '1 - Préparation / Organisation des Obsèques',
+        prix_ttc: t.housse_mortuaire || 50,
+        inclus: false,
+        ordre: 3,
+      },
+      {
+        libelle:
+          '* Personnel supplémentaire pour le transfert (hors forfait) (**)',
+        tva: 'tva_20',
+        categorie: 'prestations_non_obligatoires',
+        section: '1 - Préparation / Organisation des Obsèques',
+        prix_ttc: 0,
+        inclus: false,
+        ordre: 4,
+      },
+      {
+        libelle:
+          "* Retrait d'une prothèse fonctionnant au moyen d'une pile (**)",
+        tva: 'tva_20',
+        categorie: 'prestations_non_obligatoires',
+        section: '1 - Préparation / Organisation des Obsèques',
+        prix_ttc: 0,
+        inclus: false,
+        ordre: 5,
+      },
+      {
+        libelle: '* Diagnos en compagnie (**)',
+        tva: 'exonere',
+        categorie: 'prestations_non_obligatoires',
+        section: '1 - Préparation / Organisation des Obsèques',
+        prix_ttc: t.diagnos || 75,
+        inclus: true,
+        ordre: 6,
+      },
+      {
+        libelle:
+          "* Transport Avant MEB Adulte - mise à disposition d'un véhicule funéraire agréé avec son équipe - forfait (60 km) (*)",
+        tva: 'tva_10',
+        categorie: 'prestations_non_obligatoires',
+        section: '2 - Transport avant mise en bière',
+        prix_ttc: t.transport_avant_meb_adulte || 250,
+        inclus: true,
+        ordre: 1,
+      },
+      {
+        libelle: '* Transport pour un trajet aller (sans défunt) (**)',
+        tva: 'tva_20',
+        categorie: 'prestations_non_obligatoires',
+        section: '2 - Transport avant mise en bière',
+        prix_ttc: 0,
+        inclus: false,
+        ordre: 2,
+      },
+      {
+        libelle: '* Transport pour un trajet retour (sans défunt) (**)',
+        tva: 'tva_10',
+        categorie: 'prestations_non_obligatoires',
+        section: '2 - Transport avant mise en bière',
+        prix_ttc: 0,
+        inclus: false,
+        ordre: 3,
+      },
+      {
+        libelle: '* Supplément transport nuit/dimanche/férié (**)',
+        tva: 'tva_10',
+        categorie: 'prestations_non_obligatoires',
+        section: '2 - Transport avant mise en bière',
+        prix_ttc: 0,
+        inclus: false,
+        ordre: 4,
+      },
+      {
+        libelle:
+          "* Transport Après MEB Adulte - mise à disposition d'un véhicule funéraire agréé avec son équipe - forfait (60 km) (*)",
+        tva: 'tva_10',
+        categorie: 'prestations_non_obligatoires',
+        section: '5 - Transport après mise en bière',
+        prix_ttc: t.transport_apres_meb_adulte || 350,
+        inclus: true,
+        ordre: 1,
+      },
+      {
+        libelle: '* Transport pour un trajet aller (sans défunt) (**)',
+        tva: 'tva_20',
+        categorie: 'prestations_non_obligatoires',
+        section: '5 - Transport après mise en bière',
+        prix_ttc: 0,
+        inclus: false,
+        ordre: 2,
+      },
+      {
+        libelle: '* Péage Aller / Retour (**)',
+        tva: 'tva_20',
+        categorie: 'prestations_non_obligatoires',
+        section: '5 - Transport après mise en bière',
+        prix_ttc: 0,
+        inclus: false,
+        ordre: 3,
+      },
+      {
+        libelle: `* Fret aérien / Billet défunt — ${t.label} — ${t.compagnie}`,
+        tva: 'exonere',
+        categorie: 'prestations_non_obligatoires',
+        section: '7 - Exhumation & Rapatriement',
+        prix_ttc: t.billet_adulte || 0,
+        inclus: true,
+        ordre: 1,
+      },
+      {
+        libelle: '* Frais dépositoire 1 nuit (**)',
+        tva: 'exonere',
+        categorie: 'prestations_non_obligatoires',
+        section: '7 - Exhumation & Rapatriement',
+        prix_ttc: t.frais_depositoire_1nuit || 185,
+        inclus: false,
+        ordre: 2,
+      },
+      {
+        libelle: '* Frais dépositoire 2 nuits (**)',
+        tva: 'exonere',
+        categorie: 'prestations_non_obligatoires',
+        section: '7 - Exhumation & Rapatriement',
+        prix_ttc: t.frais_depositoire_2nuits || 370,
+        inclus: false,
+        ordre: 3,
+      },
+      {
+        libelle: '* Frais dépositoire 3 nuits (**)',
+        tva: 'exonere',
+        categorie: 'prestations_non_obligatoires',
+        section: '7 - Exhumation & Rapatriement',
+        prix_ttc: t.frais_depositoire_3nuits || 555,
+        inclus: false,
+        ordre: 4,
+      },
+      {
+        libelle: '* Toilette rituelle offerte (**)',
+        tva: 'exonere',
+        categorie: 'prestations_non_obligatoires',
+        section: '6 - Cérémonie funéraire',
+        prix_ttc: 0,
+        inclus: true,
+        ordre: 1,
+      },
+      {
+        libelle: '* Vacation de police (**)',
+        tva: 'exonere',
+        categorie: 'prestations_non_obligatoires',
+        section: '6 - Cérémonie funéraire',
+        prix_ttc: 0,
+        inclus: false,
+        ordre: 2,
+      },
+      {
+        libelle: '* Chambre Funéraire ou Funérarium (**)',
+        tva: 'exonere',
+        categorie: 'prestations_non_obligatoires',
+        section: '6 - Cérémonie funéraire',
+        prix_ttc: 0,
+        inclus: false,
+        ordre: 3,
+      },
+      {
+        libelle: '* Taxes Institut Médico Légal (**)',
+        tva: 'exonere',
+        categorie: 'prestations_non_obligatoires',
+        section: '6 - Cérémonie funéraire',
+        prix_ttc: 0,
+        inclus: false,
+        ordre: 4,
+      },
+    ]);
+  }
+
+  const lignesObl = lignes.filter(
+    (l) => l.categorie === 'prestations_obligatoires'
+  );
+  const lignesNonObl = lignes.filter(
+    (l) => l.categorie === 'prestations_non_obligatoires'
+  );
+  const totalObl = lignesObl
+    .filter((l) => l.inclus)
+    .reduce((s, l) => s + l.prix_ttc, 0);
+  const totalNonObl = lignesNonObl
+    .filter((l) => l.inclus)
+    .reduce((s, l) => s + l.prix_ttc, 0);
+  const lignesIncluses = lignes.filter((l) => l.inclus && l.prix_ttc > 0);
+  const tva0 = lignesIncluses
+    .filter((l) => l.tva === 'exonere')
+    .reduce((s, l) => s + l.prix_ttc, 0);
+  const tva10ttc = lignesIncluses
+    .filter((l) => l.tva === 'tva_10')
+    .reduce((s, l) => s + l.prix_ttc, 0);
+  const tva10ht = tva10ttc / 1.1;
+  const tva10montant = tva10ttc - tva10ht;
+  const tva20ttc = lignesIncluses
+    .filter((l) => l.tva === 'tva_20')
+    .reduce((s, l) => s + l.prix_ttc, 0);
+  const tva20ht = tva20ttc / 1.2;
+  const tva20montant = tva20ttc - tva20ht;
+  const totalHT = tva10ht + tva20ht + tva0;
+  const totalTVA = tva10montant + tva20montant;
+  const totalTTC = totalHT + totalTVA - remise;
+  const resteAPayer = totalTTC - acompte;
+
+  async function sauvegarder() {
+    setSaving(true);
+    if (dossier?.facture_verrouillee && onglet === 'facture') {
+      alert('🔒 Cette facture est verrouillée et ne peut plus être modifiée.');
+      setSaving(false);
+      return;
+    }
+    try {
+      await supabase
+        .from('lignes_dossier')
+        .delete()
+        .eq('dossier_id', dossierId)
+        .eq('type_document', 'devis');
+      await supabase.from('lignes_dossier').insert(
+        lignes.map((l) => ({
+          dossier_id: dossierId,
+          type_document: 'devis',
+          categorie: l.categorie,
+          section: l.section || '',
+          libelle: l.libelle,
+          tva: l.tva,
+          prix_ttc: l.prix_ttc,
+          prix_ht:
+            l.tva === 'tva_20'
+              ? l.prix_ttc / 1.2
+              : l.tva === 'tva_10'
+              ? l.prix_ttc / 1.1
+              : l.prix_ttc,
+          inclus: l.inclus,
+          ordre: l.ordre,
+        }))
+      );
+      await supabase
+        .from('dossiers')
+        .update({
+          statut_devis: statutDevis,
+          statut_facture: statutFacture,
+          acompte_verse: acompte,
+          date_paiement: datePaiement || null,
+        })
+        .eq('id', dossierId);
+      setSaved(true);
+      setTimeout(() => setSaved(false), 3000);
+    } catch (e: any) {
+      alert('Erreur : ' + e.message);
+    }
+    setSaving(false);
+  }
+
+  const statutBadge = (statut: string) => {
+    const map: any = {
+      en_attente: { label: 'En attente', bg: '#FAEEDA', color: '#854F0B' },
+      accepte: { label: 'Accepté', bg: '#E1F5EE', color: '#0F6E56' },
+      refuse: { label: 'Refusé', bg: '#FAECE7', color: '#993C1D' },
+      non_payee: { label: 'Non payée', bg: '#FAECE7', color: '#993C1D' },
+      partiellement_payee: {
+        label: 'Partiel',
+        bg: '#FAEEDA',
+        color: '#854F0B',
+      },
+      payee: { label: 'Payée ✅', bg: '#E1F5EE', color: '#0F6E56' },
+    };
+    const s = map[statut] || { label: statut, bg: '#f0f0f0', color: '#666' };
+    return (
+      <span
+        style={{
+          background: s.bg,
+          color: s.color,
+          padding: '0.3rem 0.8rem',
+          borderRadius: '12px',
+          fontSize: '13px',
+          fontWeight: 'bold',
+        }}
+      >
+        {s.label}
+      </span>
+    );
+  };
+
+  const inputPrix = {
+    width: '80px',
+    padding: '0.3rem',
+    textAlign: 'right' as const,
+    border: '1px solid #ddd',
+    borderRadius: '4px',
+  };
+
+  const getSections = (
+    categorie: 'prestations_obligatoires' | 'prestations_non_obligatoires'
+  ) => {
+    return [
+      ...new Set(
+        lignes.filter((l) => l.categorie === categorie).map((l) => l.section)
+      ),
+    ].filter(Boolean);
+  };
+
+  const renderColonne = (
+    categorie: 'prestations_obligatoires' | 'prestations_non_obligatoires',
+    titre: string,
+    couleur: string,
+    bg: string
+  ) => {
+    const sections = getSections(categorie);
+    const total = lignes
+      .filter((l) => l.categorie === categorie && l.inclus)
+      .reduce((s, l) => s + l.prix_ttc, 0);
+    return (
+      <div
+        style={{
+          flex: 1,
+          background: bg,
+          border: `1px solid ${couleur}`,
+          borderRadius: '8px',
+          padding: '1rem',
+        }}
+      >
+        <h3
+          style={{
+            color: couleur,
+            fontSize: '13px',
+            margin: '0 0 1rem',
+            textTransform: 'uppercase',
+            textAlign: 'center',
+          }}
+        >
+          {titre}
+        </h3>
+        {categorie === 'prestations_non_obligatoires' && cimetiere && (
+          <div
+            style={{
+              background: 'white',
+              borderRadius: '6px',
+              padding: '0.75rem',
+              marginBottom: '0.75rem',
+              border: `1px solid ${couleur}`,
+            }}
+          >
+            <div
+              style={{
+                fontSize: '11px',
+                fontWeight: 'bold',
+                color: couleur,
+                marginBottom: '0.4rem',
+              }}
+            >
+              🏛️ Concession — {cimetiere.nom}
+            </div>
+            <select
+              value={concessionChoisie}
+              onChange={(e) => choisirConcession(e.target.value)}
+              style={{ width: '100%', padding: '0.3rem', fontSize: '11px' }}
+            >
+              <option value="">-- Choisir la durée --</option>
+              {cimetiere.tarif_10ans_adulte > 0 && (
+                <option value="10ans_adulte">
+                  10 ans adulte — {cimetiere.tarif_10ans_adulte} €
+                </option>
+              )}
+              {cimetiere.tarif_15ans_adulte > 0 && (
+                <option value="15ans_adulte">
+                  15 ans adulte — {cimetiere.tarif_15ans_adulte} €
+                </option>
+              )}
+              {cimetiere.tarif_30ans_adulte > 0 && (
+                <option value="30ans_adulte">
+                  30 ans adulte — {cimetiere.tarif_30ans_adulte} €
+                </option>
+              )}
+              {cimetiere.tarif_50ans_adulte > 0 && (
+                <option value="50ans_adulte">
+                  50 ans adulte — {cimetiere.tarif_50ans_adulte} €
+                </option>
+              )}
+              {cimetiere.tarif_perpet_adulte > 0 && (
+                <option value="perpet_adulte">
+                  Perpétuelle adulte — {cimetiere.tarif_perpet_adulte} €
+                </option>
+              )}
+              {cimetiere.tarif_10ans_enfant > 0 && (
+                <option value="10ans_enfant">
+                  10 ans enfant — {cimetiere.tarif_10ans_enfant} €
+                </option>
+              )}
+              {cimetiere.tarif_15ans_enfant > 0 && (
+                <option value="15ans_enfant">
+                  15 ans enfant — {cimetiere.tarif_15ans_enfant} €
+                </option>
+              )}
+              {cimetiere.tarif_30ans_enfant > 0 && (
+                <option value="30ans_enfant">
+                  30 ans enfant — {cimetiere.tarif_30ans_enfant} €
+                </option>
+              )}
+              {cimetiere.tarif_50ans_enfant > 0 && (
+                <option value="50ans_enfant">
+                  50 ans enfant — {cimetiere.tarif_50ans_enfant} €
+                </option>
+              )}
+              {cimetiere.tarif_perpet_enfant > 0 && (
+                <option value="perpet_enfant">
+                  Perpétuelle enfant — {cimetiere.tarif_perpet_enfant} €
+                </option>
+              )}
+            </select>
+          </div>
+        )}
+        {sections.map((section) => (
+          <div key={section} style={{ marginBottom: '1rem' }}>
+            <div
+              style={{
+                background: couleur,
+                color: 'white',
+                padding: '0.25rem 0.5rem',
+                borderRadius: '4px',
+                fontSize: '11px',
+                fontWeight: 'bold',
+                marginBottom: '0.5rem',
+              }}
+            >
+              {section}
+            </div>
+            {lignes.map((l, i) =>
+              l.categorie === categorie && l.section === section ? (
+                <div
+                  key={i}
+                  style={{
+                    display: 'grid',
+                    gridTemplateColumns: '1fr auto auto auto',
+                    gap: '0.25rem',
+                    alignItems: 'center',
+                    marginBottom: '0.3rem',
+                    opacity: l.inclus ? 1 : 0.4,
+                  }}
+                >
+                  <input
+                    value={l.libelle}
+                    onChange={(e) => updateLigne(i, 'libelle', e.target.value)}
+                    style={{
+                      fontSize: '11px',
+                      padding: '0.25rem',
+                      border: '1px solid #eee',
+                      borderRadius: '3px',
+                      width: '100%',
+                    }}
+                  />
+                  <input
+                    type="number"
+                    value={l.prix_ttc}
+                    onChange={(e) =>
+                      updateLigne(
+                        i,
+                        'prix_ttc',
+                        parseFloat(e.target.value) || 0
+                      )
+                    }
+                    style={inputPrix}
+                  />
+                  <input
+                    type="checkbox"
+                    checked={l.inclus}
+                    onChange={(e) => updateLigne(i, 'inclus', e.target.checked)}
+                    title="Inclure"
+                  />
+                  <button
+                    onClick={() => supprimerLigne(i)}
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      cursor: 'pointer',
+                      color: '#ccc',
+                      fontSize: '14px',
+                    }}
+                  >
+                    ×
+                  </button>
+                </div>
+              ) : null
+            )}
+            <button
+              onClick={() => ajouterLigne(categorie, section)}
+              style={{
+                width: '100%',
+                padding: '0.25rem',
+                background: 'none',
+                border: `1px dashed ${couleur}`,
+                borderRadius: '4px',
+                color: couleur,
+                cursor: 'pointer',
+                fontSize: '11px',
+                marginTop: '0.25rem',
+              }}
+            >
+              + Ajouter
+            </button>
+          </div>
+        ))}
+        <div
+          style={{
+            borderTop: `2px solid ${couleur}`,
+            marginTop: '1rem',
+            paddingTop: '0.5rem',
+            display: 'flex',
+            justifyContent: 'space-between',
+            fontWeight: 'bold',
+            color: couleur,
+          }}
+        >
+          <span>Total TTC</span>
+          <span>{total.toFixed(2)} €</span>
+        </div>
+      </div>
+    );
+  };
+
+  function imprimer() {
+    const titreDoc =
+      onglet === 'devis'
+        ? 'Devis'
+        : onglet === 'facture'
+        ? 'Facture'
+        : 'Bon de commande';
+    const d = dossier?.defunts;
+    const p = dossier?.pouvoirs?.[0];
+    const agence = dossier?.agences;
+    const couleur = agence?.couleur_principale || '#2d6a4f';
+    const lignesOblHTML = lignesObl.filter((l) => l.inclus);
+    const lignesNonOblHTML = lignesNonObl.filter((l) => l.inclus);
+    const grouper = (items: Ligne[]) => {
+      const map: { [k: string]: Ligne[] } = {};
+      items.forEach((l) => {
+        if (!map[l.section]) map[l.section] = [];
+        map[l.section].push(l);
+      });
+      return map;
+    };
+    const oblGroups = grouper(lignesOblHTML);
+    const nonOblGroups = grouper(lignesNonOblHTML);
+    const allSections = [
+      ...new Set([...Object.keys(oblGroups), ...Object.keys(nonOblGroups)]),
+    ];
+    const tableauLignes = allSections
+      .map((section) => {
+        const obl = oblGroups[section] || [];
+        const nonObl = nonOblGroups[section] || [];
+        const maxRows = Math.max(obl.length, nonObl.length);
+        let rows = `<tr><td colspan="4" style="background:${couleur}; color:white; padding:0.3rem 0.5rem; font-size:11px; font-weight:bold;">${section}</td></tr>`;
+        for (let i = 0; i < maxRows; i++) {
+          const o = obl[i];
+          const n = nonObl[i];
+          const tvaLabel = (tva: string) =>
+            tva === 'tva_20' ? ' (1)' : tva === 'tva_10' ? ' (2)' : ' (3)';
+          rows += `<tr>
+          <td style="padding:0.3rem 0.5rem; font-size:11px; border-bottom:1px solid #f0f0f0;">${
+            o ? o.libelle + tvaLabel(o.tva) : ''
+          }</td>
+          <td style="padding:0.3rem 0.5rem; font-size:11px; text-align:right; border-bottom:1px solid #f0f0f0;">${
+            o && o.prix_ttc > 0 ? o.prix_ttc.toFixed(2) + ' €' : ''
+          }</td>
+          <td style="padding:0.3rem 0.5rem; font-size:11px; border-bottom:1px solid #f0f0f0;">${
+            n ? n.libelle + tvaLabel(n.tva) : ''
+          }</td>
+          <td style="padding:0.3rem 0.5rem; font-size:11px; text-align:right; border-bottom:1px solid #f0f0f0;">${
+            n && n.prix_ttc > 0 ? n.prix_ttc.toFixed(2) + ' €' : ''
+          }</td>
+        </tr>`;
+        }
+        return rows;
+      })
+      .join('');
+
+    const servicesHTML =
+      dossier?.type_dossier === 'rapatriement'
+        ? `
+<div style="border:1px solid #ddd; padding:0.5rem; margin-bottom:0.5rem; font-size:10px; background:#fafafa;">
+  <strong style="font-size:11px;">Services funéraires</strong><br><br>
+  ${
+    dossier?.date_toilette
+      ? `<strong>Toilette rituelle</strong> : le ${new Date(
+          dossier.date_toilette
+        ).toLocaleDateString('fr-FR')}${
+          dossier?.heure_toilette ? ` à ${dossier.heure_toilette}` : ''
+        }<br>`
+      : ''
+  }
+  ${
+    dossier?.date_meb
+      ? `<strong>Mise en bière</strong> : le ${new Date(
+          dossier.date_meb
+        ).toLocaleDateString('fr-FR')}${
+          dossier?.heure_meb ? ` à ${dossier.heure_meb}` : ''
+        }<br>`
+      : ''
+  }
+  ${
+    dossier?.date_fermeture_depart
+      ? `<strong>Fermeture & Départ</strong> : le ${new Date(
+          dossier.date_fermeture_depart
+        ).toLocaleDateString('fr-FR')}${
+          dossier?.heure_fermeture_depart
+            ? ` à ${dossier.heure_fermeture_depart}`
+            : ''
+        }<br>`
+      : ''
+  }
+  ${
+    dossier?.date_vol
+      ? `<strong>Vol</strong> : ${dossier?.compagnie_aerienne || ''} ${
+          dossier?.numero_vol || ''
+        } le ${new Date(dossier.date_vol).toLocaleDateString('fr-FR')}${
+          dossier?.heure_depart_vol ? ` à ${dossier.heure_depart_vol}` : ''
+        } — ${dossier?.aeroport_depart || ''} → ${
+          dossier?.aeroport_arrivee || ''
+        }${
+          dossier?.aeroport_escale ? ` (escale ${dossier.aeroport_escale})` : ''
+        }<br>`
+      : ''
+  }
+  ${
+    dossier?.cimetiere_pays
+      ? `<strong>Inhumation</strong> : ${dossier.cimetiere_pays}<br>`
+      : ''
+  }
+</div>`
+        : '';
+
+    const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${titreDoc} — ${
+      d?.prenom
+    } ${d?.nom}</title>
+<style>* { box-sizing: border-box; } body { font-family: Arial, sans-serif; font-size: 11px; color: #333; margin: 0; padding: 0.5cm 1cm; } table { width: 100%; border-collapse: collapse; } .print-hint { background: #EEF2FF; border: 1px solid ${couleur}; border-radius: 8px; padding: 0.75rem; margin-bottom: 1rem; font-size: 12px; color: ${couleur}; text-align: center; } @media print { .print-hint { display: none; } } @page { margin: 1cm; size: A4; }</style>
+</head><body>
+<div class="print-hint">💡 <strong>Ctrl+P</strong> → <strong>"Enregistrer en PDF"</strong> → <strong>Enregistrer</strong></div>
+<table style="margin-bottom:0.5rem;"><tr>
+  <td style="width:30%; vertical-align:top;">${
+    agence?.logo_url
+      ? `<img src="${agence.logo_url}" style="max-height:70px; max-width:150px;">`
+      : ''
+  }</td>
+  <td style="vertical-align:top; text-align:center;"><strong style="font-size:14px;">${
+    agence?.nom || ''
+  }</strong><br>${agence?.adresse_complete || ''}<br>Tél : ${
+      agence?.telephone || ''
+    }<br>Mail : ${agence?.email || ''}<br>${
+      agence?.site_web ? `Site internet : ${agence.site_web}<br>` : ''
+    }Habilitation : ${agence?.habilitation || ''}<br>Siret : ${
+      agence?.siret || ''
+    }</td>
+  <td style="width:30%;"></td>
+</tr></table>
+<table style="margin-bottom:0.5rem; font-size:11px;"><tr>
+  <td style="width:50%; vertical-align:top;">
+    <strong>Référence dossier : ${dossier?.compte_client || ''}</strong><br>
+    <strong>${titreDoc} n° ${dossier?.numero_devis || ''}</strong><br>
+    ${titreDoc} établi le : ${new Date().toLocaleDateString(
+      'fr-FR'
+    )}, valable ${agence?.validite_devis_jours || 30} jours<br>
+    Votre conseiller : ${agence?.nom || ''}<br>Tél : ${
+      agence?.telephone || ''
+    }<br>
+    Lien de parenté avec le défunt : ${
+      p?.lien_parente || ''
+    }<br>Compte client : ${dossier?.compte_client || ''}
+  </td>
+  <td style="width:50%; vertical-align:top; text-align:right;">
+    <strong>${p ? `${p.civilite || ''} ${p.prenom} ${p.nom}` : ''}</strong><br>
+    ${p?.adresse || ''}<br>Tél : ${p?.telephone_1 || ''}${
+      p?.telephone_2 ? ` / ${p.telephone_2}` : ''
+    }<br>
+    ${p?.email ? `Email : ${p.email}` : ''}
+  </td>
+</tr></table>
+<div style="border:1px solid #333; padding:0.5rem; margin-bottom:0.5rem; font-size:11px;">
+  Obsèques de <strong>${d?.civilite || ''} ${d?.prenom || ''} ${
+      d?.nom || ''
+    }</strong>
+  ${
+    d?.date_naissance
+      ? ` né(e) le ${new Date(d.date_naissance).toLocaleDateString('fr-FR')}`
+      : ''
+  }
+  ${d?.lieu_naissance ? ` à ${d.lieu_naissance}` : ''}
+  ${
+    dossier?.date_deces
+      ? ` et décédé(e) le ${new Date(dossier.date_deces).toLocaleDateString(
+          'fr-FR'
+        )}`
+      : ''
+  }
+  ${dossier?.heure_deces ? ` à ${dossier.heure_deces}` : ''}
+  ${
+    d?.date_naissance && dossier?.date_deces
+      ? ` à l'âge de ${Math.floor(
+          (new Date(dossier.date_deces).getTime() -
+            new Date(d.date_naissance).getTime()) /
+            (365.25 * 24 * 60 * 60 * 1000)
+        )} ans`
+      : ''
+  }
+  ${dossier?.lieu_deces ? `, à ${dossier.lieu_deces}` : ''}
+</div>
+${servicesHTML}
+<div style="font-size:9px; margin-bottom:0.5rem; font-style:italic; border:1px solid #ddd; padding:0.4rem;">
+  Il est recommandé aux familles de consulter l'association pour la gestion des informations sur le risque en assurance (AGIRA) pour vérifier l'existence ou non d'une assurance obsèques souscrite par le défunt avant son décès (https://www.agira-vie.fr/obseques).
+  En cas d'acceptation, le présent devis doit mener à la signature d'un bon de commande permettant la réalisation des obsèques dans les délais réglementaires prévus aux articles R. 2213-33 et R. 2213-35 du CGCT.
+</div>
+<table style="border:1px solid #333; margin-bottom:0.5rem;">
+  <thead><tr>
+    <th style="background:${couleur}; color:white; padding:0.4rem; width:40%; text-align:center; font-size:11px;">PRESTATIONS OBLIGATOIRES</th>
+    <th style="background:${couleur}; color:white; padding:0.4rem; width:10%; text-align:center; font-size:11px;">Montant (TTC)</th>
+    <th style="background:${couleur}; color:white; padding:0.4rem; width:40%; text-align:center; font-size:11px;">PRESTATIONS NON OBLIGATOIRES</th>
+    <th style="background:${couleur}; color:white; padding:0.4rem; width:10%; text-align:center; font-size:11px;">Montant (TTC)</th>
+  </tr></thead>
+  <tbody>${tableauLignes}
+    <tr style="font-weight:bold; background:#f0f0f0;">
+      <td style="padding:0.4rem; font-size:11px;">Total TTC prestations obligatoires :</td>
+      <td style="padding:0.4rem; text-align:right; font-size:11px;">${totalObl.toFixed(
+        2
+      )} €</td>
+      <td style="padding:0.4rem; font-size:11px;">Total TTC prestations non obligatoires :</td>
+      <td style="padding:0.4rem; text-align:right; font-size:11px;">${totalNonObl.toFixed(
+        2
+      )} €</td>
+    </tr>
+  </tbody>
+</table>
+<table style="margin-bottom:0.5rem; border:1px solid #ddd;">
+  <tr style="background:#f9f9f9;">
+    <th style="padding:0.3rem 0.5rem; text-align:left; font-size:11px;">TVA</th>
+    <th style="padding:0.3rem 0.5rem; text-align:right; font-size:11px;">Base TVA</th>
+    <th style="padding:0.3rem 0.5rem; text-align:right; font-size:11px;">Montant TVA</th>
+    <th style="width:30%;"></th>
+    <th style="padding:0.3rem 0.5rem; text-align:left; font-size:11px;">Total HT</th>
+    <th style="padding:0.3rem 0.5rem; text-align:right; font-size:11px;">${totalHT.toFixed(
+      2
+    )} €</th>
+  </tr>
+  <tr>
+    <td style="padding:0.3rem 0.5rem; font-size:11px;">0%</td><td style="padding:0.3rem 0.5rem; text-align:right; font-size:11px;">${tva0.toFixed(
+      2
+    )} €</td>
+    <td style="padding:0.3rem 0.5rem; text-align:right; font-size:11px;">0,00 €</td><td></td>
+    <td style="padding:0.3rem 0.5rem; font-size:11px;">Total TVA</td><td style="padding:0.3rem 0.5rem; text-align:right; font-size:11px;">${totalTVA.toFixed(
+      2
+    )} €</td>
+  </tr>
+  <tr>
+    <td style="padding:0.3rem 0.5rem; font-size:11px;">10%</td><td style="padding:0.3rem 0.5rem; text-align:right; font-size:11px;">${tva10ht.toFixed(
+      2
+    )} €</td>
+    <td style="padding:0.3rem 0.5rem; text-align:right; font-size:11px;">${tva10montant.toFixed(
+      2
+    )} €</td><td></td>
+    <td style="padding:0.3rem 0.5rem; font-size:11px; font-weight:bold;">Total TTC</td>
+    <td style="padding:0.3rem 0.5rem; text-align:right; font-size:11px; font-weight:bold; color:${couleur};">${totalTTC.toFixed(
+      2
+    )} €</td>
+  </tr>
+  <tr>
+    <td style="padding:0.3rem 0.5rem; font-size:11px;">20%</td><td style="padding:0.3rem 0.5rem; text-align:right; font-size:11px;">${tva20ht.toFixed(
+      2
+    )} €</td>
+    <td style="padding:0.3rem 0.5rem; text-align:right; font-size:11px;">${tva20montant.toFixed(
+      2
+    )} €</td><td></td><td></td><td></td>
+  </tr>
+  ${
+    onglet === 'facture' && acompte > 0
+      ? `
+  <tr style="font-weight:bold;"><td colspan="3"></td><td></td>
+    <td style="padding:0.3rem 0.5rem; font-size:11px;">Acompte versé</td>
+    <td style="padding:0.3rem 0.5rem; text-align:right; font-size:11px; color:#854F0B;">-${acompte.toFixed(
+      2
+    )} €</td>
+  </tr>
+  <tr style="font-weight:bold;"><td colspan="3"></td><td></td>
+    <td style="padding:0.3rem 0.5rem; font-size:11px;">Reste à payer</td>
+    <td style="padding:0.3rem 0.5rem; text-align:right; font-size:11px; color:${
+      resteAPayer <= 0 ? '#0F6E56' : '#993C1D'
+    };">${resteAPayer.toFixed(2)} €</td>
+  </tr>`
+      : ''
+  }
+</table>
+<table style="margin-bottom:0.5rem;"><tr>
+  <td style="width:50%; font-size:10px; padding:0.5rem;">
+    Je soussigné(e) ${
+      p
+        ? `${p.civilite || ''} ${p.prenom} ${p.nom}`
+        : '.................................'
+    }<br><br>
+    Accepte le présent ${titreDoc.toLowerCase()} prévisionnel<br><br>
+    Le ${new Date().toLocaleDateString('fr-FR')} à ${
+      agence?.ville || '............'
+    }<br><br>
+    <em>Signature précédée de la mention "Lu et Approuvé, bon pour acceptation"</em><br>
+    <div style="border:1px solid #eee; height:60px; margin-top:0.5rem; background:#fafafa;"></div>
+  </td>
+  <td style="width:50%; font-size:10px; padding:0.5rem;">
+    Signature ${agence?.nom || ''}<br>
+    <div style="border:1px solid #eee; height:60px; margin-top:0.5rem; background:#fafafa; display:flex; align-items:center; justify-content:center;">
+      ${
+        agence?.signature_url
+          ? `<img src="${agence.signature_url}" style="max-height:55px;">`
+          : ''
+      }
+    </div>
+  </td>
+</tr></table>
+${
+  agence?.zone_texte_1 &&
+  ((onglet === 'devis' && agence.zone_texte_1_devis) ||
+    (onglet === 'facture' && agence.zone_texte_1_facture) ||
+    (onglet === 'bon_commande' && agence.zone_texte_1_bon_commande))
+    ? `<div style="font-size:9px; color:#333; border:1px solid #ddd; padding:0.5rem; margin-bottom:0.5rem;">${agence.zone_texte_1}</div>`
+    : ''
+}
+${
+  agence?.zone_texte_2 &&
+  ((onglet === 'devis' && agence.zone_texte_2_devis) ||
+    (onglet === 'facture' && agence.zone_texte_2_facture) ||
+    (onglet === 'bon_commande' && agence.zone_texte_2_bon_commande))
+    ? `<div style="font-size:9px; color:#333; border:1px solid #ddd; padding:0.5rem; margin-bottom:0.5rem;">${agence.zone_texte_2}</div>`
+    : ''
+}
+${
+  agence?.zone_texte_3 &&
+  ((onglet === 'devis' && agence.zone_texte_3_devis) ||
+    (onglet === 'facture' && agence.zone_texte_3_facture) ||
+    (onglet === 'bon_commande' && agence.zone_texte_3_bon_commande))
+    ? `<div style="font-size:9px; color:#333; border:1px solid #ddd; padding:0.5rem; margin-bottom:0.5rem;">${agence.zone_texte_3}</div>`
+    : ''
+}
+<div style="font-size:8px; color:#666; border-top:1px solid #eee; padding-top:0.5rem; margin-top:0.5rem;">${
+      agence?.mention_legale || ''
+    }</div>
+<div style="font-size:8px; color:#666; margin-top:0.5rem;">
+  (1) TVA 20% — (2) TVA 10% transport corps avant/après mise en bière — (3) Non soumis à TVA<br>
+  "Nous vous informons de votre droit d'inscription à la liste d'opposition pour le démarchage téléphonique sur Bloctel : https://www.bloctel.gouv.fr/"
+</div>
+<div style="font-size:8px; color:#666; border-top:1px solid #eee; padding-top:0.3rem; margin-top:0.5rem; text-align:center;">
+  ${agence?.rcs ? `RCS ${agence.rcs} — ` : ''}${
+      agence?.siret ? `SIRET ${agence.siret} — ` : ''
+    }${agence?.tva_intra ? `TVA ${agence.tva_intra} — ` : ''}${
+      agence?.ape ? `Code APE : ${agence.ape} — ` : ''
+    }${agence?.habilitation ? `Habilitation n°${agence.habilitation}` : ''}${
+      agence?.site_web ? ` — ${agence.site_web}` : ''
+    }
+</div>
+</body></html>`;
+
+    const blob = new Blob([html], { type: 'text/html' });
+    const url = URL.createObjectURL(blob);
+    window.open(url, '_blank');
+  }
+
+  const couleurAgence = dossier?.agences?.couleur_principale || '#2d6a4f';
+
+  if (!dossier) return <p style={{ padding: '2rem' }}>Chargement...</p>;
+
+  return (
+    <div style={{ padding: '2rem', maxWidth: '1200px', margin: '0 auto' }}>
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '1rem',
+          marginBottom: '1rem',
+        }}
+      >
+        <button onClick={onRetour}>← Retour</button>
+        <h2 style={{ margin: 0 }}>📄 Documents financiers</h2>
+        <div
+          style={{
+            marginLeft: 'auto',
+            display: 'flex',
+            gap: '1rem',
+            alignItems: 'center',
+          }}
+        >
+          {saved && (
+            <span style={{ color: '#0F6E56', fontWeight: 'bold' }}>
+              ✅ Sauvegardé !
+            </span>
+          )}
+          <button
+            onClick={sauvegarder}
+            disabled={saving}
+            style={{
+              padding: '0.6rem 1.2rem',
+              background: saving ? '#ccc' : couleurAgence,
+              color: 'white',
+              border: 'none',
+              borderRadius: '6px',
+              cursor: 'pointer',
+              fontWeight: 'bold',
+            }}
+          >
+            {saving ? '⏳...' : '💾 Sauvegarder'}
+          </button>
+          <button
+            onClick={imprimer}
+            style={{
+              padding: '0.6rem 1.2rem',
+              background: couleurAgence,
+              color: 'white',
+              border: 'none',
+              borderRadius: '6px',
+              cursor: 'pointer',
+              fontWeight: 'bold',
+              opacity: 0.85,
+            }}
+          >
+            📥 Télécharger PDF
+          </button>
+        </div>
+      </div>
+
+      <div
+        style={{
+          borderBottom: `2px solid ${couleurAgence}`,
+          marginBottom: '1.5rem',
+          display: 'flex',
+          gap: '0.5rem',
+        }}
+      >
+        {(['devis', 'facture', 'bon_commande'] as Onglet[]).map((o) => (
+          <button
+            key={o}
+            onClick={() => setOnglet(o)}
+            style={{
+              padding: '0.6rem 1.5rem',
+              border: 'none',
+              borderBottom:
+                onglet === o
+                  ? `3px solid ${couleurAgence}`
+                  : '3px solid transparent',
+              background: 'none',
+              cursor: 'pointer',
+              fontWeight: onglet === o ? 'bold' : 'normal',
+              color: onglet === o ? couleurAgence : '#666',
+              fontSize: '15px',
+            }}
+          >
+            {o === 'devis'
+              ? `📋 Devis ${statutBadge(statutDevis)}`
+              : o === 'facture'
+              ? `🧾 Facture ${statutBadge(statutFacture)}`
+              : '📝 Bon de commande'}
+          </button>
+        ))}
+      </div>
+
+      {dossier?.type_dossier === 'rapatriement' && (
+        <div
+          style={{
+            background: '#FAECE7',
+            borderRadius: '8px',
+            padding: '1rem',
+            marginBottom: '1.5rem',
+            border: '1px solid #993C1D',
+          }}
+        >
+          <label
+            style={{ fontWeight: 'bold', color: '#993C1D', fontSize: '14px' }}
+          >
+            ✈️ Choisir la destination pour pré-remplir le devis :
+          </label>
+          <select
+            value={destinationChoisie}
+            onChange={(e) => choisirDestination(e.target.value)}
+            style={{
+              width: '100%',
+              padding: '0.5rem',
+              marginTop: '0.5rem',
+              borderRadius: '6px',
+              border: '1px solid #993C1D',
+            }}
+          >
+            <option value="">-- Sélectionner une destination --</option>
+            {tarifsRapatriement.map((t) => (
+              <option key={t.id} value={t.id}>
+                {t.label} — {t.compagnie}
+              </option>
+            ))}
+          </select>
+          {destinationChoisie && (
+            <div
+              style={{
+                fontSize: '12px',
+                color: '#993C1D',
+                marginTop: '0.5rem',
+              }}
+            >
+              ⚠️ Sélectionner une destination remplace toutes les lignes du
+              devis
+            </div>
+          )}
+        </div>
+      )}
+      {/* SÉLECTEUR CERCUEIL CATALOGUE */}
+      {catalogueCercueils.length > 0 && (
+        <div
+          style={{
+            background: '#f0fdf4',
+            borderRadius: '8px',
+            padding: '1rem',
+            marginBottom: '1.5rem',
+            border: '1px solid #0F6E56',
+          }}
+        >
+          <label
+            style={{ fontWeight: 'bold', color: '#0F6E56', fontSize: '14px' }}
+          >
+            ⚰️ Choisir un cercueil depuis le catalogue :
+          </label>
+          <select
+            onChange={(e) => {
+              const id = e.target.value;
+              if (!id) return;
+              const c = catalogueCercueils.find((c) => c.id === id);
+              if (!c) return;
+              setLignes((prev) =>
+                prev.map((l) =>
+                  l.libelle.toLowerCase().includes('cercueil') &&
+                  l.categorie === 'prestations_obligatoires'
+                    ? {
+                        ...l,
+                        libelle: c.nom,
+                        prix_ttc: c.prix_ttc || 0,
+                        inclus: true,
+                      }
+                    : l
+                )
+              );
+            }}
+            style={{
+              width: '100%',
+              padding: '0.5rem',
+              marginTop: '0.5rem',
+              borderRadius: '6px',
+              border: '1px solid #0F6E56',
+            }}
+            defaultValue=""
+          >
+            <option value="">-- Sélectionner un cercueil --</option>
+            {catalogueCercueils.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.nom} — {c.type} — {c.prix_ttc} € TTC
+              </option>
+            ))}
+          </select>
+          <div
+            style={{ fontSize: '12px', color: '#0F6E56', marginTop: '0.5rem' }}
+          >
+            ℹ️ Sélectionner un cercueil met à jour la ligne cercueil dans les
+            prestations obligatoires
+          </div>
+        </div>
+      )}
+      {onglet === 'devis' && (
+        <div
+          style={{
+            background: `${couleurAgence}11`,
+            borderRadius: '8px',
+            padding: '1rem',
+            marginBottom: '1.5rem',
+            display: 'flex',
+            gap: '1rem',
+            alignItems: 'center',
+            border: `1px solid ${couleurAgence}33`,
+          }}
+        >
+          <label
+            style={{
+              fontWeight: 'bold',
+              fontSize: '14px',
+              color: couleurAgence,
+            }}
+          >
+            Statut du devis :
+          </label>
+          <select
+            value={statutDevis}
+            onChange={(e) => setStatutDevis(e.target.value)}
+            style={{
+              padding: '0.4rem 0.8rem',
+              borderRadius: '6px',
+              border: '1px solid #ddd',
+            }}
+          >
+            <option value="en_attente">En attente</option>
+            <option value="accepte">Accepté</option>
+            <option value="refuse">Refusé</option>
+          </select>
+          {statutBadge(statutDevis)}
+        </div>
+      )}
+
+      {onglet === 'facture' && (
+        <div
+          style={{
+            background: '#E1F5EE',
+            borderRadius: '8px',
+            padding: '1rem',
+            marginBottom: '1.5rem',
+            display: 'flex',
+            gap: '1.5rem',
+            alignItems: 'center',
+            flexWrap: 'wrap',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <label style={{ fontWeight: 'bold', fontSize: '14px' }}>
+              Statut :
+            </label>
+            <select
+              value={statutFacture}
+              onChange={(e) => setStatutFacture(e.target.value)}
+              style={{
+                padding: '0.4rem 0.8rem',
+                borderRadius: '6px',
+                border: '1px solid #ddd',
+              }}
+            >
+              <option value="non_payee">Non payée</option>
+              <option value="partiellement_payee">Partiellement payée</option>
+              <option value="payee">Payée</option>
+            </select>
+            {statutBadge(statutFacture)}
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <label style={{ fontWeight: 'bold', fontSize: '14px' }}>
+              Acompte versé :
+            </label>
+            <input
+              type="number"
+              value={acompte}
+              onChange={(e) => setAcompte(parseFloat(e.target.value) || 0)}
+              style={{
+                width: '100px',
+                padding: '0.4rem',
+                border: '1px solid #ddd',
+                borderRadius: '6px',
+                textAlign: 'right',
+              }}
+            />
+            <span>€</span>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <label style={{ fontWeight: 'bold', fontSize: '14px' }}>
+              Date paiement :
+            </label>
+            <input
+              type="date"
+              value={datePaiement}
+              onChange={(e) => setDatePaiement(e.target.value)}
+              style={{
+                padding: '0.4rem',
+                border: '1px solid #ddd',
+                borderRadius: '6px',
+              }}
+            />
+          </div>
+          {acompte > 0 && (
+            <div
+              style={{
+                marginLeft: 'auto',
+                fontWeight: 'bold',
+                fontSize: '16px',
+                color: '#0F6E56',
+              }}
+            >
+              Reste à payer : {resteAPayer.toFixed(2)} €
+            </div>
+          )}
+          {/* VERROUILLAGE FACTURE */}
+          <div
+            style={{
+              marginTop: '1rem',
+              paddingTop: '1rem',
+              borderTop: '1px solid #eee',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '1rem',
+            }}
+          >
+            {dossier?.facture_verrouillee ? (
+              <div
+                style={{
+                  background: '#FAECE7',
+                  border: '1px solid #993C1D',
+                  borderRadius: '8px',
+                  padding: '0.75rem 1rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.5rem',
+                  flex: 1,
+                }}
+              >
+                <span style={{ fontSize: '18px' }}>🔒</span>
+                <div>
+                  <div style={{ fontWeight: 'bold', color: '#993C1D' }}>
+                    Facture verrouillée
+                  </div>
+                  <div style={{ fontSize: '12px', color: '#993C1D' }}>
+                    Cette facture ne peut plus être modifiée
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <button
+                onClick={async () => {
+                  if (
+                    !confirm(
+                      'Verrouiller définitivement cette facture ? Cette action est irréversible.'
+                    )
+                  )
+                    return;
+                  await supabase
+                    .from('dossiers')
+                    .update({ facture_verrouillee: true })
+                    .eq('id', dossierId);
+                  await chargerDossier();
+                }}
+                style={{
+                  padding: '0.6rem 1.2rem',
+                  background: '#993C1D',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '6px',
+                  cursor: 'pointer',
+                  fontWeight: 'bold',
+                }}
+              >
+                🔒 Verrouiller la facture
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
+      {onglet === 'bon_commande' && (
+        <div
+          style={{
+            background: '#f9f9f9',
+            borderRadius: '8px',
+            padding: '1rem',
+            marginBottom: '1.5rem',
+          }}
+        >
+          <p style={{ margin: 0, fontSize: '13px', color: '#666' }}>
+            📝 Le bon de commande reprend les mêmes lignes que le devis. Il est
+            destiné à être imprimé et signé par la famille.
+          </p>
+        </div>
+      )}
+
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: '1fr 1fr',
+          gap: '1rem',
+          marginBottom: '2rem',
+        }}
+      >
+        {renderColonne(
+          'prestations_obligatoires',
+          'Prestations obligatoires',
+          couleurAgence,
+          `${couleurAgence}11`
+        )}
+        {renderColonne(
+          'prestations_non_obligatoires',
+          'Prestations non obligatoires',
+          '#1565C0',
+          '#E3F2FD'
+        )}
+      </div>
+
+      <div
+        style={{
+          background: 'white',
+          border: '1px solid #eee',
+          borderRadius: '12px',
+          padding: '1.5rem',
+        }}
+      >
+        <h3 style={{ margin: '0 0 1rem', color: couleurAgence }}>
+          Récapitulatif TVA
+        </h3>
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: '2fr 1fr 1fr 1fr',
+            gap: '0.5rem',
+            fontSize: '14px',
+          }}
+        >
+          <div></div>
+          <div
+            style={{ fontWeight: 'bold', textAlign: 'right', color: '#888' }}
+          >
+            H.T.
+          </div>
+          <div
+            style={{ fontWeight: 'bold', textAlign: 'right', color: '#888' }}
+          >
+            T.V.A.
+          </div>
+          <div
+            style={{ fontWeight: 'bold', textAlign: 'right', color: '#888' }}
+          >
+            T.T.C.
+          </div>
+          <div>Total non soumis T.V.A. (0%)</div>
+          <div style={{ textAlign: 'right' }}>{tva0.toFixed(2)} €</div>
+          <div style={{ textAlign: 'right' }}>0,00 €</div>
+          <div style={{ textAlign: 'right' }}>{tva0.toFixed(2)} €</div>
+          <div>Total T.V.A. 10%</div>
+          <div style={{ textAlign: 'right' }}>{tva10ht.toFixed(2)} €</div>
+          <div style={{ textAlign: 'right' }}>{tva10montant.toFixed(2)} €</div>
+          <div style={{ textAlign: 'right' }}>{tva10ttc.toFixed(2)} €</div>
+          <div>Total T.V.A. 20%</div>
+          <div style={{ textAlign: 'right' }}>{tva20ht.toFixed(2)} €</div>
+          <div style={{ textAlign: 'right' }}>{tva20montant.toFixed(2)} €</div>
+          <div style={{ textAlign: 'right' }}>{tva20ttc.toFixed(2)} €</div>
+          <div
+            style={{
+              fontWeight: 'bold',
+              fontSize: '16px',
+              borderTop: '2px solid #333',
+              paddingTop: '0.5rem',
+            }}
+          >
+            TOTAL
+          </div>
+          <div
+            style={{
+              fontWeight: 'bold',
+              textAlign: 'right',
+              borderTop: '2px solid #333',
+              paddingTop: '0.5rem',
+            }}
+          >
+            {totalHT.toFixed(2)} €
+          </div>
+          <div
+            style={{
+              fontWeight: 'bold',
+              textAlign: 'right',
+              borderTop: '2px solid #333',
+              paddingTop: '0.5rem',
+            }}
+          >
+            {totalTVA.toFixed(2)} €
+          </div>
+          <div
+            style={{
+              fontWeight: 'bold',
+              textAlign: 'right',
+              borderTop: '2px solid #333',
+              paddingTop: '0.5rem',
+              fontSize: '18px',
+              color: couleurAgence,
+            }}
+          >
+            {totalTTC.toFixed(2)} €
+          </div>
+        </div>
+        {onglet === 'facture' && acompte > 0 && (
+          <div
+            style={{
+              marginTop: '1rem',
+              borderTop: '1px solid #eee',
+              paddingTop: '1rem',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+            }}
+          >
+            <span>Acompte versé :</span>
+            <span style={{ fontWeight: 'bold', color: '#854F0B' }}>
+              - {acompte.toFixed(2)} €
+            </span>
+            <span>Reste à payer :</span>
+            <span
+              style={{
+                fontWeight: 'bold',
+                fontSize: '20px',
+                color: resteAPayer <= 0 ? '#0F6E56' : '#993C1D',
+              }}
+            >
+              {resteAPayer.toFixed(2)} €
+            </span>
+          </div>
+        )}
+        <div
+          style={{
+            marginTop: '1rem',
+            display: 'flex',
+            gap: '2rem',
+            fontSize: '13px',
+            color: '#666',
+            borderTop: '1px solid #eee',
+            paddingTop: '1rem',
+          }}
+        >
+          <span>
+            Obligatoires : <strong>{totalObl.toFixed(2)} €</strong>
+          </span>
+          <span>
+            Non obligatoires : <strong>{totalNonObl.toFixed(2)} €</strong>
+          </span>
+          <span>
+            Total général :{' '}
+            <strong style={{ color: couleurAgence }}>
+              {totalTTC.toFixed(2)} €
+            </strong>
+          </span>
+        </div>
+      </div>
+    </div>
+  );
+}
