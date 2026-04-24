@@ -3,9 +3,10 @@ import { supabase } from '../supabase';
 
 interface Props {
   onOuvrir: (id: string) => void;
+  onRetour: () => void;
 }
 
-export default function ListeDossiers({ onOuvrir }: Props) {
+export default function ListeDossiers({ onOuvrir, onRetour }: Props) {
   const [dossiers, setDossiers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [recherche, setRecherche] = useState('');
@@ -66,19 +67,12 @@ export default function ListeDossiers({ onOuvrir }: Props) {
 
   return (
     <div style={{ padding: '2rem', maxWidth: '900px', margin: '0 auto' }}>
-      <div
-        style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          marginBottom: '1.5rem',
-        }}
-      >
-        <h2 style={{ margin: 0 }}>📁 Dossiers ({filtres.length})</h2>
-        <button
-          onClick={charger}
-          style={{ padding: '0.4rem 0.8rem', cursor: 'pointer' }}
-        >
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+          <button onClick={onRetour}>← Retour</button>
+          <h2 style={{ margin: 0 }}>📁 Dossiers ({filtres.length})</h2>
+        </div>
+        <button onClick={charger} style={{ padding: '0.4rem 0.8rem', cursor: 'pointer' }}>
           🔄 Actualiser
         </button>
       </div>
@@ -87,15 +81,7 @@ export default function ListeDossiers({ onOuvrir }: Props) {
         placeholder="🔍 Rechercher par nom, référence, numéro..."
         value={recherche}
         onChange={(e) => setRecherche(e.target.value)}
-        style={{
-          width: '100%',
-          padding: '0.75rem',
-          marginBottom: '1.5rem',
-          borderRadius: '8px',
-          border: '1px solid #ddd',
-          fontSize: '15px',
-          boxSizing: 'border-box',
-        }}
+        style={{ width: '100%', padding: '0.75rem', marginBottom: '1.5rem', borderRadius: '8px', border: '1px solid #ddd', fontSize: '15px', boxSizing: 'border-box' }}
       />
 
       {filtres.length === 0 && (
@@ -109,94 +95,30 @@ export default function ListeDossiers({ onOuvrir }: Props) {
         {filtres.map((d) => {
           const statut = statutColor(d.statut);
           return (
-            <div
-              key={d.id}
-              onClick={() => onOuvrir(d.id)}
-              style={{
-                background: 'white',
-                border: '1px solid #eee',
-                borderRadius: '12px',
-                padding: '1.25rem',
-                cursor: 'pointer',
-                transition: 'box-shadow 0.15s',
-                userSelect: 'none' as const,
-              }}
-              onMouseEnter={(e) =>
-                (e.currentTarget.style.boxShadow = '0 2px 12px rgba(0,0,0,0.1)')
-              }
+            <div key={d.id} onClick={() => onOuvrir(d.id)}
+              style={{ background: 'white', border: '1px solid #eee', borderRadius: '12px', padding: '1.25rem', cursor: 'pointer', transition: 'box-shadow 0.15s', userSelect: 'none' as const }}
+              onMouseEnter={(e) => (e.currentTarget.style.boxShadow = '0 2px 12px rgba(0,0,0,0.1)')}
               onMouseLeave={(e) => (e.currentTarget.style.boxShadow = 'none')}
             >
-              <div
-                style={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'flex-start',
-                }}
-              >
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                 <div>
-                  <div
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '0.5rem',
-                      marginBottom: '0.25rem',
-                    }}
-                  >
-                    <span style={{ fontSize: '18px' }}>
-                      {d.type_dossier === 'inhumation_locale' ? '⚰️' : '✈️'}
-                    </span>
-                    <strong style={{ fontSize: '16px' }}>
-                      {d.defunts?.civilite} {d.defunts?.prenom} {d.defunts?.nom}
-                    </strong>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
+                    <span style={{ fontSize: '18px' }}>{d.type_dossier === 'inhumation_locale' ? '⚰️' : '✈️'}</span>
+                    <strong style={{ fontSize: '16px' }}>{d.defunts?.civilite} {d.defunts?.prenom} {d.defunts?.nom}</strong>
                   </div>
-                  <div
-                    style={{
-                      fontSize: '13px',
-                      color: '#888',
-                      display: 'flex',
-                      gap: '1rem',
-                    }}
-                  >
+                  <div style={{ fontSize: '13px', color: '#888', display: 'flex', gap: '1rem' }}>
                     <span>📋 {d.numero_dossier}</span>
                     {d.compte_client && <span>🔖 {d.compte_client}</span>}
-                    {d.date_deces && (
-                      <span>
-                        📅 Décès le{' '}
-                        {new Date(d.date_deces).toLocaleDateString('fr-FR')}
-                      </span>
-                    )}
+                    {d.date_deces && <span>📅 Décès le {new Date(d.date_deces).toLocaleDateString('fr-FR')}</span>}
                   </div>
                   {d.pouvoirs?.[0] && (
-                    <div
-                      style={{
-                        fontSize: '13px',
-                        color: '#888',
-                        marginTop: '0.25rem',
-                      }}
-                    >
-                      👤 Famille : {d.pouvoirs[0].prenom} {d.pouvoirs[0].nom} —{' '}
-                      {d.pouvoirs[0].telephone_1}
+                    <div style={{ fontSize: '13px', color: '#888', marginTop: '0.25rem' }}>
+                      👤 Famille : {d.pouvoirs[0].prenom} {d.pouvoirs[0].nom} — {d.pouvoirs[0].telephone_1}
                     </div>
                   )}
                 </div>
-                <div
-                  style={{
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'flex-end',
-                    gap: '0.5rem',
-                  }}
-                >
-                  <span
-                    style={{
-                      background: statut.bg,
-                      color: statut.color,
-                      padding: '0.2rem 0.6rem',
-                      borderRadius: '12px',
-                      fontSize: '12px',
-                      fontWeight: 'bold',
-                    }}
-                  >
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '0.5rem' }}>
+                  <span style={{ background: statut.bg, color: statut.color, padding: '0.2rem 0.6rem', borderRadius: '12px', fontSize: '12px', fontWeight: 'bold' }}>
                     {statut.label}
                   </span>
                   <span style={{ fontSize: '12px', color: '#bbb' }}>
