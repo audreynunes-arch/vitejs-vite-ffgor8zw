@@ -293,7 +293,7 @@ function TableauGenerique({
             background: 'white',
             border: '1px solid #eee',
             borderRadius: '12px',
-            overflow: 'hidden',
+            overflow: 'auto',
           }}
         >
           <table

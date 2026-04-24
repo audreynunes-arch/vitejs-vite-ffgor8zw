@@ -164,7 +164,7 @@ export default function GestionStocks({ agenceId, onRetour }: Props) {
 
       {/* STOCK ACTUEL */}
       {onglet === 'stocks' && (
-        <div style={{ background: 'white', border: '1px solid #eee', borderRadius: '12px', overflow: 'hidden' }}>
+        <div style={{ background: 'white', border: '1px solid #eee', borderRadius: '12px', overflow: 'hidden', overflowX: 'auto' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
             <thead>
               <tr style={{ background: '#f9f9f9' }}>
@@ -205,7 +205,7 @@ export default function GestionStocks({ agenceId, onRetour }: Props) {
 
       {/* HISTORIQUE MOUVEMENTS */}
       {onglet === 'mouvements' && (
-        <div style={{ background: 'white', border: '1px solid #eee', borderRadius: '12px', overflow: 'hidden' }}>
+        <div style={{ background: 'white', border: '1px solid #eee', borderRadius: '12px', overflow: 'auto' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
             <thead>
               <tr style={{ background: '#f9f9f9' }}>

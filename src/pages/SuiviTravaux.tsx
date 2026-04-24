@@ -314,6 +314,8 @@ export default function SuiviTravaux({ agenceId, onRetour }: Props) {
           borderRadius: '12px',
           border: '1px solid #eee',
           overflow: 'hidden',
+          overflow: 'hidden',
+          overflowX: 'auto',
         }}
       >
         <table
