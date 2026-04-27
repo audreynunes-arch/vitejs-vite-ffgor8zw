@@ -67,6 +67,8 @@ export default function ParametresAgence({ agenceId, onRetour }: Props) {
     logo_url: '',
     signature_url: '',
     couleur_principale: '#4F46E5',
+    prix_km: 1,
+    km_franchise: 25,
     commentaires_devis: '',
     commentaires_facture: '',
     informations_juridiques: '',
@@ -102,6 +104,8 @@ export default function ParametresAgence({ agenceId, onRetour }: Props) {
         telephone: data.telephone || '',
         email: data.email || '',
         site_web: data.site_web || '',
+        prix_km: data.prix_km || 1,
+        km_franchise: data.km_franchise || 25,
         siret: data.siret || '',
         rcs: data.rcs || '',
         tva_intra: data.tva_intra || '',
@@ -172,6 +176,8 @@ export default function ParametresAgence({ agenceId, onRetour }: Props) {
           telephone: form.telephone,
           email: form.email,
           site_web: form.site_web,
+          prix_km: form.prix_km,
+          km_franchise: form.km_franchise,
           siret: form.siret,
           rcs: form.rcs,
           tva_intra: form.tva_intra,
@@ -831,6 +837,31 @@ export default function ParametresAgence({ agenceId, onRetour }: Props) {
             </label>
           </div>
         </div>
+
+        {sectionTitle('Tarifs kilométriques', '🚗')}
+<div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+  <div>
+    <label>Prix au km (€)</label>
+    <input
+      type="number"
+      step="0.1"
+      value={form.prix_km}
+      onChange={(e) => update('prix_km', parseFloat(e.target.value))}
+      style={{ ...inputStyle, maxWidth: '150px' }}
+    />
+    <div style={{ fontSize: '12px', color: '#888', marginTop: '4px' }}>Ex: 1.00 €/km</div>
+  </div>
+  <div>
+    <label>Franchise (km gratuits)</label>
+    <input
+      type="number"
+      value={form.km_franchise}
+      onChange={(e) => update('km_franchise', parseInt(e.target.value))}
+      style={{ ...inputStyle, maxWidth: '150px' }}
+    />
+    <div style={{ fontSize: '12px', color: '#888', marginTop: '4px' }}>Ex: 25 km gratuits</div>
+  </div>
+</div>
       </div>
     </div>
   );

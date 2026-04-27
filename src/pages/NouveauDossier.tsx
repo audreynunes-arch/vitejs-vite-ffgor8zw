@@ -366,6 +366,11 @@ export default function NouveauDossier({ onRetour }: Props) {
           cimetiere_pays:
             type === 'rapatriement' ? logistique.cimetiere_pays || null : null,
           mairie_deces_id: logistique.mairie_deces_id || null,
+          km_avant_meb_aller: logistique.km_avant_meb_aller ? parseInt(logistique.km_avant_meb_aller) : null,
+          km_avant_meb_retour: logistique.km_avant_meb_retour ? parseInt(logistique.km_avant_meb_retour) : null,
+          km_apres_meb_aller: logistique.km_apres_meb_aller ? parseInt(logistique.km_apres_meb_aller) : null,
+          km_apres_meb_retour: logistique.km_apres_meb_retour ? parseInt(logistique.km_apres_meb_retour) : null,
+          peage: logistique.peage ? parseFloat(logistique.peage) : null,
           mosquee_id: logistique.mosquee_id || null,
           taille_defunt: logistique.taille_defunt || null,
           convoi_effectue_par: logistique.convoi_effectue_par || null,
@@ -892,7 +897,7 @@ export default function NouveauDossier({ onRetour }: Props) {
             <label>Lieu de décès</label>
             <AutocompleteAdresse
               value={defunt.lieu_deces}
-              onChange={(val) => updateDefunt('domicile', val)}
+              onChange={(val) => updateDefunt('lieu_deces', val)}
               placeholder="ex: 12 rue de la Paix, Paris"
               style={inputStyle}
             />
@@ -1221,125 +1226,119 @@ export default function NouveauDossier({ onRetour }: Props) {
           )}
 
           {/* CERCUEIL & FOURNITURES */}
-          <div
-            style={{
-              gridColumn: '1 / -1',
-              background: '#f0fdf4',
-              borderRadius: '8px',
-              padding: '1rem',
-              border: '1px solid #0F6E56',
-            }}
-          >
-            <div
-              style={{
-                fontWeight: 'bold',
-                fontSize: '13px',
-                marginBottom: '0.75rem',
-                color: '#0F6E56',
-              }}
-            >
+          <div style={{ gridColumn: '1 / -1', background: '#f0fdf4', borderRadius: '8px', padding: '1rem', border: '1px solid #0F6E56' }}>
+            <div style={{ fontWeight: 'bold', fontSize: '13px', marginBottom: '0.75rem', color: '#0F6E56' }}>
               ⚰️ Cercueil & Fournitures
             </div>
-            <div
-              style={{
-                display: 'grid',
-                gridTemplateColumns: '1fr 1fr',
-                gap: '1rem',
-              }}
-            >
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
               <div style={{ gridColumn: '1 / -1' }}>
                 <label>Cercueil</label>
-                <select
-                  value={logistique.cercueil_id || ''}
-                  onChange={(e) =>
-                    updateLogistique('cercueil_id', e.target.value)
-                  }
-                  style={selectStyle}
-                >
+                <select value={logistique.cercueil_id || ''} onChange={(e) => updateLogistique('cercueil_id', e.target.value)} style={selectStyle}>
                   <option value="">-- Sélectionner un cercueil --</option>
-                  {catalogueCercueils
-                    .filter((c) => c.type !== 'accessoire')
-                    .map((c) => (
-                      <option key={c.id} value={c.id}>
-                        {c.nom} — {c.prix_ttc} € TTC
-                      </option>
-                    ))}
+                  {catalogueCercueils.filter((c) => c.type !== 'accessoire').map((c) => (
+                    <option key={c.id} value={c.id}>{c.nom} — {c.prix_ttc} € TTC</option>
+                  ))}
                 </select>
               </div>
               <div>
                 <label>Plaque d'identité</label>
-                <select
-                  value={logistique.plaque_identite || ''}
-                  onChange={(e) =>
-                    updateLogistique('plaque_identite', e.target.value)
-                  }
-                  style={selectStyle}
-                >
+                <select value={logistique.plaque_identite || ''} onChange={(e) => updateLogistique('plaque_identite', e.target.value)} style={selectStyle}>
                   <option value="">Aucune</option>
                   <option value="1">1 plaque — 20 €</option>
                   <option value="2">2 plaques — 40 €</option>
                 </select>
               </div>
-              <div>
-                <label>Housse mortuaire</label>
-                <select
-                  value={logistique.housse_mortuaire || ''}
-                  onChange={(e) =>
-                    updateLogistique('housse_mortuaire', e.target.value)
-                  }
-                  style={selectStyle}
-                >
-                  <option value="">Aucune</option>
-                  <option value="standard">Standard — 50 €</option>
-                  <option value="requise">Requise — 100 €</option>
-                </select>
+              <div style={{ gridColumn: '1 / -1', display: 'flex', gap: '1.5rem', flexWrap: 'wrap' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <input type="checkbox"
+                    checked={logistique.housse_mortuaire === 'standard' || logistique.housse_mortuaire === 'les_deux'}
+                    onChange={e => {
+                      const current = logistique.housse_mortuaire || ''
+                      if (e.target.checked) {
+                        updateLogistique('housse_mortuaire', current === 'requise' ? 'les_deux' : 'standard')
+                      } else {
+                        updateLogistique('housse_mortuaire', current === 'les_deux' ? 'requise' : '')
+                      }
+                    }}
+                  />
+                  <label>Housse mortuaire standard — 50 €</label>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <input type="checkbox"
+                    checked={logistique.housse_mortuaire === 'requise' || logistique.housse_mortuaire === 'les_deux'}
+                    onChange={e => {
+                      const current = logistique.housse_mortuaire || ''
+                      if (e.target.checked) {
+                        updateLogistique('housse_mortuaire', current === 'standard' ? 'les_deux' : 'requise')
+                      } else {
+                        updateLogistique('housse_mortuaire', current === 'les_deux' ? 'standard' : '')
+                      }
+                    }}
+                  />
+                  <label>Housse mortuaire requise — 100 €</label>
+                </div>
               </div>
               {type === 'rapatriement' && (
                 <>
-                  <div
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '0.5rem',
-                      marginTop: '1.5rem',
-                    }}
-                  >
-                    <input
-                      type="checkbox"
-                      checked={
-                        logistique.zinc === 'true' || logistique.zinc === true
-                      }
-                      onChange={(e) =>
-                        updateLogistique('zinc', String(e.target.checked))
-                      }
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '1.5rem' }}>
+                    <input type="checkbox"
+                      checked={logistique.zinc === 'true' || logistique.zinc === true}
+                      onChange={(e) => updateLogistique('zinc', String(e.target.checked))}
                     />
                     <label>Zinc transport aérien — 70 €</label>
                   </div>
-                  <div
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '0.5rem',
-                      marginTop: '1.5rem',
-                    }}
-                  >
-                    <input
-                      type="checkbox"
-                      checked={
-                        logistique.housse_cercueil === 'true' ||
-                        logistique.housse_cercueil === true
-                      }
-                      onChange={(e) =>
-                        updateLogistique(
-                          'housse_cercueil',
-                          String(e.target.checked)
-                        )
-                      }
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '1.5rem' }}>
+                    <input type="checkbox"
+                      checked={logistique.housse_cercueil === 'true' || logistique.housse_cercueil === true}
+                      onChange={(e) => updateLogistique('housse_cercueil', String(e.target.checked))}
                     />
                     <label>Housse cercueil — 18 €</label>
                   </div>
                 </>
               )}
+              {/* TRANSPORTS KM */}
+<div style={{ gridColumn: '1 / -1', background: '#EEF2FF', borderRadius: '8px', padding: '1rem', border: '1px solid #4F46E5' }}>
+  <div style={{ fontWeight: 'bold', fontSize: '13px', marginBottom: '0.75rem', color: '#4F46E5' }}>
+    🚗 Transports (km)
+  </div>
+  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+    <div>
+      <label>Transport avant MEB Aller (km)</label>
+      <input type="number" min="0"
+        value={logistique.km_avant_meb_aller || ''}
+        onChange={e => updateLogistique('km_avant_meb_aller', e.target.value)}
+        style={inputStyle} placeholder="0" />
+    </div>
+    <div>
+      <label>Transport avant MEB Retour (km)</label>
+      <input type="number" min="0"
+        value={logistique.km_avant_meb_retour || ''}
+        onChange={e => updateLogistique('km_avant_meb_retour', e.target.value)}
+        style={inputStyle} placeholder="0" />
+    </div>
+    <div>
+      <label>Transport après MEB Aller (km)</label>
+      <input type="number" min="0"
+        value={logistique.km_apres_meb_aller || ''}
+        onChange={e => updateLogistique('km_apres_meb_aller', e.target.value)}
+        style={inputStyle} placeholder="0" />
+    </div>
+    <div>
+      <label>Transport après MEB Retour (km)</label>
+      <input type="number" min="0"
+        value={logistique.km_apres_meb_retour || ''}
+        onChange={e => updateLogistique('km_apres_meb_retour', e.target.value)}
+        style={inputStyle} placeholder="0" />
+    </div>
+    <div>
+      <label>Péage (€)</label>
+      <input type="number" min="0" step="0.01"
+        value={logistique.peage || ''}
+        onChange={e => updateLogistique('peage', e.target.value)}
+        style={inputStyle} placeholder="0" />
+    </div>
+  </div>
+</div>
             </div>
           </div>
 

@@ -452,28 +452,71 @@ export default function Devis({ dossierId, onRetour }: Props) {
       // Plaque d'identité
       if (data?.plaque_identite) {
         const prix = data.plaque_identite === '2' ? 40 : 20;
-        const libelle =
-          data.plaque_identite === '2'
-            ? "* 2 Plaques d'identité (**)"
-            : "* 1 Plaque d'identité (**)";
-        lignesInit = lignesInit.map((l) =>
-          l.libelle.toLowerCase().includes("plaque d'identité") &&
-          l.categorie === 'prestations_obligatoires'
-            ? { ...l, libelle, prix_ttc: prix, inclus: true }
-            : l
-        );
+          lignesInit = lignesInit.map((l) =>
+          l.libelle.toLowerCase().includes('plaque') && l.libelle.toLowerCase().includes('identit')
+           ? { ...l, prix_ttc: prix, inclus: true }
+          : l
+       )
       }
 
       // Housse mortuaire
-      if (data?.housse_mortuaire) {
-        const prix = data.housse_mortuaire === 'requise' ? 100 : 50;
-        lignesInit = lignesInit.map((l) =>
-          l.libelle.toLowerCase().includes('housse mortuaire')
-            ? { ...l, prix_ttc: prix, inclus: true }
-            : l
-        );
-      }
+if (data?.housse_mortuaire === 'standard') {
+  lignesInit = lignesInit.map((l) =>
+    l.libelle.toLowerCase().includes('housse') && l.libelle.toLowerCase().includes('mortuaire') && l.prix_ttc === 50
+      ? { ...l, inclus: true }
+      : l.libelle.toLowerCase().includes('housse') && l.libelle.toLowerCase().includes('mortuaire') && l.prix_ttc === 100
+      ? { ...l, inclus: false }
+      : l
+  )
+} else if (data?.housse_mortuaire === 'requise') {
+  lignesInit = lignesInit.map((l) =>
+    l.libelle.toLowerCase().includes('housse') && l.libelle.toLowerCase().includes('mortuaire') && l.prix_ttc === 100
+      ? { ...l, inclus: true }
+      : l.libelle.toLowerCase().includes('housse') && l.libelle.toLowerCase().includes('mortuaire') && l.prix_ttc === 50
+      ? { ...l, inclus: false }
+      : l
+  )
+} else if (data?.housse_mortuaire === 'les_deux') {
+  lignesInit = lignesInit.map((l) =>
+    l.libelle.toLowerCase().includes('housse') && l.libelle.toLowerCase().includes('mortuaire')
+      ? { ...l, inclus: true }
+      : l
+  )
+} else {
+  lignesInit = lignesInit.map((l) =>
+    l.libelle.toLowerCase().includes('housse') && l.libelle.toLowerCase().includes('mortuaire')
+      ? { ...l, inclus: false }
+      : l
+  )
+}
+// Transports kilométriques
+const prixKm = data?.agences?.prix_km || 1
+const franchise = data?.agences?.km_franchise || 25
+const calcPrixKm = (km: number) => Math.max(0, km - franchise) * prixKm
 
+if (data?.km_avant_meb_aller) {
+  const prix = calcPrixKm(data.km_avant_meb_aller)
+  lignesInit = lignesInit.map(l =>
+    l.libelle.toLowerCase().includes('aller') && l.libelle.toLowerCase().includes('sans défunt')
+      ? { ...l, prix_ttc: prix, inclus: prix > 0 }
+      : l
+  )
+}
+if (data?.km_avant_meb_retour) {
+  const prix = calcPrixKm(data.km_avant_meb_retour)
+  lignesInit = lignesInit.map(l =>
+    l.libelle.toLowerCase().includes('retour') && l.libelle.toLowerCase().includes('sans défunt')
+      ? { ...l, prix_ttc: prix, inclus: prix > 0 }
+      : l
+  )
+}
+if (data?.peage) {
+  lignesInit = lignesInit.map(l =>
+    l.libelle.toLowerCase().includes('péage')
+      ? { ...l, prix_ttc: data.peage, inclus: data.peage > 0 }
+      : l
+  )
+}
       // Zinc rapatriement
       if (data?.zinc) {
         lignesInit = lignesInit.map((l) =>
@@ -1630,66 +1673,7 @@ ${
           )}
         </div>
       )}
-      {/* SÉLECTEUR CERCUEIL CATALOGUE */}
-      {catalogueCercueils.length > 0 && (
-        <div
-          style={{
-            background: '#f0fdf4',
-            borderRadius: '8px',
-            padding: '1rem',
-            marginBottom: '1.5rem',
-            border: '1px solid #0F6E56',
-          }}
-        >
-          <label
-            style={{ fontWeight: 'bold', color: '#0F6E56', fontSize: '14px' }}
-          >
-            ⚰️ Choisir un cercueil depuis le catalogue :
-          </label>
-          <select
-            onChange={(e) => {
-              const id = e.target.value;
-              if (!id) return;
-              const c = catalogueCercueils.find((c) => c.id === id);
-              if (!c) return;
-              setLignes((prev) =>
-                prev.map((l) =>
-                  l.libelle.toLowerCase().includes('cercueil') &&
-                  l.categorie === 'prestations_obligatoires'
-                    ? {
-                        ...l,
-                        libelle: c.nom,
-                        prix_ttc: c.prix_ttc || 0,
-                        inclus: true,
-                      }
-                    : l
-                )
-              );
-            }}
-            style={{
-              width: '100%',
-              padding: '0.5rem',
-              marginTop: '0.5rem',
-              borderRadius: '6px',
-              border: '1px solid #0F6E56',
-            }}
-            defaultValue=""
-          >
-            <option value="">-- Sélectionner un cercueil --</option>
-            {catalogueCercueils.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.nom} — {c.type} — {c.prix_ttc} € TTC
-              </option>
-            ))}
-          </select>
-          <div
-            style={{ fontSize: '12px', color: '#0F6E56', marginTop: '0.5rem' }}
-          >
-            ℹ️ Sélectionner un cercueil met à jour la ligne cercueil dans les
-            prestations obligatoires
-          </div>
-        </div>
-      )}
+      
       {onglet === 'devis' && (
         <div
           style={{
