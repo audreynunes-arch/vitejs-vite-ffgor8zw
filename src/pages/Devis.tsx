@@ -382,6 +382,7 @@ export default function Devis({ dossierId, onRetour }: Props) {
         .from('catalogue_cercueils')
         .select('*')
         .eq('actif', true)
+        .eq('agence_id', data.agence_id)
         .order('nom');
       setCatalogueCercueils(cercueils || []);
     }
@@ -1697,12 +1698,19 @@ ${
             ⚰️ Choisir un cercueil depuis le catalogue :
           </label>
           <select
-            onChange={(e) => {
+            onChange={async (e) => {
               const id = e.target.value;
               if (!id) return;
               const c = catalogueCercueils.find((c) => c.id === id);
               if (!c) return;
+              // Mémoriser le cercueil choisi dans le dossier (pour le stock)
+              await supabase
+                .from('dossiers')
+                .update({ cercueil_id: id })
+                .eq('id', dossierId);
+              setDossier((d: any) => (d ? { ...d, cercueil_id: id } : d));
               setLignes((prev) => {
+
                 let fait = false;
                 return prev.map((l) => {
                   if (
@@ -1948,12 +1956,51 @@ ${
                     )
                   )
                     return;
+
+                  // --- Déduction automatique du stock cercueil ---
+                  const cercueilId = dossier?.cercueil_id;
+                  const agenceId = dossier?.agence_id;
+                  if (cercueilId && agenceId) {
+                    const { data: stock } = await supabase
+                      .from('stocks_cercueils')
+                      .select('*')
+                      .eq('cercueil_id', cercueilId)
+                      .eq('agence_id', agenceId)
+                      .maybeSingle();
+
+                    if (stock) {
+                      const nouvelleQuantite = stock.quantite - 1;
+                      if (nouvelleQuantite < 0) {
+                        alert(
+                          '⚠️ Attention : ce cercueil n\'est plus en stock. La facture sera verrouillée mais le stock passe en négatif. Pensez à recommander.'
+                        );
+                      }
+                      await supabase
+                        .from('stocks_cercueils')
+                        .update({ quantite: nouvelleQuantite })
+                        .eq('id', stock.id);
+                      await supabase.from('mouvements_stock').insert({
+                        cercueil_id: cercueilId,
+                        agence_id: agenceId,
+                        type_mouvement: 'sortie',
+                        quantite: 1,
+                        dossier_id: dossierId,
+                        notes: 'Sortie automatique — facture verrouillée',
+                      });
+                    } else {
+                      alert(
+                        '⚠️ Ce cercueil n\'a pas de stock enregistré pour cette agence. Aucune déduction effectuée.'
+                      );
+                    }
+                  }
+
                   await supabase
                     .from('dossiers')
                     .update({ facture_verrouillee: true })
                     .eq('id', dossierId);
                   await chargerDossier();
                 }}
+
                 style={{
                   padding: '0.6rem 1.2rem',
                   background: '#993C1D',
