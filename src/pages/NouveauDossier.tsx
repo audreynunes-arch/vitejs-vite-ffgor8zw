@@ -45,6 +45,95 @@ function AutocompleteAdresse({
     />
   );
 }
+
+function RechercheGoogleLieu({
+  value,
+  onChange,
+  placeholder,
+  style,
+  types,
+}: {
+  value: string;
+  onChange: (val: string) => void;
+  placeholder?: string;
+  style?: any;
+  types?: string[];
+}) {
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [manuel, setManuel] = useState(false);
+
+  useEffect(() => {
+    if (!inputRef.current || !(window as any).google || manuel) return;
+    const autocomplete = new (window as any).google.maps.places.Autocomplete(
+      inputRef.current,
+      {
+        componentRestrictions: { country: 'fr' },
+        language: 'fr',
+        types: types || ['establishment'],
+      }
+    );
+    autocomplete.addListener('place_changed', () => {
+      const place = autocomplete.getPlace();
+      if (place.name && place.formatted_address) {
+        onChange(`${place.name} — ${place.formatted_address}`);
+      } else if (place.formatted_address) {
+        onChange(place.formatted_address);
+      } else if (place.name) {
+        onChange(place.name);
+      }
+    });
+  }, [manuel]);
+
+  return (
+    <div>
+      {!manuel ? (
+        <div style={{ position: 'relative' }}>
+          <input
+            ref={inputRef}
+            defaultValue={value}
+            placeholder={placeholder || 'Rechercher sur Google...'}
+            style={style}
+          />
+          <div style={{ fontSize: '11px', color: '#888', marginTop: '4px' }}>
+            Lieu introuvable ?{' '}
+            <span
+              onClick={() => setManuel(true)}
+              style={{
+                color: '#4F46E5',
+                cursor: 'pointer',
+                textDecoration: 'underline',
+              }}
+            >
+              Saisir manuellement
+            </span>
+          </div>
+        </div>
+      ) : (
+        <div>
+          <input
+            value={value}
+            onChange={(e) => onChange(e.target.value)}
+            placeholder="Saisir manuellement..."
+            style={style}
+          />
+          <div style={{ fontSize: '11px', color: '#888', marginTop: '4px' }}>
+            <span
+              onClick={() => setManuel(false)}
+              style={{
+                color: '#4F46E5',
+                cursor: 'pointer',
+                textDecoration: 'underline',
+              }}
+            >
+              ← Rechercher sur Google
+            </span>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function NouveauDossier({ onRetour }: Props) {
   const [etape, setEtape] = useState(1);
   const [type, setType] = useState<TypeDossier | null>(null);
@@ -95,11 +184,11 @@ export default function NouveauDossier({ onRetour }: Props) {
   });
 
   const [logistique, setLogistique] = useState({
-    chambre_mortuaire_id: '',
+    chambre_mortuaire_nom: '',
     cimetiere_id: '',
     cimetiere_pays: '',
-    mairie_deces_id: '',
-    mosquee_id: '',
+    mairie_deces_nom: '',
+    mosquee_nom: '',
     date_toilette: '',
     heure_toilette: '',
     date_meb: '',
@@ -113,6 +202,7 @@ export default function NouveauDossier({ onRetour }: Props) {
     plaque_identite: '',
     housse_mortuaire: '',
     zinc: false,
+    housse_cercueil: false,
     housse_cercueil_rapat: false,
     convoi_effectue_par: '',
     observations: '',
@@ -145,13 +235,11 @@ export default function NouveauDossier({ onRetour }: Props) {
     numero_passeport: '',
     contact_pays: '',
     telephone_contact_pays: '',
+    adresse_contact_pays: '',
     ambulance_pays: '',
   });
 
-  const [chambres, setChambres] = useState<any[]>([]);
   const [cimetieres, setCimetieres] = useState<any[]>([]);
-  const [mairies, setMairies] = useState<any[]>([]);
-  const [mosquees, setMosquees] = useState<any[]>([]);
   const [marbriers, setMarbriers] = useState<any[]>([]);
   const [cimetiereTarifs, setCimetiereTarifs] = useState<any>(null);
   const [tarifsRapatriement, setTarifsRapatriement] = useState<any[]>([]);
@@ -161,10 +249,7 @@ export default function NouveauDossier({ onRetour }: Props) {
   const [vehicules, setVehicules] = useState<any[]>([]);
   const [employes, setEmployes] = useState<any[]>([]);
 
-  const [deptChambre, setDeptChambre] = useState('');
   const [deptCimetiere, setDeptCimetiere] = useState('');
-  const [deptMairie, setDeptMairie] = useState('');
-  const [deptMosquee, setDeptMosquee] = useState('');
 
   const departements = [
     { code: '75', nom: 'Paris (75)' },
@@ -184,27 +269,12 @@ export default function NouveauDossier({ onRetour }: Props) {
 
   useEffect(() => {
     supabase
-      .from('etablissements_sante')
-      .select('id, nom, ville, code_postal')
-      .order('nom')
-      .then(({ data }) => setChambres(data || []));
-    supabase
       .from('cimetieres')
       .select(
         'id, nom, ville, code_postal, tarif_10ans_adulte, tarif_15ans_adulte, tarif_30ans_adulte, tarif_50ans_adulte, tarif_perpet_adulte, tarif_10ans_enfant, tarif_15ans_enfant, tarif_30ans_enfant, tarif_50ans_enfant, tarif_perpet_enfant, semelle_imposee, fausse_case_imposee'
       )
       .order('nom')
       .then(({ data }) => setCimetieres(data || []));
-    supabase
-      .from('mairies')
-      .select('id, commune, ville, code_postal')
-      .order('commune')
-      .then(({ data }) => setMairies(data || []));
-    supabase
-      .from('lieux_culte')
-      .select('id, nom, ville, code_postal')
-      .order('nom')
-      .then(({ data }) => setMosquees(data || []));
     supabase
       .from('marbriers')
       .select('id, nom, ville, code_postal')
@@ -215,38 +285,39 @@ export default function NouveauDossier({ onRetour }: Props) {
       .select('*')
       .order('ordre')
       .then(({ data }) => setTarifsRapatriement(data || []));
-      supabase.auth.getSession().then(({ data: session }) => {
-        const userId = session.session?.user.id;
-        if (!userId) return;
-        supabase
-          .from('utilisateurs')
-          .select('agence_id')
-          .eq('id', userId)
-          .single()
-          .then(({ data: user }) => {
-            const agenceId = user?.agence_id || '';
-            setMonAgenceId(agenceId);
-            supabase
-              .from('catalogue_cercueils')
-              .select('*')
-              .eq('actif', true)
-              .eq('agence_id', agenceId)
-              .order('ordre')
-              .then(({ data }) => setCatalogueCercueils(data || []));
-          });
-      });
     supabase
       .from('vehicules')
       .select('id, immatriculation, marque, modele')
       .order('immatriculation')
       .then(({ data }) => setVehicules(data || []));
-
     supabase
       .from('employes')
       .select('id, nom, prenom, poste')
       .eq('actif', true)
       .order('nom')
       .then(({ data }) => setEmployes(data || []));
+
+    // Récupérer l'agence de l'utilisateur connecté, puis charger SON catalogue
+    supabase.auth.getSession().then(({ data: session }) => {
+      const userId = session.session?.user.id;
+      if (!userId) return;
+      supabase
+        .from('utilisateurs')
+        .select('agence_id')
+        .eq('id', userId)
+        .single()
+        .then(({ data: user }) => {
+          const agenceId = user?.agence_id || '';
+          setMonAgenceId(agenceId);
+          supabase
+            .from('catalogue_cercueils')
+            .select('*')
+            .eq('actif', true)
+            .eq('agence_id', agenceId)
+            .order('ordre')
+            .then(({ data }) => setCatalogueCercueils(data || []));
+        });
+    });
   }, []);
 
   function updateDefunt(c: string, v: string) {
@@ -255,7 +326,7 @@ export default function NouveauDossier({ onRetour }: Props) {
   function updatePouvoir(c: string, v: string) {
     setPouvoir((p) => ({ ...p, [c]: v }));
   }
-  function updateLogistique(c: string, v: string) {
+  function updateLogistique(c: string, v: any) {
     setLogistique((p) => ({ ...p, [c]: v }));
   }
   function updateRefs(c: string, v: string) {
@@ -317,12 +388,6 @@ export default function NouveauDossier({ onRetour }: Props) {
     return age + ' ans';
   }
 
-  function nomParId(liste: any[], id: string, champ = 'nom') {
-    const item = liste.find((i) => i.id === id);
-    if (!item) return '—';
-    return item[champ] || item.commune || item.nom || '—';
-  }
-
   async function sauvegarder() {
     setSaving(true);
     try {
@@ -373,15 +438,15 @@ export default function NouveauDossier({ onRetour }: Props) {
           heure_deces: defunt.heure_deces || null,
           lieu_deces: defunt.lieu_deces || null,
           nom_medecin: defunt.nom_medecin || null,
-          chambre_mortuaire_id: logistique.chambre_mortuaire_id || null,
+          chambre_mortuaire_nom: logistique.chambre_mortuaire_nom || null,
           cimetiere_id:
             type === 'inhumation_locale'
               ? logistique.cimetiere_id || null
               : null,
           cimetiere_pays:
             type === 'rapatriement' ? logistique.cimetiere_pays || null : null,
-          mairie_deces_id: logistique.mairie_deces_id || null,
-          mosquee_id: logistique.mosquee_id || null,
+          mairie_deces_nom: logistique.mairie_deces_nom || null,
+          mosquee_nom: logistique.mosquee_nom || null,
           taille_defunt: logistique.taille_defunt || null,
           convoi_effectue_par: logistique.convoi_effectue_par || null,
           date_toilette: logistique.date_toilette || null,
@@ -424,6 +489,7 @@ export default function NouveauDossier({ onRetour }: Props) {
           numero_passeport: logistique.numero_passeport || null,
           contact_pays: logistique.contact_pays || null,
           telephone_contact_pays: logistique.telephone_contact_pays || null,
+          adresse_contact_pays: logistique.adresse_contact_pays || null,
           ambulance_pays: logistique.ambulance_pays || null,
         })
         .select()
@@ -542,6 +608,15 @@ export default function NouveauDossier({ onRetour }: Props) {
       <span style={{ fontWeight: '500' }}>{valeur || '—'}</span>
     </div>
   );
+
+  function nomCimetiere(id: string) {
+    const c = cimetieres.find((x) => x.id === id);
+    return c ? `${c.nom} — ${c.ville}` : '—';
+  }
+  function nomMarbrier(id: string) {
+    const m = marbriers.find((x) => x.id === id);
+    return m ? `${m.nom} — ${m.ville}` : '—';
+  }
 
   if (etape === 1) {
     return (
@@ -907,7 +982,7 @@ export default function NouveauDossier({ onRetour }: Props) {
             <label>Lieu de décès</label>
             <AutocompleteAdresse
               value={defunt.lieu_deces}
-              onChange={(val) => updateDefunt('domicile', val)}
+              onChange={(val) => updateDefunt('lieu_deces', val)}
               placeholder="ex: 12 rue de la Paix, Paris"
               style={inputStyle}
             />
@@ -1015,7 +1090,7 @@ export default function NouveauDossier({ onRetour }: Props) {
             <label>Adresse</label>
             <AutocompleteAdresse
               value={pouvoir.adresse}
-              onChange={(val) => updateDefunt('domicile', val)}
+              onChange={(val) => updatePouvoir('adresse', val)}
               placeholder="ex: 12 rue de la Paix, Paris"
               style={inputStyle}
             />
@@ -1077,21 +1152,13 @@ export default function NouveauDossier({ onRetour }: Props) {
             <label style={{ fontWeight: 'bold' }}>
               Chambre mortuaire / Funérarium
             </label>
-            {selectDept(deptChambre, setDeptChambre)}
-            <select
-              value={logistique.chambre_mortuaire_id}
-              onChange={(e) =>
-                updateLogistique('chambre_mortuaire_id', e.target.value)
-              }
-              style={selectStyle}
-            >
-              <option value="">-- Sélectionner --</option>
-              {filtrer(chambres, deptChambre).map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.nom} — {c.ville}
-                </option>
-              ))}
-            </select>
+            <RechercheGoogleLieu
+              value={logistique.chambre_mortuaire_nom || ''}
+              onChange={(val) => updateLogistique('chambre_mortuaire_nom', val)}
+              placeholder="Rechercher une chambre mortuaire ou funérarium..."
+              style={inputStyle}
+              types={['establishment']}
+            />
           </div>
 
           {type === 'inhumation_locale' && (
@@ -1321,11 +1388,9 @@ export default function NouveauDossier({ onRetour }: Props) {
                   >
                     <input
                       type="checkbox"
-                      checked={
-                        logistique.zinc === 'true' || logistique.zinc === true
-                      }
+                      checked={logistique.zinc === true}
                       onChange={(e) =>
-                        updateLogistique('zinc', String(e.target.checked))
+                        updateLogistique('zinc', e.target.checked)
                       }
                     />
                     <label>Zinc transport aérien — 70 €</label>
@@ -1340,15 +1405,9 @@ export default function NouveauDossier({ onRetour }: Props) {
                   >
                     <input
                       type="checkbox"
-                      checked={
-                        logistique.housse_cercueil === 'true' ||
-                        logistique.housse_cercueil === true
-                      }
+                      checked={logistique.housse_cercueil === true}
                       onChange={(e) =>
-                        updateLogistique(
-                          'housse_cercueil',
-                          String(e.target.checked)
-                        )
+                        updateLogistique('housse_cercueil', e.target.checked)
                       }
                     />
                     <label>Housse cercueil — 18 €</label>
@@ -1386,40 +1445,26 @@ export default function NouveauDossier({ onRetour }: Props) {
 
           <div style={{ gridColumn: '1 / -1' }}>
             <label style={{ fontWeight: 'bold' }}>Mairie du décès</label>
-            {selectDept(deptMairie, setDeptMairie)}
-            <select
-              value={logistique.mairie_deces_id}
-              onChange={(e) =>
-                updateLogistique('mairie_deces_id', e.target.value)
-              }
-              style={selectStyle}
-            >
-              <option value="">-- Sélectionner --</option>
-              {filtrer(mairies, deptMairie).map((m) => (
-                <option key={m.id} value={m.id}>
-                  {m.commune}
-                </option>
-              ))}
-            </select>
+            <RechercheGoogleLieu
+              value={logistique.mairie_deces_nom || ''}
+              onChange={(val) => updateLogistique('mairie_deces_nom', val)}
+              placeholder="Rechercher une mairie..."
+              style={inputStyle}
+              types={['establishment']}
+            />
           </div>
 
           <div style={{ gridColumn: '1 / -1' }}>
             <label style={{ fontWeight: 'bold' }}>
               Mosquée / Lieu de culte
             </label>
-            {selectDept(deptMosquee, setDeptMosquee)}
-            <select
-              value={logistique.mosquee_id}
-              onChange={(e) => updateLogistique('mosquee_id', e.target.value)}
-              style={selectStyle}
-            >
-              <option value="">-- Sélectionner --</option>
-              {filtrer(mosquees, deptMosquee).map((m) => (
-                <option key={m.id} value={m.id}>
-                  {m.nom} — {m.ville}
-                </option>
-              ))}
-            </select>
+            <RechercheGoogleLieu
+              value={logistique.mosquee_nom || ''}
+              onChange={(val) => updateLogistique('mosquee_nom', val)}
+              placeholder="Rechercher une mosquée ou lieu de culte..."
+              style={inputStyle}
+              types={['establishment']}
+            />
           </div>
 
           <div>
@@ -1982,6 +2027,17 @@ export default function NouveauDossier({ onRetour }: Props) {
                   />
                 </div>
                 <div style={{ gridColumn: '1 / -1' }}>
+                  <label>Adresse contact au pays</label>
+                  <input
+                    value={logistique.adresse_contact_pays}
+                    onChange={(e) =>
+                      updateLogistique('adresse_contact_pays', e.target.value)
+                    }
+                    style={inputStyle}
+                    placeholder="ex: 12 rue Mohamed V, Alger"
+                  />
+                </div>
+                <div style={{ gridColumn: '1 / -1' }}>
                   <label>Ambulance au pays</label>
                   <input
                     value={logistique.ambulance_pays}
@@ -2188,12 +2244,9 @@ export default function NouveauDossier({ onRetour }: Props) {
           >
             Logistique
           </h4>
-          {ligne(
-            'Chambre mortuaire',
-            nomParId(chambres, logistique.chambre_mortuaire_id)
-          )}
+          {ligne('Chambre mortuaire', logistique.chambre_mortuaire_nom)}
           {type === 'inhumation_locale' &&
-            ligne('Cimetière', nomParId(cimetieres, logistique.cimetiere_id))}
+            ligne('Cimetière', nomCimetiere(logistique.cimetiere_id))}
           {type === 'rapatriement' &&
             ligne('Cimetière au pays', logistique.cimetiere_pays)}
           {logistique.achat_concession &&
@@ -2207,16 +2260,13 @@ export default function NouveauDossier({ onRetour }: Props) {
             ligne('N° Concession', logistique.numero_concession)}
           {logistique.division_concession &&
             ligne('Division', logistique.division_concession)}
-          {ligne(
-            'Mairie',
-            nomParId(mairies, logistique.mairie_deces_id, 'commune')
-          )}
-          {ligne('Mosquée', nomParId(mosquees, logistique.mosquee_id))}
+          {ligne('Mairie', logistique.mairie_deces_nom)}
+          {ligne('Mosquée', logistique.mosquee_nom)}
           {ligne('Date MEB', logistique.date_meb)}
           {type === 'inhumation_locale' &&
             ligne('Date inhumation', logistique.date_inhumation)}
           {logistique.marbrier_id &&
-            ligne('Marbrier', nomParId(marbriers, logistique.marbrier_id))}
+            ligne('Marbrier', nomMarbrier(logistique.marbrier_id))}
           {logistique.numero_dossier_iml &&
             ligne('N° IML', logistique.numero_dossier_iml)}
 
