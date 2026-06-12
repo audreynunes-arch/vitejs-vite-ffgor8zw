@@ -343,6 +343,7 @@ export default function Devis({ dossierId, onRetour }: Props) {
   const [concessionChoisie, setConcessionChoisie] = useState('');
   const [statutDevis, setStatutDevis] = useState('en_attente');
   const [statutFacture, setStatutFacture] = useState('non_payee');
+  const [statutBonCommande, setStatutBonCommande] = useState('en_attente');
   const [acompte, setAcompte] = useState(0);
   const [datePaiement, setDatePaiement] = useState('');
   const [remise] = useState(0);
@@ -367,6 +368,7 @@ export default function Devis({ dossierId, onRetour }: Props) {
       if (data.cimetieres) setCimetiere(data.cimetieres);
       setStatutDevis(data.statut_devis || 'en_attente');
       setStatutFacture(data.statut_facture || 'non_payee');
+      setStatutBonCommande(data.statut_bon_commande || 'en_attente');
       setAcompte(data.acompte_verse || 0);
       setDatePaiement(data.date_paiement || '');
       if (data.type_dossier === 'rapatriement') {
@@ -452,71 +454,28 @@ export default function Devis({ dossierId, onRetour }: Props) {
       // Plaque d'identité
       if (data?.plaque_identite) {
         const prix = data.plaque_identite === '2' ? 40 : 20;
-          lignesInit = lignesInit.map((l) =>
-          l.libelle.toLowerCase().includes('plaque') && l.libelle.toLowerCase().includes('identit')
-           ? { ...l, prix_ttc: prix, inclus: true }
-          : l
-       )
+        const libelle =
+          data.plaque_identite === '2'
+            ? "* 2 Plaques d'identité (**)"
+            : "* 1 Plaque d'identité (**)";
+        lignesInit = lignesInit.map((l) =>
+          l.libelle.toLowerCase().includes("plaque d'identité") &&
+          l.categorie === 'prestations_obligatoires'
+            ? { ...l, libelle, prix_ttc: prix, inclus: true }
+            : l
+        );
       }
 
       // Housse mortuaire
-if (data?.housse_mortuaire === 'standard') {
-  lignesInit = lignesInit.map((l) =>
-    l.libelle.toLowerCase().includes('housse') && l.libelle.toLowerCase().includes('mortuaire') && l.prix_ttc === 50
-      ? { ...l, inclus: true }
-      : l.libelle.toLowerCase().includes('housse') && l.libelle.toLowerCase().includes('mortuaire') && l.prix_ttc === 100
-      ? { ...l, inclus: false }
-      : l
-  )
-} else if (data?.housse_mortuaire === 'requise') {
-  lignesInit = lignesInit.map((l) =>
-    l.libelle.toLowerCase().includes('housse') && l.libelle.toLowerCase().includes('mortuaire') && l.prix_ttc === 100
-      ? { ...l, inclus: true }
-      : l.libelle.toLowerCase().includes('housse') && l.libelle.toLowerCase().includes('mortuaire') && l.prix_ttc === 50
-      ? { ...l, inclus: false }
-      : l
-  )
-} else if (data?.housse_mortuaire === 'les_deux') {
-  lignesInit = lignesInit.map((l) =>
-    l.libelle.toLowerCase().includes('housse') && l.libelle.toLowerCase().includes('mortuaire')
-      ? { ...l, inclus: true }
-      : l
-  )
-} else {
-  lignesInit = lignesInit.map((l) =>
-    l.libelle.toLowerCase().includes('housse') && l.libelle.toLowerCase().includes('mortuaire')
-      ? { ...l, inclus: false }
-      : l
-  )
-}
-// Transports kilométriques
-const prixKm = data?.agences?.prix_km || 1
-const franchise = data?.agences?.km_franchise || 25
-const calcPrixKm = (km: number) => Math.max(0, km - franchise) * prixKm
+      if (data?.housse_mortuaire) {
+        const prix = data.housse_mortuaire === 'requise' ? 100 : 50;
+        lignesInit = lignesInit.map((l) =>
+          l.libelle.toLowerCase().includes('housse mortuaire')
+            ? { ...l, prix_ttc: prix, inclus: true }
+            : l
+        );
+      }
 
-if (data?.km_avant_meb_aller) {
-  const prix = calcPrixKm(data.km_avant_meb_aller)
-  lignesInit = lignesInit.map(l =>
-    l.libelle.toLowerCase().includes('aller') && l.libelle.toLowerCase().includes('sans défunt')
-      ? { ...l, prix_ttc: prix, inclus: prix > 0 }
-      : l
-  )
-}
-if (data?.km_avant_meb_retour) {
-  const prix = calcPrixKm(data.km_avant_meb_retour)
-  lignesInit = lignesInit.map(l =>
-    l.libelle.toLowerCase().includes('retour') && l.libelle.toLowerCase().includes('sans défunt')
-      ? { ...l, prix_ttc: prix, inclus: prix > 0 }
-      : l
-  )
-}
-if (data?.peage) {
-  lignesInit = lignesInit.map(l =>
-    l.libelle.toLowerCase().includes('péage')
-      ? { ...l, prix_ttc: data.peage, inclus: data.peage > 0 }
-      : l
-  )
-}
       // Zinc rapatriement
       if (data?.zinc) {
         lignesInit = lignesInit.map((l) =>
@@ -874,7 +833,10 @@ if (data?.peage) {
   const totalTTC = totalHT + totalTVA - remise;
   const resteAPayer = totalTTC - acompte;
 
-  async function sauvegarder() {
+  async function sauvegarder(override?: {
+    statutDevis?: string;
+    statutBonCommande?: string;
+  }) {
     setSaving(true);
     if (dossier?.facture_verrouillee && onglet === 'facture') {
       alert('🔒 Cette facture est verrouillée et ne peut plus être modifiée.');
@@ -909,7 +871,9 @@ if (data?.peage) {
       await supabase
         .from('dossiers')
         .update({
-          statut_devis: statutDevis,
+          statut_devis: override?.statutDevis ?? statutDevis,
+          statut_bon_commande:
+            override?.statutBonCommande ?? statutBonCommande,
           statut_facture: statutFacture,
           acompte_verse: acompte,
           date_paiement: datePaiement || null,
@@ -928,6 +892,7 @@ if (data?.peage) {
       en_attente: { label: 'En attente', bg: '#FAEEDA', color: '#854F0B' },
       accepte: { label: 'Accepté', bg: '#E1F5EE', color: '#0F6E56' },
       refuse: { label: 'Refusé', bg: '#FAECE7', color: '#993C1D' },
+      valide: { label: 'Validé', bg: '#E1F5EE', color: '#0F6E56' },
       non_payee: { label: 'Non payée', bg: '#FAECE7', color: '#993C1D' },
       partiellement_payee: {
         label: 'Partiel',
@@ -1531,6 +1496,18 @@ ${
 
   const couleurAgence = dossier?.agences?.couleur_principale || '#2d6a4f';
 
+  // Cascade de validation : devis -> bon de commande -> facture
+  const devisValide = statutDevis === 'accepte';
+  const bonCommandeValide = devisValide && statutBonCommande === 'valide';
+
+  // Sécurité : si l'onglet actif n'est plus débloqué, on revient au devis
+  if (onglet === 'bon_commande' && !devisValide && dossier) {
+    setOnglet('devis');
+  }
+  if (onglet === 'facture' && !bonCommandeValide && dossier) {
+    setOnglet('devis');
+  }
+
   if (!dossier) return <p style={{ padding: '2rem' }}>Chargement...</p>;
 
   return (
@@ -1559,7 +1536,7 @@ ${
             </span>
           )}
           <button
-            onClick={sauvegarder}
+            onClick={() => sauvegarder()}
             disabled={saving}
             style={{
               padding: '0.6rem 1.2rem',
@@ -1599,31 +1576,52 @@ ${
           gap: '0.5rem',
         }}
       >
-        {(['devis', 'facture', 'bon_commande'] as Onglet[]).map((o) => (
-          <button
-            key={o}
-            onClick={() => setOnglet(o)}
-            style={{
-              padding: '0.6rem 1.5rem',
-              border: 'none',
-              borderBottom:
-                onglet === o
-                  ? `3px solid ${couleurAgence}`
-                  : '3px solid transparent',
-              background: 'none',
-              cursor: 'pointer',
-              fontWeight: onglet === o ? 'bold' : 'normal',
-              color: onglet === o ? couleurAgence : '#666',
-              fontSize: '15px',
-            }}
-          >
-            {o === 'devis'
-              ? `📋 Devis ${statutBadge(statutDevis)}`
-              : o === 'facture'
-              ? `🧾 Facture ${statutBadge(statutFacture)}`
-              : '📝 Bon de commande'}
-          </button>
-        ))}
+        {(['devis', 'bon_commande', 'facture'] as Onglet[]).map((o) => {
+          const verrouille =
+            (o === 'bon_commande' && !devisValide) ||
+            (o === 'facture' && !bonCommandeValide);
+          return (
+            <button
+              key={o}
+              onClick={() => {
+                if (verrouille) return;
+                setOnglet(o);
+              }}
+              disabled={verrouille}
+              title={
+                verrouille
+                  ? o === 'bon_commande'
+                    ? 'Validez le devis pour débloquer le bon de commande'
+                    : 'Validez le bon de commande pour débloquer la facture'
+                  : ''
+              }
+              style={{
+                padding: '0.6rem 1.5rem',
+                border: 'none',
+                borderBottom:
+                  onglet === o
+                    ? `3px solid ${couleurAgence}`
+                    : '3px solid transparent',
+                background: 'none',
+                cursor: verrouille ? 'not-allowed' : 'pointer',
+                fontWeight: onglet === o ? 'bold' : 'normal',
+                color: verrouille
+                  ? '#bbb'
+                  : onglet === o
+                  ? couleurAgence
+                  : '#666',
+                fontSize: '15px',
+                opacity: verrouille ? 0.6 : 1,
+              }}
+            >
+              {o === 'devis'
+                ? '📋 Devis'
+                : o === 'bon_commande'
+                ? `${verrouille ? '🔒' : '📝'} Bon de commande`
+                : `${verrouille ? '🔒' : '🧾'} Facture`}
+            </button>
+          );
+        })}
       </div>
 
       {dossier?.type_dossier === 'rapatriement' && (
@@ -1673,7 +1671,66 @@ ${
           )}
         </div>
       )}
-      
+      {/* SÉLECTEUR CERCUEIL CATALOGUE */}
+      {catalogueCercueils.length > 0 && (
+        <div
+          style={{
+            background: '#f0fdf4',
+            borderRadius: '8px',
+            padding: '1rem',
+            marginBottom: '1.5rem',
+            border: '1px solid #0F6E56',
+          }}
+        >
+          <label
+            style={{ fontWeight: 'bold', color: '#0F6E56', fontSize: '14px' }}
+          >
+            ⚰️ Choisir un cercueil depuis le catalogue :
+          </label>
+          <select
+            onChange={(e) => {
+              const id = e.target.value;
+              if (!id) return;
+              const c = catalogueCercueils.find((c) => c.id === id);
+              if (!c) return;
+              setLignes((prev) =>
+                prev.map((l) =>
+                  l.libelle.toLowerCase().includes('cercueil') &&
+                  l.categorie === 'prestations_obligatoires'
+                    ? {
+                        ...l,
+                        libelle: c.nom,
+                        prix_ttc: c.prix_ttc || 0,
+                        inclus: true,
+                      }
+                    : l
+                )
+              );
+            }}
+            style={{
+              width: '100%',
+              padding: '0.5rem',
+              marginTop: '0.5rem',
+              borderRadius: '6px',
+              border: '1px solid #0F6E56',
+            }}
+            defaultValue=""
+          >
+            <option value="">-- Sélectionner un cercueil --</option>
+            {catalogueCercueils.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.nom} — {c.type} — {c.prix_ttc} € TTC
+              </option>
+            ))}
+          </select>
+          <div
+            style={{ fontSize: '12px', color: '#0F6E56', marginTop: '0.5rem' }}
+          >
+            ℹ️ Sélectionner un cercueil met à jour la ligne cercueil dans les
+            prestations obligatoires
+          </div>
+        </div>
+      )}
       {onglet === 'devis' && (
         <div
           style={{
@@ -1710,6 +1767,43 @@ ${
             <option value="refuse">Refusé</option>
           </select>
           {statutBadge(statutDevis)}
+          {!devisValide ? (
+            <button
+              onClick={async () => {
+                setStatutDevis('accepte');
+                await sauvegarder({ statutDevis: 'accepte' });
+                setOnglet('bon_commande');
+              }}
+              style={{
+                marginLeft: 'auto',
+                padding: '0.6rem 1.2rem',
+                background: '#0F6E56',
+                color: 'white',
+                border: 'none',
+                borderRadius: '6px',
+                cursor: 'pointer',
+                fontWeight: 'bold',
+              }}
+            >
+              ✅ Valider le devis → ouvrir le bon de commande
+            </button>
+          ) : (
+            <button
+              onClick={() => setOnglet('bon_commande')}
+              style={{
+                marginLeft: 'auto',
+                padding: '0.6rem 1.2rem',
+                background: couleurAgence,
+                color: 'white',
+                border: 'none',
+                borderRadius: '6px',
+                cursor: 'pointer',
+                fontWeight: 'bold',
+              }}
+            >
+              Aller au bon de commande →
+            </button>
+          )}
         </div>
       )}
 
@@ -1865,10 +1959,70 @@ ${
             marginBottom: '1.5rem',
           }}
         >
-          <p style={{ margin: 0, fontSize: '13px', color: '#666' }}>
+          <p style={{ margin: '0 0 1rem', fontSize: '13px', color: '#666' }}>
             📝 Le bon de commande reprend les mêmes lignes que le devis. Il est
             destiné à être imprimé et signé par la famille.
           </p>
+          {!bonCommandeValide ? (
+            <button
+              onClick={async () => {
+                setStatutBonCommande('valide');
+                await sauvegarder({ statutBonCommande: 'valide' });
+                setOnglet('facture');
+              }}
+              style={{
+                padding: '0.6rem 1.2rem',
+                background: '#0F6E56',
+                color: 'white',
+                border: 'none',
+                borderRadius: '6px',
+                cursor: 'pointer',
+                fontWeight: 'bold',
+              }}
+            >
+              ✅ Valider le bon de commande → éditer la facture
+            </button>
+          ) : (
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '1rem',
+                flexWrap: 'wrap',
+              }}
+            >
+              <span style={{ color: '#0F6E56', fontWeight: 'bold' }}>
+                ✅ Bon de commande validé
+              </span>
+              <button
+                onClick={() => setOnglet('facture')}
+                style={{
+                  padding: '0.5rem 1rem',
+                  background: couleurAgence,
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '6px',
+                  cursor: 'pointer',
+                  fontWeight: 'bold',
+                }}
+              >
+                Aller à la facture →
+              </button>
+              <button
+                onClick={() => setStatutBonCommande('en_attente')}
+                style={{
+                  padding: '0.5rem 1rem',
+                  background: 'none',
+                  color: '#993C1D',
+                  border: '1px solid #993C1D',
+                  borderRadius: '6px',
+                  cursor: 'pointer',
+                }}
+              >
+                Dévalider
+              </button>
+            </div>
+          )}
         </div>
       )}
 
@@ -2039,3 +2193,4 @@ ${
     </div>
   );
 }
+
