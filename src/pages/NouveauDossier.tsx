@@ -268,36 +268,7 @@ export default function NouveauDossier({ onRetour }: Props) {
   };
 
   useEffect(() => {
-    supabase
-      .from('cimetieres')
-      .select(
-        'id, nom, ville, code_postal, tarif_10ans_adulte, tarif_15ans_adulte, tarif_30ans_adulte, tarif_50ans_adulte, tarif_perpet_adulte, tarif_10ans_enfant, tarif_15ans_enfant, tarif_30ans_enfant, tarif_50ans_enfant, tarif_perpet_enfant, semelle_imposee, fausse_case_imposee'
-      )
-      .order('nom')
-      .then(({ data }) => setCimetieres(data || []));
-    supabase
-      .from('marbriers')
-      .select('id, nom, ville, code_postal')
-      .order('nom')
-      .then(({ data }) => setMarbriers(data || []));
-    supabase
-      .from('tarifs_rapatriement')
-      .select('*')
-      .order('ordre')
-      .then(({ data }) => setTarifsRapatriement(data || []));
-    supabase
-      .from('vehicules')
-      .select('id, immatriculation, marque, modele')
-      .order('immatriculation')
-      .then(({ data }) => setVehicules(data || []));
-    supabase
-      .from('employes')
-      .select('id, nom, prenom, poste')
-      .eq('actif', true)
-      .order('nom')
-      .then(({ data }) => setEmployes(data || []));
-
-    // Récupérer l'agence de l'utilisateur connecté, puis charger SON catalogue
+    // Récupérer l'agence de l'utilisateur connecté, puis charger SES référentiels
     supabase.auth.getSession().then(({ data: session }) => {
       const userId = session.session?.user.id;
       if (!userId) return;
@@ -309,6 +280,40 @@ export default function NouveauDossier({ onRetour }: Props) {
         .then(({ data: user }) => {
           const agenceId = user?.agence_id || '';
           setMonAgenceId(agenceId);
+
+          supabase
+            .from('cimetieres')
+            .select(
+              'id, nom, ville, code_postal, tarif_10ans_adulte, tarif_15ans_adulte, tarif_30ans_adulte, tarif_50ans_adulte, tarif_perpet_adulte, tarif_10ans_enfant, tarif_15ans_enfant, tarif_30ans_enfant, tarif_50ans_enfant, tarif_perpet_enfant, semelle_imposee, fausse_case_imposee'
+            )
+            .eq('agence_id', agenceId)
+            .order('nom')
+            .then(({ data }) => setCimetieres(data || []));
+          supabase
+            .from('marbriers')
+            .select('id, nom, ville, code_postal')
+            .eq('agence_id', agenceId)
+            .order('nom')
+            .then(({ data }) => setMarbriers(data || []));
+          supabase
+            .from('tarifs_rapatriement')
+            .select('*')
+            .eq('agence_id', agenceId)
+            .order('ordre')
+            .then(({ data }) => setTarifsRapatriement(data || []));
+          supabase
+            .from('vehicules')
+            .select('id, immatriculation, marque, modele')
+            .eq('agence_id', agenceId)
+            .order('immatriculation')
+            .then(({ data }) => setVehicules(data || []));
+          supabase
+            .from('employes')
+            .select('id, nom, prenom, poste')
+            .eq('actif', true)
+            .eq('agence_id', agenceId)
+            .order('nom')
+            .then(({ data }) => setEmployes(data || []));
           supabase
             .from('catalogue_cercueils')
             .select('*')
