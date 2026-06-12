@@ -9,17 +9,11 @@ interface Props {
 type Section =
   | 'menu'
   | 'cimetieres'
-  | 'mairies'
-  | 'hopitaux'
-  | 'funerarium'
-  | 'mosquees'
-  | 'consulats'
   | 'marbriers'
   | 'tarifs_rapatriement'
   | 'vehicules'
   | 'employes'
-  | 'cercueils'
-  | 'stocks';
+  | 'cercueils';
 
 // ============================================
 // COMPOSANT GÉNÉRIQUE
@@ -503,189 +497,6 @@ function GestionCimetieres({ onRetour }: { onRetour: () => void }) {
   );
 }
 
-function GestionMairies({ onRetour }: { onRetour: () => void }) {
-  return (
-    <TableauGenerique
-      titre="🏛️ Mairies"
-      table="mairies"
-      onRetour={onRetour}
-      colonnes={[
-        { key: 'commune', label: 'Commune', width: '30%' },
-        { key: 'code_postal', label: 'CP', width: '10%' },
-        { key: 'telephone', label: 'Téléphone', width: '15%' },
-        { key: 'horaires_ouverture', label: 'Horaires', width: '25%' },
-      ]}
-      champsForm={[
-        { key: 'commune', label: 'Commune' },
-        { key: 'adresse', label: 'Adresse' },
-        { key: 'code_postal', label: 'Code postal' },
-        { key: 'ville', label: 'Ville' },
-        { key: 'telephone', label: 'Téléphone' },
-        { key: 'fax', label: 'Fax' },
-        { key: 'email', label: 'Email' },
-        {
-          key: 'horaires_ouverture',
-          label: 'Horaires ouverture',
-          type: 'textarea',
-        },
-        {
-          key: 'horaires_fermeture',
-          label: 'Horaires fermeture / infos',
-          type: 'textarea',
-        },
-        { key: 'contact_nom', label: 'Contact nom' },
-        { key: 'contact_telephone', label: 'Contact téléphone' },
-        { key: 'notes', label: 'Notes', type: 'textarea' },
-      ]}
-    />
-  );
-}
-
-function GestionHopitaux({ onRetour }: { onRetour: () => void }) {
-  return (
-    <TableauGenerique
-      titre="🏥 Hôpitaux & IML"
-      table="etablissements_sante"
-      onRetour={onRetour}
-      filtreColonne="type_etablissement"
-      filtreValeurs={['hopital', 'iml', 'clinique']}
-      colonnes={[
-        { key: 'nom', label: 'Nom', width: '30%' },
-        { key: 'ville', label: 'Ville', width: '15%' },
-        { key: 'telephone', label: 'Téléphone', width: '15%' },
-        { key: 'type_etablissement', label: 'Type', width: '15%' },
-        { key: 'a_chambre_mortuaire', label: 'Ch. mortuaire', width: '10%' },
-      ]}
-      champsForm={[
-        { key: 'nom', label: 'Nom' },
-        {
-          key: 'type_etablissement',
-          label: 'Type',
-          type: 'select',
-          options: ['hopital', 'iml', 'clinique'],
-        },
-        { key: 'adresse', label: 'Adresse' },
-        { key: 'code_postal', label: 'Code postal' },
-        { key: 'ville', label: 'Ville' },
-        { key: 'telephone', label: 'Téléphone' },
-        { key: 'fax', label: 'Fax' },
-        { key: 'email', label: 'Email' },
-        { key: 'horaires', label: 'Horaires', type: 'textarea' },
-        { key: 'contact_nom', label: 'Contact nom' },
-        { key: 'contact_telephone', label: 'Contact téléphone' },
-        {
-          key: 'a_chambre_mortuaire',
-          label: 'A une chambre mortuaire',
-          type: 'checkbox',
-        },
-        { key: 'notes', label: 'Notes', type: 'textarea' },
-      ]}
-    />
-  );
-}
-
-function GestionFunerarium({ onRetour }: { onRetour: () => void }) {
-  return (
-    <TableauGenerique
-      titre="🕊️ Funérariums & Chambres funéraires"
-      table="etablissements_sante"
-      onRetour={onRetour}
-      filtreColonne="type_etablissement"
-      filtreValeurs={['funerarium', 'chambre_funeraire']}
-      colonnes={[
-        { key: 'nom', label: 'Nom', width: '30%' },
-        { key: 'ville', label: 'Ville', width: '15%' },
-        { key: 'telephone', label: 'Téléphone', width: '15%' },
-        { key: 'type_etablissement', label: 'Type', width: '15%' },
-      ]}
-      champsForm={[
-        { key: 'nom', label: 'Nom' },
-        {
-          key: 'type_etablissement',
-          label: 'Type',
-          type: 'select',
-          options: ['funerarium', 'chambre_funeraire'],
-        },
-        { key: 'adresse', label: 'Adresse' },
-        { key: 'code_postal', label: 'Code postal' },
-        { key: 'ville', label: 'Ville' },
-        { key: 'telephone', label: 'Téléphone' },
-        { key: 'fax', label: 'Fax' },
-        { key: 'email', label: 'Email' },
-        { key: 'horaires', label: 'Horaires', type: 'textarea' },
-        { key: 'contact_nom', label: 'Contact nom' },
-        { key: 'contact_telephone', label: 'Contact téléphone' },
-        { key: 'notes', label: 'Notes', type: 'textarea' },
-      ]}
-    />
-  );
-}
-
-function GestionMosquees({ onRetour }: { onRetour: () => void }) {
-  return (
-    <TableauGenerique
-      titre="🕌 Mosquées & Lieux de culte"
-      table="lieux_culte"
-      onRetour={onRetour}
-      colonnes={[
-        { key: 'nom', label: 'Nom', width: '30%' },
-        { key: 'ville', label: 'Ville', width: '15%' },
-        { key: 'telephone', label: 'Téléphone', width: '15%' },
-        { key: 'type_culte', label: 'Type', width: '15%' },
-      ]}
-      champsForm={[
-        { key: 'nom', label: 'Nom' },
-        {
-          key: 'type_culte',
-          label: 'Type',
-          type: 'select',
-          options: ['mosquee', 'eglise', 'synagogue', 'temple', 'autre'],
-        },
-        { key: 'adresse', label: 'Adresse' },
-        { key: 'code_postal', label: 'Code postal' },
-        { key: 'ville', label: 'Ville' },
-        { key: 'telephone', label: 'Téléphone' },
-        { key: 'fax', label: 'Fax' },
-        { key: 'email', label: 'Email' },
-        { key: 'horaires', label: 'Horaires', type: 'textarea' },
-        { key: 'contact_nom', label: 'Contact nom' },
-        { key: 'contact_telephone', label: 'Contact téléphone' },
-        { key: 'notes', label: 'Notes', type: 'textarea' },
-      ]}
-    />
-  );
-}
-
-function GestionConsulats({ onRetour }: { onRetour: () => void }) {
-  return (
-    <TableauGenerique
-      titre="🌍 Consulats"
-      table="consulats"
-      onRetour={onRetour}
-      colonnes={[
-        { key: 'nom', label: 'Nom', width: '30%' },
-        { key: 'pays', label: 'Pays', width: '15%' },
-        { key: 'ville', label: 'Ville', width: '15%' },
-        { key: 'telephone', label: 'Téléphone', width: '15%' },
-      ]}
-      champsForm={[
-        { key: 'nom', label: 'Nom' },
-        { key: 'pays', label: 'Pays' },
-        { key: 'adresse', label: 'Adresse' },
-        { key: 'code_postal', label: 'Code postal' },
-        { key: 'ville', label: 'Ville' },
-        { key: 'telephone', label: 'Téléphone' },
-        { key: 'fax', label: 'Fax' },
-        { key: 'email', label: 'Email' },
-        { key: 'numero_plateforme', label: 'N° plateforme dossier' },
-        { key: 'contact_nom', label: 'Contact nom' },
-        { key: 'contact_telephone', label: 'Contact téléphone' },
-        { key: 'notes', label: 'Notes', type: 'textarea' },
-      ]}
-    />
-  );
-}
-
 function GestionMarbriers({ onRetour }: { onRetour: () => void }) {
   return (
     <TableauGenerique
@@ -712,6 +523,7 @@ function GestionMarbriers({ onRetour }: { onRetour: () => void }) {
     />
   );
 }
+
 function GestionVehicules({ onRetour }: { onRetour: () => void }) {
   return (
     <TableauGenerique
@@ -834,6 +646,7 @@ function GestionCercueils({
     />
   );
 }
+
 function GestionTarifsRapatriement({ onRetour }: { onRetour: () => void }) {
   const [tarifs, setTarifs] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -1232,16 +1045,6 @@ export default function Referentiels({ onRetour, agenceId }: Props) {
 
   if (section === 'cimetieres')
     return <GestionCimetieres onRetour={() => setSection('menu')} />;
-  if (section === 'mairies')
-    return <GestionMairies onRetour={() => setSection('menu')} />;
-  if (section === 'hopitaux')
-    return <GestionHopitaux onRetour={() => setSection('menu')} />;
-  if (section === 'funerarium')
-    return <GestionFunerarium onRetour={() => setSection('menu')} />;
-  if (section === 'mosquees')
-    return <GestionMosquees onRetour={() => setSection('menu')} />;
-  if (section === 'consulats')
-    return <GestionConsulats onRetour={() => setSection('menu')} />;
   if (section === 'marbriers')
     return <GestionMarbriers onRetour={() => setSection('menu')} />;
   if (section === 'tarifs_rapatriement')
@@ -1250,7 +1053,7 @@ export default function Referentiels({ onRetour, agenceId }: Props) {
     return <GestionVehicules onRetour={() => setSection('menu')} />;
   if (section === 'employes')
     return <GestionEmployes onRetour={() => setSection('menu')} />;
-    if (section === 'cercueils')
+  if (section === 'cercueils')
     return (
       <GestionCercueils
         onRetour={() => setSection('menu')}
@@ -1283,36 +1086,6 @@ export default function Referentiels({ onRetour, agenceId }: Props) {
             emoji: '🏛️',
             label: 'Cimetières',
             desc: 'Tarifs de concession, adresses, horaires',
-          },
-          {
-            key: 'mairies',
-            emoji: '🏛️',
-            label: 'Mairies',
-            desc: 'État civil, horaires, contacts',
-          },
-          {
-            key: 'hopitaux',
-            emoji: '🏥',
-            label: 'Hôpitaux & IML',
-            desc: 'Chambres mortuaires, hôpitaux',
-          },
-          {
-            key: 'funerarium',
-            emoji: '🕊️',
-            label: 'Funérariums',
-            desc: 'Chambres funéraires, funérariums',
-          },
-          {
-            key: 'mosquees',
-            emoji: '🕌',
-            label: 'Mosquées & Lieux de culte',
-            desc: 'Adresses, contacts',
-          },
-          {
-            key: 'consulats',
-            emoji: '🌍',
-            label: 'Consulats',
-            desc: 'Pour les rapatriements',
           },
           {
             key: 'marbriers',
