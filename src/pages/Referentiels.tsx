@@ -411,12 +411,19 @@ function TableauGenerique({
 // ============================================
 // SECTIONS SPÉCIFIQUES
 // ============================================
-function GestionCimetieres({ onRetour }: { onRetour: () => void }) {
+function GestionCimetieres({
+  onRetour,
+  agenceId,
+}: {
+  onRetour: () => void;
+  agenceId: string;
+}) {
   return (
     <TableauGenerique
       titre="🏛️ Cimetières"
       table="cimetieres"
       onRetour={onRetour}
+      agenceScope={agenceId}
       colonnes={[
         { key: 'nom', label: 'Nom', width: '25%' },
         { key: 'ville', label: 'Ville', width: '15%' },
@@ -497,12 +504,19 @@ function GestionCimetieres({ onRetour }: { onRetour: () => void }) {
   );
 }
 
-function GestionMarbriers({ onRetour }: { onRetour: () => void }) {
+function GestionMarbriers({
+  onRetour,
+  agenceId,
+}: {
+  onRetour: () => void;
+  agenceId: string;
+}) {
   return (
     <TableauGenerique
       titre="🪨 Marbriers"
       table="marbriers"
       onRetour={onRetour}
+      agenceScope={agenceId}
       colonnes={[
         { key: 'nom', label: 'Nom', width: '30%' },
         { key: 'ville', label: 'Ville', width: '20%' },
@@ -524,12 +538,19 @@ function GestionMarbriers({ onRetour }: { onRetour: () => void }) {
   );
 }
 
-function GestionVehicules({ onRetour }: { onRetour: () => void }) {
+function GestionVehicules({
+  onRetour,
+  agenceId,
+}: {
+  onRetour: () => void;
+  agenceId: string;
+}) {
   return (
     <TableauGenerique
       titre="🚗 Véhicules"
       table="vehicules"
       onRetour={onRetour}
+      agenceScope={agenceId}
       colonnes={[
         { key: 'immatriculation', label: 'Immatriculation', width: '20%' },
         { key: 'marque', label: 'Marque', width: '20%' },
@@ -552,12 +573,19 @@ function GestionVehicules({ onRetour }: { onRetour: () => void }) {
   );
 }
 
-function GestionEmployes({ onRetour }: { onRetour: () => void }) {
+function GestionEmployes({
+  onRetour,
+  agenceId,
+}: {
+  onRetour: () => void;
+  agenceId: string;
+}) {
   return (
     <TableauGenerique
       titre="👤 Démarcheurs & Employés"
       table="employes"
       onRetour={onRetour}
+      agenceScope={agenceId}
       colonnes={[
         { key: 'nom', label: 'Nom', width: '20%' },
         { key: 'prenom', label: 'Prénom', width: '20%' },
@@ -647,7 +675,13 @@ function GestionCercueils({
   );
 }
 
-function GestionTarifsRapatriement({ onRetour }: { onRetour: () => void }) {
+function GestionTarifsRapatriement({
+  onRetour,
+  agenceId,
+}: {
+  onRetour: () => void;
+  agenceId: string;
+}) {
   const [tarifs, setTarifs] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [editId, setEditId] = useState<string | null>(null);
@@ -663,15 +697,17 @@ function GestionTarifsRapatriement({ onRetour }: { onRetour: () => void }) {
     const { data } = await supabase
       .from('tarifs_rapatriement')
       .select('*')
+      .eq('agence_id', agenceId)
       .order('ordre');
     setTarifs(data || []);
     setLoading(false);
   }
 
   async function sauvegarder(id: string | null) {
+    const data = { ...form, agence_id: agenceId };
     if (id)
-      await supabase.from('tarifs_rapatriement').update(form).eq('id', id);
-    else await supabase.from('tarifs_rapatriement').insert(form);
+      await supabase.from('tarifs_rapatriement').update(data).eq('id', id);
+    else await supabase.from('tarifs_rapatriement').insert(data);
     setEditId(null);
     setAjout(false);
     setForm({});
@@ -1044,15 +1080,40 @@ export default function Referentiels({ onRetour, agenceId }: Props) {
   const [section, setSection] = useState<Section>('menu');
 
   if (section === 'cimetieres')
-    return <GestionCimetieres onRetour={() => setSection('menu')} />;
+    return (
+      <GestionCimetieres
+        onRetour={() => setSection('menu')}
+        agenceId={agenceId}
+      />
+    );
   if (section === 'marbriers')
-    return <GestionMarbriers onRetour={() => setSection('menu')} />;
+    return (
+      <GestionMarbriers
+        onRetour={() => setSection('menu')}
+        agenceId={agenceId}
+      />
+    );
   if (section === 'tarifs_rapatriement')
-    return <GestionTarifsRapatriement onRetour={() => setSection('menu')} />;
+    return (
+      <GestionTarifsRapatriement
+        onRetour={() => setSection('menu')}
+        agenceId={agenceId}
+      />
+    );
   if (section === 'vehicules')
-    return <GestionVehicules onRetour={() => setSection('menu')} />;
+    return (
+      <GestionVehicules
+        onRetour={() => setSection('menu')}
+        agenceId={agenceId}
+      />
+    );
   if (section === 'employes')
-    return <GestionEmployes onRetour={() => setSection('menu')} />;
+    return (
+      <GestionEmployes
+        onRetour={() => setSection('menu')}
+        agenceId={agenceId}
+      />
+    );
   if (section === 'cercueils')
     return (
       <GestionCercueils
