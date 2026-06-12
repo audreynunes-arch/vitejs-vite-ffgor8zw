@@ -375,6 +375,7 @@ export default function Devis({ dossierId, onRetour }: Props) {
         const { data: tarifs } = await supabase
           .from('tarifs_rapatriement')
           .select('*')
+          .eq('agence_id', data.agence_id)
           .order('ordre');
         setTarifsRapatriement(tarifs || []);
       }
@@ -2244,7 +2245,11 @@ ${
             paddingTop: '1rem',
           }}
         >
-          <span>
+          <span>const { data: tarifs } = await supabase
+          .from('tarifs_rapatriement')
+          .select('*')
+          .order('ordre');
+        setTarifsRapatriement(tarifs || []);
             Obligatoires : <strong>{totalObl.toFixed(2)} €</strong>
           </span>
           <span>
