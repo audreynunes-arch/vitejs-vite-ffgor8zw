@@ -21,7 +21,7 @@ export default function GestionStocks({ agenceId, onRetour }: Props) {
     setLoading(true)
 
     // Charger catalogue cercueils
-    const { data: cats } = await supabase.from('catalogue_cercueils').select('*').eq('actif', true).order('nom')
+    const { data: cats } = await supabase.from('catalogue_cercueils').select('*').eq('actif', true).eq('agence_id', agenceId).order('nom')
     setCercueils(cats || [])
 
     // Charger stocks
@@ -164,7 +164,7 @@ export default function GestionStocks({ agenceId, onRetour }: Props) {
 
       {/* STOCK ACTUEL */}
       {onglet === 'stocks' && (
-        <div style={{ background: 'white', border: '1px solid #eee', borderRadius: '12px', overflow: 'hidden', overflowX: 'auto' }}>
+        <div style={{ background: 'white', border: '1px solid #eee', borderRadius: '12px', overflow: 'hidden' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
             <thead>
               <tr style={{ background: '#f9f9f9' }}>
@@ -205,7 +205,7 @@ export default function GestionStocks({ agenceId, onRetour }: Props) {
 
       {/* HISTORIQUE MOUVEMENTS */}
       {onglet === 'mouvements' && (
-        <div style={{ background: 'white', border: '1px solid #eee', borderRadius: '12px', overflow: 'auto' }}>
+        <div style={{ background: 'white', border: '1px solid #eee', borderRadius: '12px', overflow: 'hidden' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
             <thead>
               <tr style={{ background: '#f9f9f9' }}>
