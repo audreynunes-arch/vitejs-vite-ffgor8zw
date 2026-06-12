@@ -433,7 +433,7 @@ export default function Devis({ dossierId, onRetour }: Props) {
         lignesInit = lignesInit.map((l) =>
           l.libelle.includes('fausse case') ? { ...l, inclus: true } : l
         );
-    
+
       // Pré-remplir cercueil depuis le catalogue (uniquement la ligne cercueil, pas la plaque)
       if (data?.cercueil_id) {
         const cercueil = catalogueCercueils?.find(
@@ -1711,7 +1711,6 @@ ${
                 .eq('id', dossierId);
               setDossier((d: any) => (d ? { ...d, cercueil_id: id } : d));
               setLignes((prev) => {
-
                 let fait = false;
                 return prev.map((l) => {
                   if (
@@ -1743,7 +1742,7 @@ ${
             }}
             defaultValue=""
           >
-           <option value="">-- Sélectionner un cercueil --</option>
+            <option value="">-- Sélectionner un cercueil --</option>
             {catalogueCercueils
               .filter((c) => c.type !== 'accessoire')
               .map((c) => (
@@ -1751,7 +1750,6 @@ ${
                   {c.nom} — {c.type} — {c.prix_ttc} € TTC
                 </option>
               ))}
-              
           </select>
           <div
             style={{ fontSize: '12px', color: '#0F6E56', marginTop: '0.5rem' }}
@@ -1923,6 +1921,7 @@ ${
               display: 'flex',
               alignItems: 'center',
               gap: '1rem',
+              width: '100%',
             }}
           >
             {dossier?.facture_verrouillee ? (
@@ -2001,7 +2000,6 @@ ${
                     .eq('id', dossierId);
                   await chargerDossier();
                 }}
-
                 style={{
                   padding: '0.6rem 1.2rem',
                   background: '#993C1D',
@@ -2245,11 +2243,7 @@ ${
             paddingTop: '1rem',
           }}
         >
-          <span>const { data: tarifs } = await supabase
-          .from('tarifs_rapatriement')
-          .select('*')
-          .order('ordre');
-        setTarifsRapatriement(tarifs || []);
+          <span>
             Obligatoires : <strong>{totalObl.toFixed(2)} €</strong>
           </span>
           <span>
