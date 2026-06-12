@@ -3,6 +3,7 @@ import { supabase } from '../supabase';
 
 interface Props {
   onRetour: () => void;
+  agenceId: string;
 }
 
 type Section =
@@ -31,6 +32,7 @@ function TableauGenerique({
   onRetour,
   filtreColonne,
   filtreValeurs,
+  agenceScope,
 }: {
   titre: string;
   colonnes: { key: string; label: string; width?: string }[];
@@ -44,6 +46,7 @@ function TableauGenerique({
   onRetour: () => void;
   filtreColonne?: string;
   filtreValeurs?: string[];
+  agenceScope?: string;
 }) {
   const [lignes, setLignes] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -62,6 +65,7 @@ function TableauGenerique({
     let query = supabase.from(table).select('*').order(colonnes[0].key);
     if (filtreColonne && filtreValeurs)
       query = query.in(filtreColonne, filtreValeurs);
+    if (agenceScope) query = query.eq('agence_id', agenceScope);
     const { data } = await query;
     setLignes(data || []);
     setLoading(false);
@@ -77,6 +81,7 @@ function TableauGenerique({
     const vide: any = {};
     champsForm.forEach((c) => (vide[c.key] = ''));
     if (filtreColonne && filtreValeurs) vide[filtreColonne] = filtreValeurs[0];
+    if (agenceScope) vide.agence_id = agenceScope;
     setForm(vide);
     setEditItem({});
     setIsNew(true);
@@ -85,8 +90,9 @@ function TableauGenerique({
   async function sauvegarder() {
     setSaving(true);
     try {
-      if (isNew) await supabase.from(table).insert(form);
-      else await supabase.from(table).update(form).eq('id', editItem.id);
+      const data = agenceScope ? { ...form, agence_id: agenceScope } : form;
+      if (isNew) await supabase.from(table).insert(data);
+      else await supabase.from(table).update(data).eq('id', editItem.id);
       await charger();
       setEditItem(null);
     } catch (e: any) {
@@ -293,7 +299,7 @@ function TableauGenerique({
             background: 'white',
             border: '1px solid #eee',
             borderRadius: '12px',
-            overflow: 'auto',
+            overflow: 'hidden',
           }}
         >
           <table
@@ -772,12 +778,19 @@ function GestionEmployes({ onRetour }: { onRetour: () => void }) {
   );
 }
 
-function GestionCercueils({ onRetour }: { onRetour: () => void }) {
+function GestionCercueils({
+  onRetour,
+  agenceId,
+}: {
+  onRetour: () => void;
+  agenceId: string;
+}) {
   return (
     <TableauGenerique
       titre="⚰️ Catalogue cercueils"
       table="catalogue_cercueils"
       onRetour={onRetour}
+      agenceScope={agenceId}
       colonnes={[
         { key: 'nom', label: 'Nom', width: '25%' },
         { key: 'matiere', label: 'Matière', width: '15%' },
@@ -799,7 +812,15 @@ function GestionCercueils({ onRetour }: { onRetour: () => void }) {
           key: 'type',
           label: 'Type',
           type: 'select',
-          options: ['adulte', 'enfant', 'hors_gabarit', 'tombeau', 'enveloppe'],
+          options: [
+            'adulte',
+            'enfant',
+            'hors_gabarit',
+            'tombeau',
+            'enveloppe',
+            'accessoire',
+            'autre',
+          ],
         },
         { key: 'dimensions', label: 'Dimensions (ex: 200x60x45)' },
         { key: 'taille_min', label: 'Taille min (cm)', type: 'number' },
@@ -1206,7 +1227,7 @@ function GestionTarifsRapatriement({ onRetour }: { onRetour: () => void }) {
 // ============================================
 // COMPOSANT PRINCIPAL
 // ============================================
-export default function Referentiels({ onRetour }: Props) {
+export default function Referentiels({ onRetour, agenceId }: Props) {
   const [section, setSection] = useState<Section>('menu');
 
   if (section === 'cimetieres')
@@ -1229,8 +1250,13 @@ export default function Referentiels({ onRetour }: Props) {
     return <GestionVehicules onRetour={() => setSection('menu')} />;
   if (section === 'employes')
     return <GestionEmployes onRetour={() => setSection('menu')} />;
-  if (section === 'cercueils')
-    return <GestionCercueils onRetour={() => setSection('menu')} />;
+    if (section === 'cercueils')
+    return (
+      <GestionCercueils
+        onRetour={() => setSection('menu')}
+        agenceId={agenceId}
+      />
+    );
 
   return (
     <div style={{ padding: '2rem', maxWidth: '700px', margin: '0 auto' }}>
