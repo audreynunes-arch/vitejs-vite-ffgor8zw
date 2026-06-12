@@ -431,23 +431,32 @@ export default function Devis({ dossierId, onRetour }: Props) {
         lignesInit = lignesInit.map((l) =>
           l.libelle.includes('fausse case') ? { ...l, inclus: true } : l
         );
-      // Pré-remplir cercueil depuis le catalogue
-      if (data?.cercueil_id && cim === null) {
+    
+      // Pré-remplir cercueil depuis le catalogue (uniquement la ligne cercueil, pas la plaque)
+      if (data?.cercueil_id) {
         const cercueil = catalogueCercueils?.find(
           (c: any) => c.id === data.cercueil_id
         );
         if (cercueil) {
-          lignesInit = lignesInit.map((l) =>
-            l.libelle.toLowerCase().includes('cercueil') &&
-            l.categorie === 'prestations_obligatoires'
-              ? {
-                  ...l,
-                  libelle: cercueil.nom,
-                  prix_ttc: cercueil.prix_ttc || 0,
-                  inclus: true,
-                }
-              : l
-          );
+          let cercueilFait = false;
+          lignesInit = lignesInit.map((l) => {
+            if (
+              !cercueilFait &&
+              l.categorie === 'prestations_obligatoires' &&
+              l.section === '3 - Cercueil & Accessoires' &&
+              l.libelle.toLowerCase().includes('cercueil') &&
+              !l.libelle.toLowerCase().includes('plaque')
+            ) {
+              cercueilFait = true;
+              return {
+                ...l,
+                libelle: cercueil.nom,
+                prix_ttc: cercueil.prix_ttc || 0,
+                inclus: true,
+              };
+            }
+            return l;
+          });
         }
       }
 
@@ -1693,19 +1702,28 @@ ${
               if (!id) return;
               const c = catalogueCercueils.find((c) => c.id === id);
               if (!c) return;
-              setLignes((prev) =>
-                prev.map((l) =>
-                  l.libelle.toLowerCase().includes('cercueil') &&
-                  l.categorie === 'prestations_obligatoires'
-                    ? {
-                        ...l,
-                        libelle: c.nom,
-                        prix_ttc: c.prix_ttc || 0,
-                        inclus: true,
-                      }
-                    : l
-                )
-              );
+              setLignes((prev) => {
+                let fait = false;
+                return prev.map((l) => {
+                  if (
+                    !fait &&
+                    l.categorie === 'prestations_obligatoires' &&
+                    l.section === '3 - Cercueil & Accessoires' &&
+                    l.libelle.toLowerCase().includes('cercueil') &&
+                    !l.libelle.toLowerCase().includes('plaque') &&
+                    !l.libelle.toLowerCase().includes('housse')
+                  ) {
+                    fait = true;
+                    return {
+                      ...l,
+                      libelle: c.nom,
+                      prix_ttc: c.prix_ttc || 0,
+                      inclus: true,
+                    };
+                  }
+                  return l;
+                });
+              });
             }}
             style={{
               width: '100%',
@@ -1716,12 +1734,15 @@ ${
             }}
             defaultValue=""
           >
-            <option value="">-- Sélectionner un cercueil --</option>
-            {catalogueCercueils.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.nom} — {c.type} — {c.prix_ttc} € TTC
-              </option>
-            ))}
+           <option value="">-- Sélectionner un cercueil --</option>
+            {catalogueCercueils
+              .filter((c) => c.type !== 'accessoire')
+              .map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.nom} — {c.type} — {c.prix_ttc} € TTC
+                </option>
+              ))}
+              
           </select>
           <div
             style={{ fontSize: '12px', color: '#0F6E56', marginTop: '0.5rem' }}
@@ -2193,4 +2214,3 @@ ${
     </div>
   );
 }
-
