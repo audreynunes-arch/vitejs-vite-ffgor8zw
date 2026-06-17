@@ -349,63 +349,92 @@ export default function Documents({ dossierId, onRetour }: Props) {
     labelG: string,
     labelD: string,
     signatureAgence = false
-  ) => (
-    <div
-      style={{
-        display: 'grid',
-        gridTemplateColumns: '1fr 1fr',
-        gap: '3rem',
-        marginTop: '2rem',
-      }}
-    >
-      <div>
-        <div
-          style={{
-            fontSize: '11px',
-            color: '#888',
-            marginBottom: '0.5rem',
-            whiteSpace: 'pre-line',
-          }}
-        >
-          {labelG}
+  ) => {
+    // La signature de l'agence ne doit JAMAIS aller dans une case "cachet" officiel
+    // (mairie, préfecture, consulat...). On détecte quelle case est celle de l'agence.
+    const estCaseAgence = (label: string) =>
+      /signature/i.test(label) &&
+      (/(^|\s)agence/i.test(label) ||
+        /entrepreneur|soussign/i.test(label) ||
+        (agence?.nom && label.includes(agence.nom)));
+    const sigGauche = signatureAgence && estCaseAgence(labelG);
+    const sigDroite = signatureAgence && estCaseAgence(labelD);
+    // Si aucune case ne correspond explicitement à l'agence mais qu'on veut la
+    // signature, on la met à gauche par défaut (jamais dans un cachet officiel).
+    const caseOfficielleD = /(cachet|mairie|préfecture|prefecture|consulat)/i.test(
+      labelD
+    );
+    const sigGaucheFinal = sigGauche || (signatureAgence && !sigDroite && caseOfficielleD);
+    const sigDroiteFinal = sigDroite && !sigGaucheFinal;
+    return (
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: '1fr 1fr',
+          gap: '3rem',
+          marginTop: '2rem',
+        }}
+      >
+        <div>
+          <div
+            style={{
+              fontSize: '11px',
+              color: '#888',
+              marginBottom: '0.5rem',
+              whiteSpace: 'pre-line',
+            }}
+          >
+            {labelG}
+          </div>
+          <div
+            style={{
+              border: `1px solid ${couleur}33`,
+              height: '70px',
+              borderRadius: '4px',
+              background: '#fafafa',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            {sigGaucheFinal && agence?.signature_url && (
+              <img
+                src={agence.signature_url}
+                alt="signature"
+                style={{ maxHeight: '60px' }}
+              />
+            )}
+          </div>
         </div>
-        <div
-          style={{
-            border: `1px solid ${couleur}33`,
-            height: '70px',
-            borderRadius: '4px',
-            background: '#fafafa',
-          }}
-        ></div>
+        <div>
+          <div
+            style={{ fontSize: '11px', color: '#888', marginBottom: '0.5rem' }}
+          >
+            {labelD}
+          </div>
+          <div
+            style={{
+              border: `1px solid ${couleur}33`,
+              height: '70px',
+              borderRadius: '4px',
+              background: '#fafafa',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            {sigDroiteFinal && agence?.signature_url && (
+              <img
+                src={agence.signature_url}
+                alt="signature"
+                style={{ maxHeight: '60px' }}
+              />
+            )}
+          </div>
+        </div>
       </div>
-      <div>
-        <div
-          style={{ fontSize: '11px', color: '#888', marginBottom: '0.5rem' }}
-        >
-          {labelD}
-        </div>
-        <div
-          style={{
-            border: `1px solid ${couleur}33`,
-            height: '70px',
-            borderRadius: '4px',
-            background: '#fafafa',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}
-        >
-          {signatureAgence && agence?.signature_url && (
-            <img
-              src={agence.signature_url}
-              alt="signature"
-              style={{ maxHeight: '60px' }}
-            />
-          )}
-        </div>
-      </div>
-    </div>
-  );
+    );
+  };
 
   const sectionTitre = (titre: string) => (
     <div
