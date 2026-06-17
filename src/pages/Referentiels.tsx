@@ -74,7 +74,7 @@ function TableauGenerique({
 
   function nouveau() {
     const vide: any = {};
-    champsForm.forEach((c) => (vide[c.key] = ''));
+    champsForm.forEach((c) => (vide[c.key] = c.type === 'checkbox' ? false : ''));
     if (filtreColonne && filtreValeurs) vide[filtreColonne] = filtreValeurs[0];
     if (agenceScope) vide.agence_id = agenceScope;
     setForm(vide);
