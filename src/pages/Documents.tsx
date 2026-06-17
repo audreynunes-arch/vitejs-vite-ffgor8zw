@@ -561,7 +561,9 @@ export default function Documents({ dossierId, onRetour }: Props) {
       <p>
         Déclarant(e) :{' '}
         <strong>
-          {p
+          {dossier.declarant
+            ? dossier.declarant
+            : p
             ? `${p.civilite || ''} ${p.prenom} ${p.nom}`
             : '.................................'}
         </strong>
