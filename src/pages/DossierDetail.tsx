@@ -1651,16 +1651,30 @@ export default function DossierDetail({
           💰 Devis / Facture
         </button>
         <button
-          onClick={onDocuments}
+          onClick={() => {
+            if (dossier.type_dossier === 'devis_libre') return;
+            onDocuments();
+          }}
+          disabled={dossier.type_dossier === 'devis_libre'}
+          title={
+            dossier.type_dossier === 'devis_libre'
+              ? 'Pas de documents pour un devis libre'
+              : ''
+          }
           style={{
             flex: 1,
             padding: '0.75rem',
-            background: '#0F6E56',
+            background:
+              dossier.type_dossier === 'devis_libre' ? '#ccc' : '#0F6E56',
             color: 'white',
             border: 'none',
             borderRadius: '8px',
-            cursor: 'pointer',
+            cursor:
+              dossier.type_dossier === 'devis_libre'
+                ? 'not-allowed'
+                : 'pointer',
             fontWeight: 'bold',
+            opacity: dossier.type_dossier === 'devis_libre' ? 0.6 : 1,
           }}
         >
           📄 Documents
