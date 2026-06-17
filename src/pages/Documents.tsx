@@ -41,14 +41,9 @@ export default function Documents({ dossierId, onRetour }: Props) {
     const { data } = await supabase
       .from('dossiers')
       .select(
-        `
-      *, defunts (*), pouvoirs (*), agences (*),
-      cimetieres!dossiers_cimetiere_id_fkey (nom, adresse, ville, code_postal, telephone, email, contact_nom),
-      mairies!dossiers_mairie_deces_id_fkey (commune, adresse, ville, code_postal, telephone, email, horaires_ouverture),
-      etablissements_sante (nom, adresse, ville, telephone),
-      lieux_culte (nom, adresse, ville, telephone),
-      marbriers (nom, adresse, ville, telephone)
-    `
+        `*, defunts (*), pouvoirs (*), agences (*),
+        cimetieres!dossiers_cimetiere_id_fkey (nom, adresse, ville, code_postal, telephone, email, contact_nom),
+        marbriers (nom, adresse, ville, telephone)`
       )
       .eq('id', dossierId)
       .single();
@@ -63,9 +58,14 @@ export default function Documents({ dossierId, onRetour }: Props) {
   const p = dossier.pouvoirs?.[0];
   const agence = dossier.agences;
   const cim = dossier.cimetieres;
-  const _mairie = dossier.mairies;
-  const etab = dossier.etablissements_sante;
-  const mosquee = dossier.lieux_culte;
+  const _mairie = dossier.mairie_deces_nom;
+  const etab = dossier.chambre_mortuaire_nom;
+  const mosquee = dossier.mosquee_nom;
+  // Cimetière à afficher : celui du référentiel (inhumation locale) ou celui au pays (rapatriement)
+  const nomCim = cim?.nom || dossier.cimetiere_pays || '';
+  const adresseCim = cim
+    ? `${cim.adresse || ''} ${cim.code_postal || ''} ${cim.ville || ''}`.trim()
+    : '';
   const marb = dossier.marbriers;
   const aujourd_hui = new Date().toLocaleDateString('fr-FR');
   const couleur = agence?.couleur_principale || '#4F46E5';
@@ -135,7 +135,6 @@ export default function Documents({ dossierId, onRetour }: Props) {
 
   const entete = () => (
     <div style={{ marginBottom: '1.5rem' }}>
-      {/* Barre colorée en haut */}
       <div
         style={{
           background: couleur,
@@ -200,7 +199,7 @@ export default function Documents({ dossierId, onRetour }: Props) {
           }}
         >
           <div style={{ fontWeight: 'bold', color: couleur }}>
-            {agence?.ville || 'Argenteuil'} le {aujourd_hui}
+            {agence?.ville || ''} le {aujourd_hui}
           </div>
           {dossier.numero_dossier && (
             <div>
@@ -426,9 +425,6 @@ export default function Documents({ dossierId, onRetour }: Props) {
     </div>
   );
 
-  // ============================================
-  // POUVOIR
-  // ============================================
   const renderPouvoir = () => (
     <div style={docStyle}>
       {entete()}
@@ -458,9 +454,9 @@ export default function Documents({ dossierId, onRetour }: Props) {
         sise {agence?.adresse_complete}, habilitée sous le n°{' '}
         <strong>{agence?.habilitation}</strong>, représentée par son gérant, à
         accomplir toutes les formalités administratives nécessaires à
-        l'organisation des obsèques.
+        l'organisation des obsèques. Je m'engage à assurer le règlement intégral
+        des obsèques et des frais accessoires sans division, ni réserve.
       </p>
-      <p>Je m'engage à assurer le règlement intégral des obsèques.</p>
       <br />
       <p style={{ fontSize: '12px', color: '#666' }}>
         Fait à {agence?.ville || '............'}, le {aujourd_hui}
@@ -474,9 +470,6 @@ export default function Documents({ dossierId, onRetour }: Props) {
     </div>
   );
 
-  // ============================================
-  // DÉCLARATION DE DÉCÈS
-  // ============================================
   const renderDeclarationDeces = () => (
     <div style={docStyle}>
       {entete()}
@@ -507,12 +500,10 @@ export default function Documents({ dossierId, onRetour }: Props) {
       )}
       {ligne('Domicilié(e) :', d?.domicile)}
       {ligne('Situation familiale :', d?.situation_familiale)}
-
       {sectionTitre('AFFILIATION')}
       {ligne('Prénom et Nom du père :', d?.filiation_pere)}
       {ligne('Nom de la mère :', d?.filiation_mere)}
       {ligne('Époux(se) :', d?.epoux)}
-
       {sectionTitre('DÉCLARATION')}
       <p>
         Déclarant(e) :{' '}
@@ -532,9 +523,6 @@ export default function Documents({ dossierId, onRetour }: Props) {
     </div>
   );
 
-  // ============================================
-  // APRÈS MEB
-  // ============================================
   const renderApresMeb = () => (
     <div style={docStyle}>
       {entete()}
@@ -557,12 +545,8 @@ export default function Documents({ dossierId, onRetour }: Props) {
         <strong>Ayant qualité pour pourvoir aux funérailles de :</strong>
       </p>
       {encadreDefunt()}
-      {ligne('Lieu de départ :', etab?.nom)}
-      {ligne(
-        'Adresse :',
-        etab ? `${etab.adresse || ''} ${etab.ville || ''}` : undefined
-      )}
-      {ligne('Vers le cimetière :', cim?.nom)}
+      {ligne('Lieu de départ :', etab)}
+      {ligne('Vers le cimetière :', nomCim || undefined)}
       <br />
       <p>
         Le transport sera effectué par{' '}
@@ -598,9 +582,6 @@ export default function Documents({ dossierId, onRetour }: Props) {
     </div>
   );
 
-  // ============================================
-  // ACQUISITION DE CONCESSION
-  // ============================================
   const renderAcquisition = () => (
     <div style={docStyle}>
       {entete()}
@@ -620,7 +601,7 @@ export default function Documents({ dossierId, onRetour }: Props) {
       <p>
         Demande à obtenir une concession dans le{' '}
         <strong style={{ color: couleur }}>
-          Cimetière {cim?.nom || '.................................'}
+          Cimetière {nomCim || '.................................'}
         </strong>
       </p>
       {ligne(
@@ -681,15 +662,12 @@ export default function Documents({ dossierId, onRetour }: Props) {
       </p>
       {zoneSignature(
         'Signature du demandeur',
-        `Cachet ${cim?.nom || 'cimetière'}`
+        `Cachet ${nomCim || 'cimetière'}`
       )}
       {piedPage()}
     </div>
   );
 
-  // ============================================
-  // DEMANDE D'INHUMATION
-  // ============================================
   const renderDemandeInhumation = () => (
     <div style={docStyle}>
       {entete()}
@@ -709,7 +687,7 @@ export default function Documents({ dossierId, onRetour }: Props) {
       </p>
       {ligne('Téléphone :', p?.telephone_1)}
       <br />
-      {ligne("Lieu d'inhumation :", cim?.nom)}
+      {ligne("Lieu d'inhumation :", nomCim || undefined)}
       {ligne(
         'Adresse :',
         cim
@@ -785,15 +763,12 @@ export default function Documents({ dossierId, onRetour }: Props) {
       </p>
       {zoneSignature(
         'Signature du demandeur',
-        `Cachet ${cim?.nom || 'cimetière'}`
+        `Cachet ${nomCim || 'cimetière'}`
       )}
       {piedPage()}
     </div>
   );
 
-  // ============================================
-  // BON DE TRAVAUX
-  // ============================================
   const renderBonTravaux = () => (
     <div style={docStyle}>
       {entete()}
@@ -913,7 +888,7 @@ export default function Documents({ dossierId, onRetour }: Props) {
           </div>
         </div>
       </div>
-      {ligne("Lieu d'inhumation :", cim?.nom)}
+      {ligne("Lieu d'inhumation :", nomCim || undefined)}
       {ligne(
         'Adresse :',
         cim
@@ -939,9 +914,6 @@ export default function Documents({ dossierId, onRetour }: Props) {
     </div>
   );
 
-  // ============================================
-  // PASSAGE MOSQUÉE
-  // ============================================
   const renderPassageMosquee = () => (
     <div style={docStyle}>
       {entete()}
@@ -977,15 +949,7 @@ export default function Documents({ dossierId, onRetour }: Props) {
           </div>
           <div>
             Au :{' '}
-            <strong>
-              {mosquee?.nom || '.................................'}
-            </strong>
-          </div>
-          <div>
-            Adresse :{' '}
-            {mosquee
-              ? `${mosquee.adresse || ''} ${mosquee.ville || ''}`
-              : '.................................'}
+            <strong>{mosquee || '.................................'}</strong>
           </div>
           <div>
             À partir de :{' '}
@@ -1000,7 +964,7 @@ export default function Documents({ dossierId, onRetour }: Props) {
             Le : <strong>{fmt(dossier.date_fermeture_depart)}</strong> à{' '}
             <strong>{dossier.heure_fermeture_depart || '........'}</strong>
           </div>
-          <div>Depuis : {etab?.nom || '.................................'}</div>
+          <div>Depuis : {etab || '.................................'}</div>
         </div>
         <div style={{ marginBottom: '1rem' }}>
           <div style={{ fontWeight: 'bold', color: couleur }}>
@@ -1009,15 +973,7 @@ export default function Documents({ dossierId, onRetour }: Props) {
           <div>Après Salât du Dohr</div>
           <div>
             À :{' '}
-            <strong>
-              {mosquee?.nom || '.................................'}
-            </strong>
-          </div>
-          <div>
-            Adresse :{' '}
-            {mosquee
-              ? `${mosquee.adresse || ''} ${mosquee.ville || ''}`
-              : '.................................'}
+            <strong>{mosquee || '.................................'}</strong>
           </div>
         </div>
         <div>
@@ -1026,7 +982,7 @@ export default function Documents({ dossierId, onRetour }: Props) {
           </div>
           <div>
             Cimetière :{' '}
-            <strong>{cim?.nom || '.................................'}</strong>
+            <strong>{nomCim || '.................................'}</strong>
           </div>
           <div>
             Adresse :{' '}
@@ -1060,9 +1016,6 @@ export default function Documents({ dossierId, onRetour }: Props) {
     </div>
   );
 
-  // ============================================
-  // CHAMBRE MORTUAIRE
-  // ============================================
   const renderChambreMortuaire = () => (
     <div style={docStyle}>
       {entete()}
@@ -1123,7 +1076,7 @@ export default function Documents({ dossierId, onRetour }: Props) {
               }`
             : undefined
         )}
-        {ligne('Qui doit être inhumé au cimetière de :', cim?.nom)}
+        {ligne('Qui doit être inhumé au cimetière de :', nomCim || undefined)}
       </div>
       <br />
       <p>Merci de nous indiquer l'adresse de la chambre mortuaire :</p>
@@ -1140,11 +1093,7 @@ export default function Documents({ dossierId, onRetour }: Props) {
         <div style={{ fontSize: '12px', color: '#888' }}>
           Adresse chambre mortuaire :
         </div>
-        <div>
-          {etab
-            ? `${etab.nom} — ${etab.adresse || ''} ${etab.ville || ''}`
-            : ''}
-        </div>
+        <div>{etab || ''}</div>
       </div>
       <p style={{ fontSize: '12px', color: '#666', marginTop: '1rem' }}>
         Fait à {agence?.ville || '............'}, le {aujourd_hui}
@@ -1154,9 +1103,6 @@ export default function Documents({ dossierId, onRetour }: Props) {
     </div>
   );
 
-  // ============================================
-  // IML
-  // ============================================
   const renderIML = () => (
     <div style={docStyle}>
       {entete()}
@@ -1240,7 +1186,7 @@ export default function Documents({ dossierId, onRetour }: Props) {
             </span>
           </span>
         </div>
-        {ligne("Lieu d'inhumation :", cim?.nom)}
+        {ligne("Lieu d'inhumation :", nomCim || undefined)}
       </div>
       {ligne(
         'Mise en bière prévue le :',
@@ -1263,9 +1209,6 @@ export default function Documents({ dossierId, onRetour }: Props) {
     </div>
   );
 
-  // ============================================
-  // DEMANDE PRÉFECTORALE
-  // ============================================
   const renderPrefectorale = () => (
     <div style={docStyle}>
       {entete()}
@@ -1326,7 +1269,7 @@ export default function Documents({ dossierId, onRetour }: Props) {
         <strong>{fmt(dossier.date_inhumation)}</strong> à{' '}
         <strong>{dossier.heure_inhumation || '........'}</strong>
       </p>
-      {ligne('Au Cimetière :', cim?.nom)}
+      {ligne('Au Cimetière :', nomCim || undefined)}
       <br />
       <p style={{ fontSize: '12px', fontStyle: 'italic' }}>
         Je vous prie d'agréer, Monsieur le Préfet, l'expression de ma haute
@@ -1340,9 +1283,6 @@ export default function Documents({ dossierId, onRetour }: Props) {
     </div>
   );
 
-  // ============================================
-  // ADMISSION EN CHAMBRE FUNÉRAIRE
-  // ============================================
   const renderAdmission = () => (
     <div style={docStyle}>
       {entete()}
@@ -1440,9 +1380,6 @@ export default function Documents({ dossierId, onRetour }: Props) {
     </div>
   );
 
-  // ============================================
-  // DÉROULEMENT DES OBSÈQUES
-  // ============================================
   const renderDeroulement = () => (
     <div style={docStyle}>
       {entete()}
@@ -1481,27 +1418,21 @@ export default function Documents({ dossierId, onRetour }: Props) {
             label: 'Toilette rituelle',
             date: dossier.date_toilette,
             heure: dossier.heure_toilette,
-            lieu: mosquee?.nom,
-            adresse: mosquee
-              ? `${mosquee.adresse || ''} ${mosquee.ville || ''}`
-              : undefined,
+            lieu: mosquee,
           },
           {
             emoji: '⚰️',
             label: 'Mise en bière',
             date: dossier.date_meb,
             heure: dossier.heure_meb,
-            lieu: etab?.nom,
-            adresse: etab
-              ? `${etab.adresse || ''} ${etab.ville || ''}`
-              : undefined,
+            lieu: etab,
           },
           {
             emoji: '🚗',
             label: 'Fermeture & Départ',
             date: dossier.date_fermeture_depart,
             heure: dossier.heure_fermeture_depart,
-            lieu: etab?.nom,
+            lieu: etab,
             adresse: dossier.convoi_effectue_par
               ? `Convoi : ${dossier.convoi_effectue_par}`
               : undefined,
@@ -1511,15 +1442,14 @@ export default function Documents({ dossierId, onRetour }: Props) {
             label: 'Salat Al Janāza إن شاء الله',
             date: dossier.date_inhumation,
             heure: undefined,
-            lieu: mosquee?.nom || cim?.nom,
-            adresse: undefined,
+            lieu: mosquee || nomCim,
           },
           {
             emoji: '⚱️',
             label: 'Inhumation',
             date: dossier.date_inhumation,
             heure: dossier.heure_inhumation,
-            lieu: cim?.nom,
+            lieu: nomCim,
             adresse: cim
               ? `${cim.adresse || ''} ${cim.code_postal || ''} ${
                   cim.ville || ''
@@ -1552,9 +1482,9 @@ export default function Documents({ dossierId, onRetour }: Props) {
             {etape.lieu && (
               <div style={{ fontSize: '13px' }}>📍 {etape.lieu}</div>
             )}
-            {etape.adresse && (
+            {(etape as any).adresse && (
               <div style={{ fontSize: '12px', color: '#666' }}>
-                {etape.adresse}
+                {(etape as any).adresse}
               </div>
             )}
           </div>
@@ -1592,9 +1522,6 @@ export default function Documents({ dossierId, onRetour }: Props) {
     </div>
   );
 
-  // ============================================
-  // PAGE DE GARDE
-  // ============================================
   const renderPageDeGarde = () => (
     <div style={docStyle}>
       <div
@@ -1808,7 +1735,7 @@ export default function Documents({ dossierId, onRetour }: Props) {
           <div>
             <span style={{ color: '#888' }}>Chambre mortuaire :</span>
             <br />
-            <strong>{etab?.nom || '—'}</strong>
+            <strong>{etab || '—'}</strong>
           </div>
           <div>
             <span style={{ color: '#888' }}>Cimetière :</span>
@@ -1916,9 +1843,6 @@ export default function Documents({ dossierId, onRetour }: Props) {
     </div>
   );
 
-  // ============================================
-  // CALENDRIER
-  // ============================================
   const renderCalendrier = () => (
     <div style={docStyle}>
       {entete()}
@@ -2042,9 +1966,6 @@ export default function Documents({ dossierId, onRetour }: Props) {
     </div>
   );
 
-  // ============================================
-  // ATTESTATION DE MEB
-  // ============================================
   const renderAttestationMeb = () => (
     <div style={docStyle}>
       {entete()}
@@ -2068,11 +1989,7 @@ export default function Documents({ dossierId, onRetour }: Props) {
         conformément à la réglementation en vigueur pour le transport
         international de corps.
       </p>
-      {ligne('Lieu de mise en bière :', etab?.nom)}
-      {ligne(
-        'Adresse :',
-        etab ? `${etab.adresse || ''} ${etab.ville || ''}` : undefined
-      )}
+      {ligne('Lieu de mise en bière :', etab)}
       {ligne(
         'Mise en bière le :',
         dossier.date_meb
@@ -2108,9 +2025,6 @@ export default function Documents({ dossierId, onRetour }: Props) {
     </div>
   );
 
-  // ============================================
-  // PRÉFECTURE RAPATRIEMENT
-  // ============================================
   const renderPrefectureRapat = () => (
     <div style={docStyle}>
       {entete()}
@@ -2132,11 +2046,7 @@ export default function Documents({ dossierId, onRetour }: Props) {
           {ligne('N° de passeport :', dossier.numero_passeport)}
         </>
       )}
-      {ligne('Lieu de mise en bière :', etab?.nom)}
-      {ligne(
-        'Adresse :',
-        etab ? `${etab.adresse || ''} ${etab.ville || ''}` : undefined
-      )}
+      {ligne('Lieu de mise en bière :', etab)}
       <br />
       <p>
         Sollicite l'autorisation de faire procéder au transport de corps après
@@ -2206,9 +2116,6 @@ export default function Documents({ dossierId, onRetour }: Props) {
     </div>
   );
 
-  // ============================================
-  // CONSULAT RAPATRIEMENT
-  // ============================================
   const renderConsulat = () => (
     <div style={docStyle}>
       {entete()}
@@ -2318,16 +2225,18 @@ export default function Documents({ dossierId, onRetour }: Props) {
         )}
       </div>
       {ligne('Qui sera inhumé(e) au cimetière de :', dossier.cimetiere_pays)}
+      {ligne('Ambulance au pays :', dossier.ambulance_pays)}
       {ligne(
         'Contact au pays :',
         dossier.contact_pays
           ? `${dossier.contact_pays}${
               dossier.telephone_contact_pays
-                ? ` — ${dossier.telephone_contact_pays}`
+                ? ` — Tél : ${dossier.telephone_contact_pays}`
                 : ''
             }`
           : undefined
       )}
+      {ligne('Adresse contact :', dossier.adresse_contact_pays)}
       <br />
       <p style={{ fontSize: '12px', fontStyle: 'italic' }}>
         Veuillez agréer, Monsieur le Consul, l'expression de notre parfaite
@@ -2341,9 +2250,6 @@ export default function Documents({ dossierId, onRetour }: Props) {
     </div>
   );
 
-  // ============================================
-  // ATTESTATION DE TOILETTE RITUELLE
-  // ============================================
   const renderAttestationToilette = () => (
     <div style={docStyle}>
       {entete()}
@@ -2362,11 +2268,7 @@ export default function Documents({ dossierId, onRetour }: Props) {
           {ligne('Nationalité :', d?.nationalite)}
         </>
       )}
-      {ligne('Lieu de mise en bière :', etab?.nom)}
-      {ligne(
-        'Adresse :',
-        etab ? `${etab.adresse || ''} ${etab.ville || ''}` : undefined
-      )}
+      {ligne('Lieu de mise en bière :', etab)}
       {ligne(
         'Toilette le :',
         dossier.date_toilette
@@ -2397,9 +2299,6 @@ export default function Documents({ dossierId, onRetour }: Props) {
     </div>
   );
 
-  // ============================================
-  // RÉSERVATION AMBULANCE
-  // ============================================
   const renderAmbulance = () => (
     <div style={docStyle}>
       {entete()}
@@ -2462,6 +2361,7 @@ export default function Documents({ dossierId, onRetour }: Props) {
             }`
           : undefined
       )}
+      {ligne('Adresse contact :', dossier.adresse_contact_pays)}
       <br />
       <p style={{ fontSize: '12px' }}>
         Tous les documents vous seront transmis ultérieurement.
@@ -2481,21 +2381,7 @@ export default function Documents({ dossierId, onRetour }: Props) {
   function imprimer() {
     const contenu = document.querySelector('.document-print');
     if (!contenu) return;
-
-    const html = `<!DOCTYPE html><html><head><meta charset="utf-8">
-      <title>Document — ${d?.prenom} ${d?.nom}</title>
-      <style>
-        * { box-sizing: border-box; }
-        body { font-family: Arial, sans-serif; padding: 1cm 2cm; font-size: 12px; line-height: 1.8; color: #333; margin: 0; }
-        .print-hint { background: #EEF2FF; border: 1px solid ${couleur}; border-radius: 8px; padding: 1rem; margin-bottom: 1.5rem; font-size: 13px; color: ${couleur}; text-align: center; }
-        .no-print { display: none !important; }
-        @media print { .print-hint { display: none; } }
-        @page { margin: 1cm; size: A4; }
-      </style></head><body>
-      <div class="print-hint">💡 <strong>Ctrl+P</strong> → <strong>"Enregistrer en PDF"</strong> → <strong>Enregistrer</strong></div>
-      ${contenu.innerHTML}
-      </body></html>`;
-
+    const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Document — ${d?.prenom} ${d?.nom}</title><style>* { box-sizing: border-box; } body { font-family: Arial, sans-serif; padding: 1cm 2cm; font-size: 12px; line-height: 1.8; color: #333; margin: 0; } .print-hint { background: #EEF2FF; border: 1px solid ${couleur}; border-radius: 8px; padding: 1rem; margin-bottom: 1.5rem; font-size: 13px; color: ${couleur}; text-align: center; } .no-print { display: none !important; } @media print { .print-hint { display: none; } } @page { margin: 1cm; size: A4; }</style></head><body><div class="print-hint">💡 <strong>Ctrl+P</strong> → <strong>"Enregistrer en PDF"</strong> → <strong>Enregistrer</strong></div>${contenu.innerHTML}</body></html>`;
     const blob = new Blob([html], { type: 'text/html' });
     const url = URL.createObjectURL(blob);
     window.open(url, '_blank');
