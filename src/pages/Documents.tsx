@@ -256,32 +256,44 @@ export default function Documents({ dossierId, onRetour }: Props) {
     </div>
   );
 
-  const piedPage = () => (
-    <div
-      style={{
-        marginTop: '2rem',
-        borderTop: `2px solid ${couleur}22`,
-        paddingTop: '0.75rem',
-      }}
-    >
+  const piedPage = () => {
+    const mentions = [
+      agence?.rcs,
+      agence?.siret && `SIRET ${agence.siret}`,
+      agence?.tva_intra && `TVA ${agence.tva_intra}`,
+      agence?.ape && `Code APE : ${agence.ape}`,
+      agence?.habilitation && `Habilitation n°${agence.habilitation}`,
+      agence?.site_web,
+    ].filter(Boolean);
+    return (
       <div
         style={{
-          height: '2px',
-          background: couleur,
-          borderRadius: '1px',
-          marginBottom: '0.5rem',
+          marginTop: '1rem',
+          borderTop: `2px solid ${couleur}22`,
+          paddingTop: '0.5rem',
         }}
-      />
-      <div style={{ fontSize: '9px', color: '#999', textAlign: 'center' }}>
-        {agence?.rcs && `RCS ${agence.rcs} — `}
-        {agence?.siret && `SIRET ${agence.siret} — `}
-        {agence?.tva_intra && `TVA ${agence.tva_intra} — `}
-        {agence?.ape && `Code APE : ${agence.ape} — `}
-        {agence?.habilitation && `Habilitation n°${agence.habilitation}`}
-        {agence?.site_web && ` — ${agence.site_web}`}
+      >
+        <div
+          style={{
+            height: '2px',
+            background: couleur,
+            borderRadius: '1px',
+            marginBottom: '0.4rem',
+          }}
+        />
+        <div
+          style={{
+            fontSize: '8px',
+            color: '#999',
+            textAlign: 'center',
+            lineHeight: '1.3',
+          }}
+        >
+          {mentions.join(' — ')}
+        </div>
       </div>
-    </div>
-  );
+    );
+  };
 
   const ligne = (label: string, valeur?: string) => (
     <div
@@ -2422,7 +2434,23 @@ export default function Documents({ dossierId, onRetour }: Props) {
   function imprimer() {
     const contenu = document.querySelector('.document-print');
     if (!contenu) return;
-    const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Document — ${d?.prenom} ${d?.nom}</title><style>* { box-sizing: border-box; } body { font-family: Arial, sans-serif; padding: 1cm 2cm; font-size: 12px; line-height: 1.8; color: #333; margin: 0; } .print-hint { background: #EEF2FF; border: 1px solid ${couleur}; border-radius: 8px; padding: 1rem; margin-bottom: 1.5rem; font-size: 13px; color: ${couleur}; text-align: center; } .no-print { display: none !important; } @media print { .print-hint { display: none; } } @page { margin: 1cm; size: A4; }</style></head><body><div class="print-hint">💡 <strong>Ctrl+P</strong> → <strong>"Enregistrer en PDF"</strong> → <strong>Enregistrer</strong></div>${contenu.innerHTML}</body></html>`;
+    const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Document — ${d?.prenom} ${d?.nom}</title><style>
+      * { box-sizing: border-box; }
+      body { font-family: Arial, sans-serif; padding: 0; font-size: 11px; line-height: 1.4; color: #333; margin: 0; }
+      .print-hint { background: #EEF2FF; border: 1px solid ${couleur}; border-radius: 8px; padding: 1rem; margin-bottom: 1.5rem; font-size: 13px; color: ${couleur}; text-align: center; }
+      .no-print { display: none !important; }
+      /* Compactage pour tenir sur une page A4 */
+      .document-print > div, body > div { max-width: 100% !important; border: none !important; padding: 0 !important; margin: 0 !important; border-radius: 0 !important; }
+      p { margin: 0.35rem 0 !important; }
+      br { line-height: 0.7 !important; }
+      h2 { font-size: 15px !important; margin: 0 0 0.25rem !important; }
+      @media print {
+        .print-hint { display: none; }
+        body { font-size: 10px; line-height: 1.25; }
+        p { margin: 0.25rem 0 !important; }
+      }
+      @page { margin: 0.7cm 1.1cm; size: A4; }
+    </style></head><body><div class="print-hint">💡 <strong>Ctrl+P</strong> → <strong>"Enregistrer en PDF"</strong> → <strong>Enregistrer</strong></div>${contenu.innerHTML}</body></html>`;
     const blob = new Blob([html], { type: 'text/html' });
     const url = URL.createObjectURL(blob);
     window.open(url, '_blank');
