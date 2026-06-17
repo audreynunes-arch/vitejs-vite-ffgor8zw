@@ -13,7 +13,8 @@ type Section =
   | 'tarifs_rapatriement'
   | 'vehicules'
   | 'employes'
-  | 'cercueils';
+  | 'cercueils'
+  | 'creusement';
 
 // ============================================
 // COMPOSANT GÉNÉRIQUE
@@ -675,6 +676,33 @@ function GestionCercueils({
   );
 }
 
+function GestionCreusement({
+  onRetour,
+  agenceId,
+}: {
+  onRetour: () => void;
+  agenceId: string;
+}) {
+  return (
+    <TableauGenerique
+      titre="⛏️ Creusement / Inhumation"
+      table="prestations_creusement"
+      onRetour={onRetour}
+      agenceScope={agenceId}
+      colonnes={[
+        { key: 'libelle', label: 'Prestation', width: '60%' },
+        { key: 'prix', label: 'Prix (€)', width: '20%' },
+        { key: 'ordre', label: 'Ordre', width: '20%' },
+      ]}
+      champsForm={[
+        { key: 'libelle', label: 'Libellé de la prestation' },
+        { key: 'prix', label: 'Prix (€)', type: 'number' },
+        { key: 'ordre', label: 'Ordre affichage', type: 'number' },
+      ]}
+    />
+  );
+}
+
 function GestionTarifsRapatriement({
   onRetour,
   agenceId,
@@ -1122,6 +1150,14 @@ export default function Referentiels({ onRetour, agenceId }: Props) {
       />
     );
 
+  if (section === 'creusement')
+    return (
+      <GestionCreusement
+        onRetour={() => setSection('menu')}
+        agenceId={agenceId}
+      />
+    );
+
   return (
     <div style={{ padding: '2rem', maxWidth: '700px', margin: '0 auto' }}>
       <div
@@ -1178,6 +1214,12 @@ export default function Referentiels({ onRetour, agenceId }: Props) {
             label: 'Catalogue cercueils',
             desc: 'Prix, dimensions, matières',
           },
+          {
+            key: 'creusement',
+            emoji: '⛏️',
+            label: 'Creusement / Inhumation',
+            desc: 'Prestations de creusement et tarifs',
+          },
         ].map((s) => (
           <div
             key={s.key}
@@ -1209,3 +1251,4 @@ export default function Referentiels({ onRetour, agenceId }: Props) {
     </div>
   );
 }
+
