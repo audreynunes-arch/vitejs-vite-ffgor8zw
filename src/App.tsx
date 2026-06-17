@@ -116,12 +116,50 @@ export default function App() {
               <h2 style={{ color: '#1f2937' }}>
                 Bonjour {utilisateur.prenom} 👋
               </h2>
+
+              <div
+                onClick={() => setPage('nouveau')}
+                style={{
+                  background: '#FBE3D6',
+                  padding: '1.5rem',
+                  borderRadius: '14px',
+                  textAlign: 'center',
+                  cursor: 'pointer',
+                  marginTop: '1.5rem',
+                  marginBottom: '1rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '0.75rem',
+                  transition: 'transform 0.15s, box-shadow 0.15s',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.transform = 'translateY(-3px)';
+                  e.currentTarget.style.boxShadow =
+                    '0 8px 18px rgba(0,0,0,0.12)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.transform = 'translateY(0)';
+                  e.currentTarget.style.boxShadow = 'none';
+                }}
+              >
+                <span style={{ fontSize: '1.9rem' }}>➕</span>
+                <span
+                  style={{
+                    fontWeight: 'bold',
+                    fontSize: '1.15rem',
+                    color: '#B85C38',
+                  }}
+                >
+                  Nouveau dossier
+                </span>
+              </div>
+
               <div
                 style={{
                   display: 'grid',
                   gridTemplateColumns: '1fr 1fr',
                   gap: '1rem',
-                  marginTop: '1.5rem',
                 }}
               >
                 {[
@@ -137,19 +175,11 @@ export default function App() {
                     },
                   },
                   {
-                    key: 'nouveau',
-                    emoji: '➕',
-                    label: 'Nouveau dossier',
-                    bg: '#D8E5F2',
-                    texte: '#1E5A8A',
-                    action: () => setPage('nouveau'),
-                  },
-                  {
                     key: 'statistiques',
                     emoji: '📊',
                     label: 'Statistiques',
-                    bg: '#E2E0F0',
-                    texte: '#4A3E8C',
+                    bg: '#DCE6F5',
+                    texte: '#2D5A8A',
                     action: () => setPage('statistiques'),
                   },
                   {
@@ -164,8 +194,8 @@ export default function App() {
                     key: 'referentiels',
                     emoji: '📚',
                     label: 'Référentiels',
-                    bg: '#F5E4D6',
-                    texte: '#A6694C',
+                    bg: '#F5E8D0',
+                    texte: '#9A7510',
                     action: () => setPage('referentiels'),
                   },
                   {
@@ -180,8 +210,8 @@ export default function App() {
                     key: 'stocks',
                     emoji: '📦',
                     label: 'Stocks',
-                    bg: '#DCE7F2',
-                    texte: '#2D5A8A',
+                    bg: '#E6DEF2',
+                    texte: '#6A4A9C',
                     action: () => setPage('stocks'),
                   },
                 ].map((carte) => (
