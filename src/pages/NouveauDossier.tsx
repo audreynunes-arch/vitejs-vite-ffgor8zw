@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { supabase } from '../supabase';
 
-type TypeDossier = 'inhumation_locale' | 'rapatriement';
+type TypeDossier = 'inhumation_locale' | 'rapatriement' | 'devis_libre';
 
 interface Props {
   onRetour: () => void;
@@ -205,6 +205,7 @@ export default function NouveauDossier({ onRetour }: Props) {
     housse_cercueil: false,
     housse_cercueil_rapat: false,
     convoi_effectue_par: '',
+    declarant: '',
     observations: '',
     achat_concession: '',
     montant_concession: '',
@@ -271,7 +272,6 @@ export default function NouveauDossier({ onRetour }: Props) {
   };
 
   useEffect(() => {
-    // Récupérer l'agence de l'utilisateur connecté, puis charger SES référentiels
     supabase.auth.getSession().then(({ data: session }) => {
       const userId = session.session?.user.id;
       if (!userId) return;
@@ -298,7 +298,7 @@ export default function NouveauDossier({ onRetour }: Props) {
             .eq('agence_id', agenceId)
             .order('nom')
             .then(({ data }) => setMarbriers(data || []));
-            supabase
+          supabase
             .from('prestations_creusement')
             .select('*')
             .eq('agence_id', agenceId)
@@ -413,12 +413,18 @@ export default function NouveauDossier({ onRetour }: Props) {
         .eq('id', userId)
         .single();
 
+      // Pour un devis libre, le "défunt" porte le nom du client / objet
+      const nomDefunt =
+        type === 'devis_libre' ? defunt.nom || pouvoir.nom || 'Client' : defunt.nom;
+      const prenomDefunt =
+        type === 'devis_libre' ? defunt.prenom || '' : defunt.prenom;
+
       const { data: defuntData, error: defuntError } = await supabase
         .from('defunts')
         .insert({
           civilite: defunt.civilite || null,
-          nom: defunt.nom,
-          prenom: defunt.prenom,
+          nom: nomDefunt,
+          prenom: prenomDefunt,
           nom_jeune_fille: defunt.nom_jeune_fille || null,
           sexe: defunt.sexe || null,
           date_naissance: defunt.date_naissance || null,
@@ -463,6 +469,7 @@ export default function NouveauDossier({ onRetour }: Props) {
           mosquee_nom: logistique.mosquee_nom || null,
           taille_defunt: logistique.taille_defunt || null,
           convoi_effectue_par: logistique.convoi_effectue_par || null,
+          declarant: logistique.declarant || null,
           date_toilette: logistique.date_toilette || null,
           heure_toilette: logistique.heure_toilette || null,
           date_meb: logistique.date_meb || null,
@@ -515,12 +522,12 @@ export default function NouveauDossier({ onRetour }: Props) {
 
       if (dossierError) throw dossierError;
 
-      if (pouvoir.nom && pouvoir.prenom) {
+      if (pouvoir.nom) {
         await supabase.from('pouvoirs').insert({
           dossier_id: dossierData.id,
           civilite: pouvoir.civilite || null,
           nom: pouvoir.nom,
-          prenom: pouvoir.prenom,
+          prenom: pouvoir.prenom || '',
           lien_parente: pouvoir.lien_parente || null,
           date_naissance: pouvoir.date_naissance || null,
           adresse: pouvoir.adresse || null,
@@ -654,7 +661,7 @@ export default function NouveauDossier({ onRetour }: Props) {
         <div
           style={{
             display: 'grid',
-            gridTemplateColumns: '1fr 1fr',
+            gridTemplateColumns: '1fr 1fr 1fr',
             gap: '1rem',
             marginTop: '1rem',
           }}
@@ -705,6 +712,30 @@ export default function NouveauDossier({ onRetour }: Props) {
               }}
             >
               Rapatriement
+            </div>
+          </div>
+          <div
+            onClick={() => setType('devis_libre')}
+            style={{
+              border: `2px solid ${
+                type === 'devis_libre' ? '#185FA5' : '#ddd'
+              }`,
+              borderRadius: '12px',
+              padding: '1.5rem',
+              textAlign: 'center',
+              cursor: 'pointer',
+              background: type === 'devis_libre' ? '#E6F1FB' : 'white',
+            }}
+          >
+            <div style={{ fontSize: '2.5rem' }}>📝</div>
+            <div
+              style={{
+                fontWeight: 'bold',
+                marginTop: '0.5rem',
+                color: '#185FA5',
+              }}
+            >
+              Devis libre
             </div>
           </div>
         </div>
@@ -791,6 +822,93 @@ export default function NouveauDossier({ onRetour }: Props) {
   }
 
   if (etape === 2) {
+    if (type === 'devis_libre') {
+      return (
+        <div style={{ padding: '2rem', maxWidth: '700px', margin: '0 auto' }}>
+          {header('Informations client', 1, 'Devis libre')}
+          <p style={{ color: '#666', marginTop: '-1rem', marginBottom: '1.5rem' }}>
+            Saisissez les coordonnées du client. Vous ajouterez les prestations
+            directement dans le devis.
+          </p>
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: '1fr 1fr',
+              gap: '1rem',
+            }}
+          >
+            <div>
+              <label>Civilité</label>
+              <select
+                value={pouvoir.civilite}
+                onChange={(e) => updatePouvoir('civilite', e.target.value)}
+                style={selectStyle}
+              >
+                <option value="">--</option>
+                <option>M.</option>
+                <option>Mme</option>
+                <option>Société</option>
+              </select>
+            </div>
+            <div></div>
+            <div>
+              <label>Nom / Société *</label>
+              <input
+                value={pouvoir.nom}
+                onChange={(e) => updatePouvoir('nom', e.target.value)}
+                style={inputStyle}
+                placeholder="ex: PFG Agence Suresnes"
+              />
+            </div>
+            <div>
+              <label>Prénom / Contact</label>
+              <input
+                value={pouvoir.prenom}
+                onChange={(e) => updatePouvoir('prenom', e.target.value)}
+                style={inputStyle}
+              />
+            </div>
+            <div style={{ gridColumn: '1 / -1' }}>
+              <label>Adresse</label>
+              <AutocompleteAdresse
+                value={pouvoir.adresse}
+                onChange={(val) => updatePouvoir('adresse', val)}
+                placeholder="Adresse du client"
+                style={inputStyle}
+              />
+            </div>
+            <div>
+              <label>Téléphone</label>
+              <input
+                value={pouvoir.telephone_1}
+                onChange={(e) => updatePouvoir('telephone_1', e.target.value)}
+                style={inputStyle}
+              />
+            </div>
+            <div>
+              <label>Email</label>
+              <input
+                type="email"
+                value={pouvoir.email}
+                onChange={(e) => updatePouvoir('email', e.target.value)}
+                style={inputStyle}
+              />
+            </div>
+            <div style={{ gridColumn: '1 / -1' }}>
+              <label>Référence défunt / objet (optionnel)</label>
+              <input
+                value={defunt.nom}
+                onChange={(e) => updateDefunt('nom', e.target.value)}
+                style={inputStyle}
+                placeholder="ex: KHEMIRI Bechir, ou objet de la prestation"
+              />
+            </div>
+          </div>
+          {btnSuivant(() => setEtape(5), !pouvoir.nom)}
+        </div>
+      );
+    }
+
     return (
       <div style={{ padding: '2rem', maxWidth: '700px', margin: '0 auto' }}>
         {header('Identité du défunt', 1, 'Étape 2/5')}
@@ -928,7 +1046,6 @@ export default function NouveauDossier({ onRetour }: Props) {
             />
           </div>
 
-          {/* FILIATION */}
           <div
             style={{
               gridColumn: '1 / -1',
@@ -1320,7 +1437,6 @@ export default function NouveauDossier({ onRetour }: Props) {
             </div>
           )}
 
-          {/* CERCUEIL & FOURNITURES */}
           <div
             style={{
               gridColumn: '1 / -1',
@@ -1435,7 +1551,6 @@ export default function NouveauDossier({ onRetour }: Props) {
             </div>
           </div>
 
-          {/* CONCESSION NUMÉRO & DIVISION */}
           {type === 'inhumation_locale' && (
             <>
               <div>
@@ -1528,6 +1643,23 @@ export default function NouveauDossier({ onRetour }: Props) {
               value={logistique.convoi_effectue_par}
               onChange={(e) =>
                 updateLogistique('convoi_effectue_par', e.target.value)
+              }
+              style={selectStyle}
+            >
+              <option value="">-- Sélectionner --</option>
+              {employes.map((e) => (
+                <option key={e.id} value={`${e.prenom} ${e.nom}`}>
+                  {e.prenom} {e.nom} — {e.poste}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label>Déclarant</label>
+            <select
+              value={logistique.declarant}
+              onChange={(e) =>
+                updateLogistique('declarant', e.target.value)
               }
               style={selectStyle}
             >
@@ -1640,7 +1772,6 @@ export default function NouveauDossier({ onRetour }: Props) {
             </>
           )}
 
-          {/* MARBRIER & TRAVAUX */}
           {type === 'inhumation_locale' && (
             <div
               style={{
@@ -1728,7 +1859,6 @@ export default function NouveauDossier({ onRetour }: Props) {
             </div>
           )}
 
-          {/* IML */}
           <div
             style={{
               gridColumn: '1 / -1',
@@ -2159,6 +2289,57 @@ export default function NouveauDossier({ onRetour }: Props) {
             }}
           >
             Retour au tableau de bord
+          </button>
+        </div>
+      );
+    }
+
+    if (type === 'devis_libre') {
+      return (
+        <div style={{ padding: '2rem', maxWidth: '700px', margin: '0 auto' }}>
+          {header('Récapitulatif', 2, 'Devis libre')}
+          <div
+            style={{
+              background: '#E6F1FB',
+              borderRadius: '12px',
+              padding: '1.5rem',
+              marginBottom: '1.5rem',
+            }}
+          >
+            <h3 style={{ margin: '0 0 1rem', color: '#185FA5' }}>
+              📝 Devis libre
+            </h3>
+            {ligne(
+              'Client',
+              `${pouvoir.civilite} ${pouvoir.prenom} ${pouvoir.nom}`
+            )}
+            {ligne('Adresse', pouvoir.adresse)}
+            {ligne('Téléphone', pouvoir.telephone_1)}
+            {ligne('Email', pouvoir.email)}
+            {defunt.nom && ligne('Référence / objet', defunt.nom)}
+            {refs.reference_agence &&
+              ligne('Référence dossier', refs.reference_agence)}
+          </div>
+          <p style={{ color: '#666', fontSize: '14px' }}>
+            Le dossier sera créé avec un devis vide. Vous ajouterez les
+            prestations directement dans le devis.
+          </p>
+          <button
+            onClick={sauvegarder}
+            disabled={saving}
+            style={{
+              width: '100%',
+              padding: '1rem',
+              background: saving ? '#ccc' : '#185FA5',
+              color: 'white',
+              border: 'none',
+              borderRadius: '8px',
+              cursor: saving ? 'not-allowed' : 'pointer',
+              fontSize: '16px',
+              fontWeight: 'bold',
+            }}
+          >
+            {saving ? '⏳ Enregistrement...' : '✅ Créer le devis libre'}
           </button>
         </div>
       );
