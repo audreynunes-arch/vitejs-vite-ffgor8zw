@@ -112,8 +112,10 @@ export default function App() {
 
         <div style={{ padding: '2rem' }}>
           {page === 'accueil' && (
-            <div style={{ maxWidth: '700px', margin: '0 auto' }}>
-              <h2>Bonjour {utilisateur.prenom} 👋</h2>
+            <div style={{ maxWidth: '760px', margin: '0 auto' }}>
+              <h2 style={{ color: '#1f2937' }}>
+                Bonjour {utilisateur.prenom} 👋
+              </h2>
               <div
                 style={{
                   display: 'grid',
@@ -122,121 +124,96 @@ export default function App() {
                   marginTop: '1.5rem',
                 }}
               >
-                <div
-                  onClick={() => {
-                    setPage('dossiers');
-                    setDossierId(null);
-                  }}
-                  style={{
-                    background: couleur,
-                    color: 'white',
-                    padding: '2rem',
-                    borderRadius: '12px',
-                    textAlign: 'center',
-                    cursor: 'pointer',
-                  }}
-                >
-                  <div style={{ fontSize: '2rem' }}>📁</div>
-                  <div style={{ marginTop: '0.5rem', fontWeight: 'bold' }}>
-                    Dossiers
+                {[
+                  {
+                    key: 'dossiers',
+                    emoji: '📁',
+                    label: 'Dossiers',
+                    bg: '#D6EFE9',
+                    texte: '#1B5E5A',
+                    action: () => {
+                      setPage('dossiers');
+                      setDossierId(null);
+                    },
+                  },
+                  {
+                    key: 'nouveau',
+                    emoji: '➕',
+                    label: 'Nouveau dossier',
+                    bg: '#D8E5F2',
+                    texte: '#1E5A8A',
+                    action: () => setPage('nouveau'),
+                  },
+                  {
+                    key: 'statistiques',
+                    emoji: '📊',
+                    label: 'Statistiques',
+                    bg: '#E2E0F0',
+                    texte: '#4A3E8C',
+                    action: () => setPage('statistiques'),
+                  },
+                  {
+                    key: 'suivi_travaux',
+                    emoji: '🏗️',
+                    label: 'Suivi travaux',
+                    bg: '#EFE0EC',
+                    texte: '#8A3E72',
+                    action: () => setPage('suivi_travaux'),
+                  },
+                  {
+                    key: 'referentiels',
+                    emoji: '📚',
+                    label: 'Référentiels',
+                    bg: '#F5E4D6',
+                    texte: '#A6694C',
+                    action: () => setPage('referentiels'),
+                  },
+                  {
+                    key: 'parametres',
+                    emoji: '⚙️',
+                    label: 'Paramètres',
+                    bg: '#E0EEDB',
+                    texte: '#3B6D2A',
+                    action: () => setPage('parametres'),
+                  },
+                  {
+                    key: 'stocks',
+                    emoji: '📦',
+                    label: 'Stocks',
+                    bg: '#DCE7F2',
+                    texte: '#2D5A8A',
+                    action: () => setPage('stocks'),
+                  },
+                ].map((carte) => (
+                  <div
+                    key={carte.key}
+                    onClick={carte.action}
+                    style={{
+                      background: carte.bg,
+                      padding: '1.6rem 1rem',
+                      borderRadius: '14px',
+                      textAlign: 'center',
+                      cursor: 'pointer',
+                      transition: 'transform 0.15s, box-shadow 0.15s',
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.transform = 'translateY(-3px)';
+                      e.currentTarget.style.boxShadow =
+                        '0 8px 18px rgba(0,0,0,0.12)';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.transform = 'translateY(0)';
+                      e.currentTarget.style.boxShadow = 'none';
+                    }}
+                  >
+                    <div style={{ fontSize: '1.9rem', marginBottom: '0.4rem' }}>
+                      {carte.emoji}
+                    </div>
+                    <div style={{ fontWeight: 'bold', color: carte.texte }}>
+                      {carte.label}
+                    </div>
                   </div>
-                </div>
-                <div
-                  onClick={() => setPage('nouveau')}
-                  style={{
-                    background: '#0F6E56',
-                    color: 'white',
-                    padding: '2rem',
-                    borderRadius: '12px',
-                    textAlign: 'center',
-                    cursor: 'pointer',
-                  }}
-                >
-                  <div style={{ fontSize: '2rem' }}>➕</div>
-                  <div style={{ marginTop: '0.5rem', fontWeight: 'bold' }}>
-                    Nouveau dossier
-                  </div>
-                </div>
-                <div
-                  onClick={() => setPage('statistiques')}
-                  style={{
-                    background: '#185FA5',
-                    color: 'white',
-                    padding: '2rem',
-                    borderRadius: '12px',
-                    textAlign: 'center',
-                    cursor: 'pointer',
-                  }}
-                >
-                  <div style={{ fontSize: '2rem' }}>📊</div>
-                  <div style={{ marginTop: '0.5rem', fontWeight: 'bold' }}>
-                    Statistiques
-                  </div>
-                </div>
-                <div
-                  onClick={() => setPage('suivi_travaux')}
-                  style={{
-                    background: '#712B13',
-                    color: 'white',
-                    padding: '2rem',
-                    borderRadius: '12px',
-                    textAlign: 'center',
-                    cursor: 'pointer',
-                  }}
-                >
-                  <div style={{ fontSize: '2rem' }}>🏗️</div>
-                  <div style={{ marginTop: '0.5rem', fontWeight: 'bold' }}>
-                    Suivi travaux
-                  </div>
-                </div>
-                <div
-                  onClick={() => setPage('referentiels')}
-                  style={{
-                    background: '#854F0B',
-                    color: 'white',
-                    padding: '2rem',
-                    borderRadius: '12px',
-                    textAlign: 'center',
-                    cursor: 'pointer',
-                  }}
-                >
-                  <div style={{ fontSize: '2rem' }}>📚</div>
-                  <div style={{ marginTop: '0.5rem', fontWeight: 'bold' }}>
-                    Référentiels
-                  </div>
-                </div>
-                <div
-                  onClick={() => setPage('parametres')}
-                  style={{
-                    background: '#374151',
-                    color: 'white',
-                    padding: '2rem',
-                    borderRadius: '12px',
-                    textAlign: 'center',
-                    cursor: 'pointer',
-                  }}
-                >
-                  <div style={{ fontSize: '2rem' }}>⚙️</div>
-                  <div style={{ marginTop: '0.5rem', fontWeight: 'bold' }}>
-                    Paramètres
-                  </div>
-                </div>
-                <div
-                  onClick={() => setPage('stocks')}
-                  style={{
-                    background: '#166534',
-                    color: 'white',
-                    padding: '2rem',
-                    borderRadius: '12px',
-                    textAlign: 'center',
-                    cursor: 'pointer',
-                  }}
-                >
-                  <div style={{ fontSize: '2rem' }}>📦</div>
-                  <div style={{ marginTop: '0.5rem', fontWeight: 'bold' }}>
-                    Stocks
-                  </div>
-                </div>
+                ))}
               </div>
             </div>
           )}
