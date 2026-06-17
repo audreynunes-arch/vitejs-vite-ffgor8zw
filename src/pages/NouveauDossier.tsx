@@ -213,6 +213,8 @@ export default function NouveauDossier({ onRetour }: Props) {
     division_concession: '',
     marbrier_id: '',
     travaux_realiser: '',
+    creusement_type: '',
+    creusement_prix: '',
     numero_dossier_iml: '',
     taille_iml: '',
     epaulement_iml: '',
@@ -241,6 +243,7 @@ export default function NouveauDossier({ onRetour }: Props) {
 
   const [cimetieres, setCimetieres] = useState<any[]>([]);
   const [marbriers, setMarbriers] = useState<any[]>([]);
+  const [prestationsCreusement, setPrestationsCreusement] = useState<any[]>([]);
   const [cimetiereTarifs, setCimetiereTarifs] = useState<any>(null);
   const [tarifsRapatriement, setTarifsRapatriement] = useState<any[]>([]);
   const [catalogueCercueils, setCatalogueCercueils] = useState<any[]>([]);
@@ -295,6 +298,12 @@ export default function NouveauDossier({ onRetour }: Props) {
             .eq('agence_id', agenceId)
             .order('nom')
             .then(({ data }) => setMarbriers(data || []));
+            supabase
+            .from('prestations_creusement')
+            .select('*')
+            .eq('agence_id', agenceId)
+            .order('ordre')
+            .then(({ data }) => setPrestationsCreusement(data || []));
           supabase
             .from('tarifs_rapatriement')
             .select('*')
@@ -473,6 +482,10 @@ export default function NouveauDossier({ onRetour }: Props) {
           cercueil_id: logistique.cercueil_id || null,
           marbrier_id: logistique.marbrier_id || null,
           travaux_realiser: logistique.travaux_realiser || null,
+          creusement_type: logistique.creusement_type || null,
+          creusement_prix: logistique.creusement_prix
+            ? parseFloat(logistique.creusement_prix)
+            : null,
           numero_dossier_iml: logistique.numero_dossier_iml || null,
           taille_iml: logistique.taille_iml || null,
           epaulement_iml: logistique.epaulement_iml || null,
@@ -1667,6 +1680,30 @@ export default function NouveauDossier({ onRetour }: Props) {
                     {marbriers.map((m) => (
                       <option key={m.id} value={m.id}>
                         {m.nom} — {m.ville}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div style={{ gridColumn: '1 / -1' }}>
+                  <label>Creusement / Inhumation</label>
+                  <select
+                    value={logistique.creusement_type}
+                    onChange={(e) => {
+                      const presta = prestationsCreusement.find(
+                        (p) => p.libelle === e.target.value
+                      );
+                      updateLogistique('creusement_type', e.target.value);
+                      updateLogistique(
+                        'creusement_prix',
+                        presta ? String(presta.prix) : ''
+                      );
+                    }}
+                    style={selectStyle}
+                  >
+                    <option value="">-- Sélectionner --</option>
+                    {prestationsCreusement.map((p) => (
+                      <option key={p.id} value={p.libelle}>
+                        {p.libelle} — {p.prix} €
                       </option>
                     ))}
                   </select>
