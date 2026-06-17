@@ -502,6 +502,26 @@ export default function Devis({ dossierId, onRetour }: Props) {
             : l
         );
       }
+      // Creusement choisi dans le dossier
+      if (data?.creusement_type) {
+        let creusementFait = false;
+        lignesInit = lignesInit.map((l) => {
+          if (
+            !creusementFait &&
+            l.section === '7A - Inhumation / Exhumation' &&
+            l.libelle === 'Creusement'
+          ) {
+            creusementFait = true;
+            return {
+              ...l,
+              libelle: data.creusement_type,
+              prix_ttc: parseFloat(data.creusement_prix) || 0,
+              inclus: true,
+            };
+          }
+          return l;
+        });
+      }
       setLignes(lignesInit);
     }
   }
