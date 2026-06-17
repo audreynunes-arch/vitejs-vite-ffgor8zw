@@ -30,6 +30,7 @@ type Onglet =
 export default function Documents({ dossierId, onRetour }: Props) {
   const [onglet, setOnglet] = useState<Onglet>('pouvoir');
   const [dossier, setDossier] = useState<any>(null);
+  const [gerant, setGerant] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -48,6 +49,15 @@ export default function Documents({ dossierId, onRetour }: Props) {
       .eq('id', dossierId)
       .single();
     setDossier(data);
+    // Charger le gérant de l'agence (employé avec poste = gérant)
+    if (data?.agence_id) {
+      const { data: gerants } = await supabase
+        .from('employes')
+        .select('nom, prenom, poste')
+        .eq('agence_id', data.agence_id)
+        .ilike('poste', '%gérant%');
+      setGerant(gerants && gerants.length > 0 ? gerants[0] : null);
+    }
     setLoading(false);
   }
 
@@ -69,6 +79,7 @@ export default function Documents({ dossierId, onRetour }: Props) {
   const marb = dossier.marbriers;
   const aujourd_hui = new Date().toLocaleDateString('fr-FR');
   const couleur = agence?.couleur_principale || '#4F46E5';
+  const nomGerant = gerant ? `${gerant.prenom || ''} ${gerant.nom || ''}`.trim() : '';
 
   const fmt = (date: string) =>
     date ? new Date(date).toLocaleDateString('fr-FR') : '...............';
@@ -481,7 +492,8 @@ export default function Documents({ dossierId, onRetour }: Props) {
       <p>
         Autorise les <strong style={{ color: couleur }}>{agence?.nom}</strong>,
         sise {agence?.adresse_complete}, habilitée sous le n°{' '}
-        <strong>{agence?.habilitation}</strong>, représentée par son gérant, à
+        <strong>{agence?.habilitation}</strong>, représentée par son gérant
+        {nomGerant ? ` ${nomGerant}` : ''}, à
         accomplir toutes les formalités administratives nécessaires à
         l'organisation des obsèques. Je m'engage à assurer le règlement intégral
         des obsèques et des frais accessoires sans division, ni réserve.
@@ -2063,7 +2075,7 @@ export default function Documents({ dossierId, onRetour }: Props) {
       <p>Monsieur le Préfet,</p>
       <br />
       <p>
-        Je soussigné(e), gérant(e) de{' '}
+        Je soussigné(e){nomGerant ? ` ${nomGerant}` : ''}, gérant(e) de{' '}
         <strong style={{ color: couleur }}>{agence?.nom}</strong>,{' '}
         {agence?.adresse_complete}, Habilitation n° {agence?.habilitation}
       </p>
