@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../supabase';
+import DevisLibre from './DevisLibre';
 
 interface Props {
   dossierId: string;
@@ -1541,6 +1542,9 @@ ${
 
   if (!dossier) return <p style={{ padding: '2rem' }}>Chargement...</p>;
 
+  if (dossier?.type_dossier === 'devis_libre') {
+    return <DevisLibre dossierId={dossierId} onRetour={onRetour} />;
+  }
   return (
     <div style={{ padding: '2rem', maxWidth: '1200px', margin: '0 auto' }}>
       <div
