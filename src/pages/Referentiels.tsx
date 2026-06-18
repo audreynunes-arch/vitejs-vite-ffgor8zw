@@ -15,7 +15,8 @@ type Section =
   | 'employes'
   | 'cercueils'
   | 'creusement'
-  | 'prestations';
+  | 'prestations'
+  | 'partenaires';
 
 // ============================================
 // COMPOSANT GÉNÉRIQUE
@@ -1137,6 +1138,898 @@ function GestionPrestations({
   );
 }
 
+// ============================================
+// PARTENAIRES (Assurances, Associations...)
+// ============================================
+function GestionPartenaires({
+  onRetour,
+  agenceId,
+}: {
+  onRetour: () => void;
+  agenceId: string;
+}) {
+  const [partenaires, setPartenaires] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [editItem, setEditItem] = useState<any>(null);
+  const [isNew, setIsNew] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [form, setForm] = useState<any>({});
+
+  // Écran tarifs d'un partenaire (null = liste)
+  const [tarifsDe, setTarifsDe] = useState<any>(null);
+
+  useEffect(() => {
+    charger();
+  }, []);
+
+  async function charger() {
+    setLoading(true);
+    const { data } = await supabase
+      .from('partenaires')
+      .select('*')
+      .eq('agence_id', agenceId)
+      .order('nom');
+    setPartenaires(data || []);
+    setLoading(false);
+  }
+
+  function ouvrir(item: any) {
+    setEditItem(item);
+    setForm({ ...item });
+    setIsNew(false);
+  }
+
+  function nouveau() {
+    setForm({
+      nom: '',
+      type: 'assurance',
+      adresse: '',
+      telephone: '',
+      email: '',
+      contact: '',
+      conditions: '',
+      actif: true,
+      agence_id: agenceId,
+    });
+    setEditItem({});
+    setIsNew(true);
+  }
+
+  async function sauvegarder() {
+    setSaving(true);
+    try {
+      const data: any = {
+        nom: form.nom || null,
+        type: form.type || null,
+        adresse: form.adresse || null,
+        telephone: form.telephone || null,
+        email: form.email || null,
+        contact: form.contact || null,
+        conditions: form.conditions || null,
+        actif: form.actif !== false,
+        agence_id: agenceId,
+      };
+      const { error } = isNew
+        ? await supabase.from('partenaires').insert(data)
+        : await supabase.from('partenaires').update(data).eq('id', editItem.id);
+      if (error) {
+        alert('Erreur : ' + error.message);
+        setSaving(false);
+        return;
+      }
+      await charger();
+      setEditItem(null);
+    } catch (e: any) {
+      alert('Erreur : ' + e.message);
+    }
+    setSaving(false);
+  }
+
+  async function supprimer(id: string) {
+    if (!confirm('Supprimer ce partenaire ? Ses tarifs seront aussi supprimés.'))
+      return;
+    await supabase.from('partenaires').delete().eq('id', id);
+    await charger();
+  }
+
+  const inputStyle = {
+    width: '100%',
+    padding: '0.5rem',
+    marginTop: '0.25rem',
+    borderRadius: '6px',
+    border: '1px solid #ddd',
+    boxSizing: 'border-box' as const,
+  };
+
+  // ----- ÉCRAN TARIFS D'UN PARTENAIRE -----
+  if (tarifsDe) {
+    return (
+      <TarifsPartenaire
+        partenaire={tarifsDe}
+        agenceId={agenceId}
+        onRetour={() => setTarifsDe(null)}
+      />
+    );
+  }
+
+  // ----- ÉCRAN ÉDITION FICHE -----
+  if (editItem !== null) {
+    return (
+      <div style={{ padding: '2rem', maxWidth: '700px', margin: '0 auto' }}>
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '1rem',
+            marginBottom: '2rem',
+          }}
+        >
+          <button onClick={() => setEditItem(null)}>← Retour</button>
+          <h2 style={{ margin: 0 }}>
+            {isNew ? '➕ Nouveau partenaire' : '✏️ Modifier le partenaire'}
+          </h2>
+        </div>
+        <div
+          style={{
+            background: 'white',
+            border: '1px solid #eee',
+            borderRadius: '12px',
+            padding: '1.5rem',
+          }}
+        >
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: '1fr 1fr',
+              gap: '1rem',
+            }}
+          >
+            <div>
+              <label style={{ fontSize: '13px', fontWeight: '500' }}>
+                Nom du partenaire
+              </label>
+              <input
+                value={form.nom || ''}
+                onChange={(e) =>
+                  setForm((p: any) => ({ ...p, nom: e.target.value }))
+                }
+                style={inputStyle}
+                placeholder="ex: ANUBIS"
+              />
+            </div>
+            <div>
+              <label style={{ fontSize: '13px', fontWeight: '500' }}>
+                Type
+              </label>
+              <select
+                value={form.type || 'assurance'}
+                onChange={(e) =>
+                  setForm((p: any) => ({ ...p, type: e.target.value }))
+                }
+                style={inputStyle}
+              >
+                <option value="assurance">Assurance</option>
+                <option value="association">Association</option>
+                <option value="mutuelle">Mutuelle</option>
+                <option value="autre">Autre</option>
+              </select>
+            </div>
+            <div style={{ gridColumn: '1 / -1' }}>
+              <label style={{ fontSize: '13px', fontWeight: '500' }}>
+                Adresse
+              </label>
+              <input
+                value={form.adresse || ''}
+                onChange={(e) =>
+                  setForm((p: any) => ({ ...p, adresse: e.target.value }))
+                }
+                style={inputStyle}
+                placeholder="ex: 43 rue de Liège, 75008 Paris"
+              />
+            </div>
+            <div>
+              <label style={{ fontSize: '13px', fontWeight: '500' }}>
+                Téléphone
+              </label>
+              <input
+                value={form.telephone || ''}
+                onChange={(e) =>
+                  setForm((p: any) => ({ ...p, telephone: e.target.value }))
+                }
+                style={inputStyle}
+              />
+            </div>
+            <div>
+              <label style={{ fontSize: '13px', fontWeight: '500' }}>
+                Email
+              </label>
+              <input
+                value={form.email || ''}
+                onChange={(e) =>
+                  setForm((p: any) => ({ ...p, email: e.target.value }))
+                }
+                style={inputStyle}
+              />
+            </div>
+            <div style={{ gridColumn: '1 / -1' }}>
+              <label style={{ fontSize: '13px', fontWeight: '500' }}>
+                Nom du contact
+              </label>
+              <input
+                value={form.contact || ''}
+                onChange={(e) =>
+                  setForm((p: any) => ({ ...p, contact: e.target.value }))
+                }
+                style={inputStyle}
+              />
+            </div>
+            <div style={{ gridColumn: '1 / -1' }}>
+              <label style={{ fontSize: '13px', fontWeight: '500' }}>
+                Conditions (prix au km, forfaits, règles...)
+              </label>
+              <textarea
+                value={form.conditions || ''}
+                onChange={(e) =>
+                  setForm((p: any) => ({ ...p, conditions: e.target.value }))
+                }
+                style={{ ...inputStyle, height: '80px' }}
+                placeholder="ex: Frais kilométriques 1,20€/km au-delà de 60 km..."
+              />
+            </div>
+            <div style={{ gridColumn: '1 / -1' }}>
+              <input
+                type="checkbox"
+                checked={form.actif !== false}
+                onChange={(e) =>
+                  setForm((p: any) => ({ ...p, actif: e.target.checked }))
+                }
+              />
+              <span style={{ marginLeft: '0.5rem', fontSize: '13px' }}>
+                Partenaire actif
+              </span>
+            </div>
+          </div>
+          <button
+            onClick={sauvegarder}
+            disabled={saving}
+            style={{
+              marginTop: '1.5rem',
+              width: '100%',
+              padding: '0.75rem',
+              background: saving ? '#ccc' : '#0F6E56',
+              color: 'white',
+              border: 'none',
+              borderRadius: '6px',
+              cursor: 'pointer',
+              fontWeight: 'bold',
+            }}
+          >
+            {saving ? '⏳...' : '💾 Sauvegarder'}
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // ----- ÉCRAN LISTE -----
+  return (
+    <div style={{ padding: '2rem', maxWidth: '1000px', margin: '0 auto' }}>
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '1rem',
+          marginBottom: '1.5rem',
+        }}
+      >
+        <button onClick={onRetour}>← Retour</button>
+        <h2 style={{ margin: 0 }}>
+          🤝 Partenaires ({partenaires.length})
+        </h2>
+        <button
+          onClick={nouveau}
+          style={{
+            marginLeft: 'auto',
+            padding: '0.5rem 1rem',
+            background: '#4F46E5',
+            color: 'white',
+            border: 'none',
+            borderRadius: '6px',
+            cursor: 'pointer',
+            fontWeight: 'bold',
+          }}
+        >
+          ➕ Ajouter
+        </button>
+      </div>
+
+      {loading ? (
+        <p>Chargement...</p>
+      ) : partenaires.length === 0 ? (
+        <p style={{ color: '#999', textAlign: 'center', padding: '2rem' }}>
+          Aucun partenaire. Cliquez sur "Ajouter" pour créer ANUBIS.
+        </p>
+      ) : (
+        <div style={{ display: 'grid', gap: '0.75rem' }}>
+          {partenaires.map((p) => (
+            <div
+              key={p.id}
+              style={{
+                background: 'white',
+                border: '1px solid #eee',
+                borderRadius: '10px',
+                padding: '1rem 1.25rem',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '1rem',
+              }}
+            >
+              <div style={{ flex: 1 }}>
+                <div style={{ fontWeight: 'bold', fontSize: '15px' }}>
+                  🤝 {p.nom}
+                  {p.actif === false && (
+                    <span
+                      style={{
+                        marginLeft: '0.5rem',
+                        fontSize: '11px',
+                        color: '#999',
+                      }}
+                    >
+                      (inactif)
+                    </span>
+                  )}
+                </div>
+                <div
+                  style={{ fontSize: '13px', color: '#666', marginTop: '2px' }}
+                >
+                  {p.type} {p.telephone ? `— ${p.telephone}` : ''}
+                </div>
+              </div>
+              <button
+                onClick={() => setTarifsDe(p)}
+                style={{
+                  padding: '0.5rem 1rem',
+                  background: '#FAEEDA',
+                  color: '#854F0B',
+                  border: '1px solid #854F0B',
+                  borderRadius: '6px',
+                  cursor: 'pointer',
+                  fontSize: '13px',
+                  fontWeight: 'bold',
+                }}
+              >
+                💰 Tarifs
+              </button>
+              <button
+                onClick={() => ouvrir(p)}
+                style={{
+                  padding: '0.5rem 0.75rem',
+                  background: '#4F46E5',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '6px',
+                  cursor: 'pointer',
+                  fontSize: '13px',
+                }}
+              >
+                ✏️
+              </button>
+              <button
+                onClick={() => supprimer(p.id)}
+                style={{
+                  padding: '0.5rem 0.75rem',
+                  background: '#FAECE7',
+                  color: '#993C1D',
+                  border: '1px solid #993C1D',
+                  borderRadius: '6px',
+                  cursor: 'pointer',
+                  fontSize: '13px',
+                }}
+              >
+                🗑️
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ============================================
+// TARIFS D'UN PARTENAIRE
+// ============================================
+function TarifsPartenaire({
+  partenaire,
+  agenceId,
+  onRetour,
+}: {
+  partenaire: any;
+  agenceId: string;
+  onRetour: () => void;
+}) {
+  const [prestations, setPrestations] = useState<any[]>([]);
+  const [tarifs, setTarifs] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [mode, setMode] = useState<'reference' | 'libre'>('reference');
+  const [prestationChoisie, setPrestationChoisie] = useState('');
+  const [libelleLibre, setLibelleLibre] = useState('');
+  const [tvaLibre, setTvaLibre] = useState('tva_20');
+  const [categorieLibre, setCategorieLibre] = useState(
+    'prestations_non_obligatoires'
+  );
+  const [prixSaisi, setPrixSaisi] = useState('');
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    charger();
+  }, []);
+
+  async function charger() {
+    setLoading(true);
+    // Toutes les prestations du référentiel (tarif normal)
+    const { data: prestas } = await supabase
+      .from('prestations')
+      .select('*')
+      .eq('agence_id', agenceId)
+      .order('section')
+      .order('ordre');
+    setPrestations(prestas || []);
+    // Les tarifs déjà définis pour ce partenaire
+    const { data: tarifsData } = await supabase
+      .from('tarifs_partenaires')
+      .select('*')
+      .eq('partenaire_id', partenaire.id);
+    setTarifs(tarifsData || []);
+    setLoading(false);
+  }
+
+  // Prestations pas encore tarifées pour ce partenaire (pour le menu déroulant)
+  const dejaTarifees = tarifs.map((t) => t.prestation_id);
+  const prestationsDispo = prestations.filter(
+    (p) => !dejaTarifees.includes(p.id)
+  );
+
+  async function ajouterTarif() {
+    if (mode === 'reference' && !prestationChoisie) {
+      alert('Choisissez une prestation.');
+      return;
+    }
+    if (mode === 'libre' && !libelleLibre.trim()) {
+      alert('Saisissez le texte de la ligne libre.');
+      return;
+    }
+    setSaving(true);
+    const ligne: any = {
+      agence_id: agenceId,
+      partenaire_id: partenaire.id,
+      prix: prixSaisi === '' ? 0 : parseFloat(prixSaisi),
+    };
+    if (mode === 'reference') {
+      ligne.prestation_id = prestationChoisie;
+    } else {
+      ligne.libelle_libre = libelleLibre.trim();
+      ligne.tva = tvaLibre;
+      ligne.categorie = categorieLibre;
+    }
+    const { error } = await supabase.from('tarifs_partenaires').insert(ligne);
+    if (error) {
+      alert('Erreur : ' + error.message);
+      setSaving(false);
+      return;
+    }
+    setPrestationChoisie('');
+    setLibelleLibre('');
+    setTvaLibre('tva_20');
+    setCategorieLibre('prestations_non_obligatoires');
+    setPrixSaisi('');
+    await charger();
+    setSaving(false);
+  }
+
+  async function modifierPrix(tarifId: string, nouveauPrix: string) {
+    await supabase
+      .from('tarifs_partenaires')
+      .update({ prix: nouveauPrix === '' ? 0 : parseFloat(nouveauPrix) })
+      .eq('id', tarifId);
+    await charger();
+  }
+
+  async function supprimerTarif(tarifId: string) {
+    if (!confirm('Retirer ce tarif ?')) return;
+    await supabase.from('tarifs_partenaires').delete().eq('id', tarifId);
+    await charger();
+  }
+
+  // Affichage : gère prestation du référentiel OU ligne libre
+  function libelleTarif(t: any) {
+    if (t.libelle_libre) return t.libelle_libre;
+    const p = prestations.find((x) => x.id === t.prestation_id);
+    return p ? p.libelle : '(prestation supprimée)';
+  }
+  function sousTitreTarif(t: any) {
+    if (t.libelle_libre) {
+      return t.categorie === 'prestations_obligatoires'
+        ? 'Ligne libre — obligatoire'
+        : 'Ligne libre — non-obligatoire';
+    }
+    const p = prestations.find((x) => x.id === t.prestation_id);
+    return p ? p.section : '';
+  }
+  function prixNormalTarif(t: any) {
+    if (t.libelle_libre) return null; // pas de prix normal pour une ligne libre
+    const p = prestations.find((x) => x.id === t.prestation_id);
+    return p ? p.prix : null;
+  }
+  function libelleTva(tva: string) {
+    return tva === 'tva_20'
+      ? 'TVA 20%'
+      : tva === 'tva_10'
+      ? 'TVA 10%'
+      : 'Exonéré';
+  }
+  function tvaTarif(t: any) {
+    if (t.libelle_libre) return libelleTva(t.tva);
+    const p = prestations.find((x) => x.id === t.prestation_id);
+    return p ? libelleTva(p.tva) : '';
+  }
+
+  const inputStyle = {
+    padding: '0.6rem',
+    borderRadius: '8px',
+    border: '1px solid #ddd',
+    boxSizing: 'border-box' as const,
+  };
+
+  return (
+    <div style={{ padding: '2rem', maxWidth: '900px', margin: '0 auto' }}>
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '1rem',
+          marginBottom: '0.5rem',
+        }}
+      >
+        <button onClick={onRetour}>← Retour</button>
+        <h2 style={{ margin: 0 }}>💰 Tarifs — {partenaire.nom}</h2>
+      </div>
+      <p style={{ color: '#666', fontSize: '14px', marginBottom: '1.5rem' }}>
+        Indiquez ici les prestations et leurs prix spécifiques à{' '}
+        {partenaire.nom}. Seules les prestations ajoutées ici utiliseront le
+        tarif {partenaire.nom}.
+      </p>
+
+      {/* Bloc ajout */}
+      <div
+        style={{
+          background: '#FAEEDA',
+          border: '1px solid #854F0B',
+          borderRadius: '12px',
+          padding: '1.25rem',
+          marginBottom: '1.5rem',
+        }}
+      >
+        <div
+          style={{
+            fontWeight: 'bold',
+            color: '#854F0B',
+            marginBottom: '0.75rem',
+            fontSize: '14px',
+          }}
+        >
+          ➕ Ajouter un tarif {partenaire.nom}
+        </div>
+
+        {/* Choix du mode */}
+        <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.75rem' }}>
+          <button
+            onClick={() => setMode('reference')}
+            style={{
+              padding: '0.4rem 0.9rem',
+              borderRadius: '6px',
+              border: '1px solid #854F0B',
+              cursor: 'pointer',
+              fontSize: '13px',
+              fontWeight: 'bold',
+              background: mode === 'reference' ? '#854F0B' : 'white',
+              color: mode === 'reference' ? 'white' : '#854F0B',
+            }}
+          >
+            📋 Depuis le référentiel
+          </button>
+          <button
+            onClick={() => setMode('libre')}
+            style={{
+              padding: '0.4rem 0.9rem',
+              borderRadius: '6px',
+              border: '1px solid #854F0B',
+              cursor: 'pointer',
+              fontSize: '13px',
+              fontWeight: 'bold',
+              background: mode === 'libre' ? '#854F0B' : 'white',
+              color: mode === 'libre' ? 'white' : '#854F0B',
+            }}
+          >
+            ✍️ Ligne libre
+          </button>
+        </div>
+
+        {mode === 'reference' ? (
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: '1fr 140px auto',
+              gap: '0.75rem',
+              alignItems: 'end',
+            }}
+          >
+            <div>
+              <label style={{ fontSize: '12px', color: '#854F0B' }}>
+                Prestation
+              </label>
+              <select
+                value={prestationChoisie}
+                onChange={(e) => setPrestationChoisie(e.target.value)}
+                style={{ ...inputStyle, width: '100%' }}
+              >
+                <option value="">-- Choisir une prestation --</option>
+                {prestationsDispo.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.libelle} (normal : {p.prix || 0} €)
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label style={{ fontSize: '12px', color: '#854F0B' }}>
+                Prix {partenaire.nom} TTC (€)
+              </label>
+              <input
+                type="number"
+                value={prixSaisi}
+                onChange={(e) => setPrixSaisi(e.target.value)}
+                style={{ ...inputStyle, width: '100%' }}
+                placeholder="0"
+              />
+            </div>
+            <button
+              onClick={ajouterTarif}
+              disabled={saving}
+              style={{
+                padding: '0.6rem 1.25rem',
+                background: saving ? '#ccc' : '#854F0B',
+                color: 'white',
+                border: 'none',
+                borderRadius: '8px',
+                cursor: 'pointer',
+                fontWeight: 'bold',
+                height: 'fit-content',
+              }}
+            >
+              {saving ? '⏳' : 'Ajouter'}
+            </button>
+          </div>
+        ) : (
+          <div>
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: '1fr 1fr',
+                gap: '0.75rem',
+                marginBottom: '0.75rem',
+              }}
+            >
+              <div>
+                <label style={{ fontSize: '12px', color: '#854F0B' }}>
+                  Texte de la ligne
+                </label>
+                <input
+                  value={libelleLibre}
+                  onChange={(e) => setLibelleLibre(e.target.value)}
+                  style={{ ...inputStyle, width: '100%' }}
+                  placeholder="ex: Cercueil ANUBIS"
+                />
+              </div>
+              <div>
+                <label style={{ fontSize: '12px', color: '#854F0B' }}>
+                  Catégorie (colonne du devis)
+                </label>
+                <select
+                  value={categorieLibre}
+                  onChange={(e) => setCategorieLibre(e.target.value)}
+                  style={{ ...inputStyle, width: '100%' }}
+                >
+                  <option value="prestations_obligatoires">
+                    Prestation obligatoire
+                  </option>
+                  <option value="prestations_non_obligatoires">
+                    Prestation non-obligatoire
+                  </option>
+                </select>
+              </div>
+            </div>
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: '120px 120px auto',
+                gap: '0.75rem',
+                alignItems: 'end',
+              }}
+            >
+              <div>
+                <label style={{ fontSize: '12px', color: '#854F0B' }}>
+                  Prix TTC (€)
+                </label>
+                <input
+                  type="number"
+                  value={prixSaisi}
+                  onChange={(e) => setPrixSaisi(e.target.value)}
+                  style={{ ...inputStyle, width: '100%' }}
+                  placeholder="0"
+                />
+              </div>
+              <div>
+                <label style={{ fontSize: '12px', color: '#854F0B' }}>
+                  TVA
+                </label>
+                <select
+                  value={tvaLibre}
+                  onChange={(e) => setTvaLibre(e.target.value)}
+                  style={{ ...inputStyle, width: '100%' }}
+                >
+                  <option value="tva_20">TVA 20%</option>
+                  <option value="tva_10">TVA 10%</option>
+                  <option value="exonere">Exonéré</option>
+                </select>
+              </div>
+              <button
+                onClick={ajouterTarif}
+                disabled={saving}
+                style={{
+                  padding: '0.6rem 1.25rem',
+                  background: saving ? '#ccc' : '#854F0B',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '8px',
+                  cursor: 'pointer',
+                  fontWeight: 'bold',
+                  height: 'fit-content',
+                }}
+              >
+                {saving ? '⏳' : 'Ajouter'}
+              </button>
+            </div>
+          </div>
+        )}
+        {mode === 'reference' &&
+          prestationsDispo.length === 0 &&
+          prestations.length > 0 && (
+            <div
+              style={{ fontSize: '12px', color: '#854F0B', marginTop: '0.5rem' }}
+            >
+              Toutes les prestations du référentiel ont déjà un tarif{' '}
+              {partenaire.nom}. Utilisez "Ligne libre" pour en ajouter d'autres.
+            </div>
+          )}
+      </div>
+
+      {/* Liste des tarifs définis */}
+      {loading ? (
+        <p>Chargement...</p>
+      ) : tarifs.length === 0 ? (
+        <p style={{ color: '#999', textAlign: 'center', padding: '1rem' }}>
+          Aucun tarif {partenaire.nom} défini pour l'instant.
+        </p>
+      ) : (
+        <div
+          style={{
+            background: 'white',
+            border: '1px solid #eee',
+            borderRadius: '12px',
+            overflow: 'hidden',
+          }}
+        >
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: '1fr 100px 90px 100px auto',
+              gap: '1rem',
+              padding: '0.6rem 1rem',
+              background: '#f9f9f9',
+              fontSize: '12px',
+              fontWeight: 'bold',
+              color: '#666',
+            }}
+          >
+            <div>Prestation</div>
+            <div style={{ textAlign: 'right' }}>Normal TTC</div>
+            <div style={{ textAlign: 'center' }}>TVA</div>
+            <div style={{ textAlign: 'right' }}>{partenaire.nom} TTC</div>
+            <div></div>
+          </div>
+          {tarifs.map((t) => (
+            <div
+              key={t.id}
+              style={{
+                display: 'grid',
+                gridTemplateColumns: '1fr 100px 90px 100px auto',
+                gap: '1rem',
+                alignItems: 'center',
+                padding: '0.6rem 1rem',
+                borderTop: '1px solid #f5f5f5',
+              }}
+            >
+              <div style={{ fontSize: '13px' }}>
+                {libelleTarif(t)}
+                <div style={{ fontSize: '11px', color: '#aaa' }}>
+                  {sousTitreTarif(t)}
+                </div>
+              </div>
+              <div
+                style={{
+                  textAlign: 'right',
+                  fontSize: '13px',
+                  color: '#999',
+                }}
+              >
+                {prixNormalTarif(t) !== null
+                  ? `${prixNormalTarif(t)} €`
+                  : '—'}
+              </div>
+              <div
+                style={{
+                  textAlign: 'center',
+                  fontSize: '11px',
+                  color: '#666',
+                }}
+              >
+                {tvaTarif(t)}
+              </div>
+              <div style={{ textAlign: 'right' }}>
+                <input
+                  type="number"
+                  defaultValue={t.prix}
+                  onBlur={(e) => modifierPrix(t.id, e.target.value)}
+                  style={{
+                    width: '90px',
+                    padding: '0.35rem',
+                    borderRadius: '6px',
+                    border: '1px solid #ddd',
+                    textAlign: 'right',
+                    fontWeight: 'bold',
+                    color: '#854F0B',
+                  }}
+                />
+              </div>
+              <div style={{ textAlign: 'right' }}>
+                <button
+                  onClick={() => supprimerTarif(t.id)}
+                  style={{
+                    padding: '0.25rem 0.5rem',
+                    background: '#FAECE7',
+                    color: '#993C1D',
+                    border: '1px solid #993C1D',
+                    borderRadius: '4px',
+                    cursor: 'pointer',
+                    fontSize: '12px',
+                  }}
+                >
+                  🗑️
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+      <p style={{ fontSize: '12px', color: '#999', marginTop: '1rem' }}>
+        💡 Astuce : modifiez un prix en cliquant dans la case et en cliquant
+        ailleurs pour valider.
+      </p>
+    </div>
+  );
+}
+
 function GestionTarifsRapatriement({
   onRetour,
   agenceId,
@@ -1600,6 +2493,14 @@ export default function Referentiels({ onRetour, agenceId }: Props) {
       />
     );
 
+  if (section === 'partenaires')
+    return (
+      <GestionPartenaires
+        onRetour={() => setSection('menu')}
+        agenceId={agenceId}
+      />
+    );
+
   return (
     <div style={{ padding: '2rem', maxWidth: '700px', margin: '0 auto' }}>
       <div
@@ -1667,6 +2568,12 @@ export default function Referentiels({ onRetour, agenceId }: Props) {
             emoji: '📋',
             label: 'Prestations & Tarifs',
             desc: 'Prix des démarches, transports, coffrets...',
+          },
+          {
+            key: 'partenaires',
+            emoji: '🤝',
+            label: 'Partenaires',
+            desc: 'Assurances, associations & tarifs négociés',
           },
         ].map((s) => (
           <div
