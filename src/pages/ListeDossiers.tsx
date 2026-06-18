@@ -3,9 +3,11 @@ import { supabase } from '../supabase';
 
 interface Props {
   onOuvrir: (id: string) => void;
+  onRetour: () => void;
 }
 
-export default function ListeDossiers({ onOuvrir }: Props) {
+export default function ListeDossiers({ onOuvrir, onRetour }: Props) {
+
   const [dossiers, setDossiers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [recherche, setRecherche] = useState('');
@@ -86,7 +88,12 @@ export default function ListeDossiers({ onOuvrir }: Props) {
           marginBottom: '1.5rem',
         }}
       >
-        <h2 style={{ margin: 0 }}>📁 Dossiers ({filtres.length})</h2>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+          <button onClick={onRetour} style={{ cursor: 'pointer' }}>
+            ← Retour
+          </button>
+          <h2 style={{ margin: 0 }}>📁 Dossiers ({filtres.length})</h2>
+        </div>
         <button
           onClick={charger}
           style={{ padding: '0.4rem 0.8rem', cursor: 'pointer' }}
