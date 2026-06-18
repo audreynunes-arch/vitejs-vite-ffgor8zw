@@ -351,6 +351,7 @@ export default function Devis({ dossierId, onRetour }: Props) {
   const [tarifsRapatriement, setTarifsRapatriement] = useState<any[]>([]);
   const [destinationChoisie, setDestinationChoisie] = useState('');
   const [catalogueCercueils, setCatalogueCercueils] = useState<any[]>([]);
+  const [prestationsRef, setPrestationsRef] = useState<any[]>([]);
 
   useEffect(() => {
     chargerDossier();
@@ -387,6 +388,13 @@ export default function Devis({ dossierId, onRetour }: Props) {
         .eq('agence_id', data.agence_id)
         .order('nom');
       setCatalogueCercueils(cercueils || []);
+      const { data: prestas } = await supabase
+        .from('prestations')
+        .select('*')
+        .eq('agence_id', data.agence_id)
+        .order('section')
+        .order('ordre');
+      setPrestationsRef(prestas || []);
     }
     const { data: lignesSaved } = await supabase
       .from('lignes_dossier')
@@ -408,7 +416,58 @@ export default function Devis({ dossierId, onRetour }: Props) {
       );
       if (data?.achat_concession) setConcessionChoisie(data.achat_concession);
     } else {
-      let lignesInit = [...LIGNES_DEFAUT];
+      // Charger les prestations du référentiel pour cette agence
+      const { data: prestasInit } = await supabase
+        .from('prestations')
+        .select('*')
+        .eq('agence_id', data?.agence_id)
+        .order('section')
+        .order('ordre');
+
+      let lignesInit: Ligne[];
+// Rapatriement : pré-remplir automatiquement depuis la destination du dossier
+if (data?.type_dossier === 'rapatriement') {
+  const { data: tarifsR } = await supabase
+    .from('tarifs_rapatriement')
+    .select('*')
+    .eq('agence_id', data.agence_id)
+    .order('ordre');
+  const t = (tarifsR || []).find(
+    (x: any) => x.id === data.destination_id
+  );
+  if (t) {
+    setDestinationChoisie(t.id);
+    setLignes(construireLignesRapatriement(t));
+  } else {
+    setLignes([]);
+  }
+  return;
+}
+      if (
+        data?.type_dossier === 'inhumation_locale' &&
+        prestasInit &&
+        prestasInit.length > 0
+      ) {
+        // Lignes OBLIGATOIRES gardées en dur (cercueil, plaque, creusement, taille, exhumation)
+        const obligatoires = LIGNES_DEFAUT.filter(
+          (l) => l.categorie === 'prestations_obligatoires'
+        );
+        // Lignes NON-OBLIGATOIRES depuis le référentiel
+        const nonObligatoires: Ligne[] = prestasInit.map((p, idx) => ({
+          libelle: p.libelle,
+          tva: (p.tva as Ligne['tva']) || 'tva_20',
+          categorie: 'prestations_non_obligatoires' as const,
+          section: p.section || '',
+          prix_ttc: parseFloat(p.prix) || 0,
+          inclus: (parseFloat(p.prix) || 0) > 0,
+          ordre: p.ordre || idx + 1,
+        }));
+        lignesInit = [...obligatoires, ...nonObligatoires];
+      } else {
+        // Sécurité : si pas de prestations au référentiel, ou rapatriement, on garde le défaut
+        lignesInit = [...LIGNES_DEFAUT];
+      }
+
       const cim = data?.cimetieres;
       if (data?.achat_concession && data?.montant_concession && cim) {
         setConcessionChoisie(data.achat_concession);
@@ -593,12 +652,8 @@ export default function Devis({ dossierId, onRetour }: Props) {
     );
   }
 
-  function choisirDestination(id: string) {
-    setDestinationChoisie(id);
-    if (!id) return;
-    const t = tarifsRapatriement.find((t) => t.id === id);
-    if (!t) return;
-    setLignes([
+  function construireLignesRapatriement(t: any): Ligne[] {
+    return [
       {
         libelle:
           '* Cercueil Prestige couleur bois (essence de peuplier, forme lyonnaise, avec cuvette étanche, 4 poignées, capiton) (*)',
@@ -831,7 +886,18 @@ export default function Devis({ dossierId, onRetour }: Props) {
         inclus: false,
         ordre: 4,
       },
-    ]);
+    ];
+  }
+
+  function choisirDestination(id: string) {
+    setDestinationChoisie(id);
+    if (!id) {
+      setLignes([]);
+      return;
+    }
+    const t = tarifsRapatriement.find((t) => t.id === id);
+    if (!t) return;
+    setLignes(construireLignesRapatriement(t));
   }
 
   const lignesObl = lignes.filter(
