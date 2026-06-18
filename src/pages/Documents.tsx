@@ -1511,7 +1511,15 @@ export default function Documents({ dossierId, onRetour }: Props) {
                 }`
               : undefined,
           },
-        ].map((etape, i) => (
+        ]
+        .filter(
+          (etape) =>
+            !(
+              etape.label === 'Toilette rituelle' &&
+              dossier.afficher_toilette === false
+            )
+        )
+        .map((etape, i) => (
           <div
             key={i}
             style={{ marginBottom: '1.25rem', position: 'relative' }}
