@@ -68,6 +68,10 @@ export default function DossierDetail({
         nom_medecin: data.nom_medecin || '',
         date_toilette: data.date_toilette || '',
         heure_toilette: data.heure_toilette || '',
+        afficher_toilette:
+          data.afficher_toilette === undefined || data.afficher_toilette === null
+            ? true
+            : data.afficher_toilette,
         date_meb: data.date_meb || '',
         heure_meb: data.heure_meb || '',
         date_fermeture_depart: data.date_fermeture_depart || '',
@@ -149,6 +153,7 @@ export default function DossierDetail({
           nom_medecin: infos.nom_medecin || null,
           date_toilette: infos.date_toilette || null,
           heure_toilette: infos.heure_toilette || null,
+          afficher_toilette: infos.afficher_toilette,
           date_meb: infos.date_meb || null,
           heure_meb: infos.heure_meb || null,
           date_fermeture_depart: infos.date_fermeture_depart || null,
@@ -880,6 +885,37 @@ export default function DossierDetail({
                 }
                 style={inputStyle}
               />
+            </div>
+            <div
+              style={{
+                gridColumn: '1 / -1',
+                background: '#FAEEDA',
+                borderRadius: '8px',
+                padding: '0.75rem 1rem',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.6rem',
+                border: '1px solid #854F0B',
+              }}
+            >
+              <input
+                type="checkbox"
+                id="afficher_toilette"
+                checked={infos.afficher_toilette !== false}
+                onChange={(e) =>
+                  setInfos((p: any) => ({
+                    ...p,
+                    afficher_toilette: e.target.checked,
+                  }))
+                }
+                style={{ width: '18px', height: '18px', cursor: 'pointer' }}
+              />
+              <label
+                htmlFor="afficher_toilette"
+                style={{ cursor: 'pointer', fontSize: '14px', color: '#854F0B' }}
+              >
+                🕌 Afficher la toilette rituelle sur le document Déroulement
+              </label>
             </div>
             <div>
               <label>Mise en bière le</label>
