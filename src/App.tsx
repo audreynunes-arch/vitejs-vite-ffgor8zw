@@ -253,7 +253,10 @@ export default function App() {
           )}
 
           {page === 'dossiers' && !dossierId && (
-            <ListeDossiers onOuvrir={(id) => setDossierId(id)} />
+            <ListeDossiers
+              onOuvrir={(id) => setDossierId(id)}
+              onRetour={() => setPage('accueil')}
+            />
           )}
 
           {page === 'dossiers' && dossierId && (
