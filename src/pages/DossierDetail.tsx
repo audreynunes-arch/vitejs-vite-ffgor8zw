@@ -43,6 +43,8 @@ export default function DossierDetail({
       defunts (*),
       pouvoirs (*),
       agences (nom),
+      utilisateurs!dossiers_utilisateur_id_fkey (nom, prenom),
+      modificateur:utilisateurs!dossiers_modifie_par_fkey (nom, prenom),
       cimetieres!dossiers_cimetiere_id_fkey (nom, ville, telephone),
       mairies!dossiers_mairie_deces_id_fkey (commune, telephone),
       etablissements_sante (nom, ville, telephone),
@@ -119,6 +121,8 @@ export default function DossierDetail({
   async function sauvegarder() {
     setSaving(true);
     try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const monUserId = sessionData.session?.user.id || null;
       await supabase
         .from('defunts')
         .update({
@@ -191,6 +195,8 @@ export default function DossierDetail({
           telephone_contact_pays: infos.telephone_contact_pays || null,
           ambulance_pays: infos.ambulance_pays || null,
           cimetiere_pays: infos.cimetiere_pays || null,
+          modifie_par: monUserId,
+          modifie_le: new Date().toISOString(),
         })
         .eq('id', dossierId);
 
@@ -1527,6 +1533,30 @@ export default function DossierDetail({
             {new Date(dossier.created_at).toLocaleDateString('fr-FR')}
           </div>
         </div>
+        {dossier.utilisateurs && (
+          <div>
+            <div style={{ fontSize: '12px', color: '#888' }}>Créé par</div>
+            <div style={{ fontWeight: 'bold' }}>
+              {dossier.utilisateurs.prenom} {dossier.utilisateurs.nom}
+            </div>
+          </div>
+        )}
+        {dossier.modificateur && (
+          <div>
+            <div style={{ fontSize: '12px', color: '#888' }}>
+              Modifié en dernier par
+            </div>
+            <div style={{ fontWeight: 'bold' }}>
+              {dossier.modificateur.prenom} {dossier.modificateur.nom}
+              {dossier.modifie_le && (
+                <span style={{ fontWeight: 'normal', color: '#888' }}>
+                  {' '}
+                  le {new Date(dossier.modifie_le).toLocaleDateString('fr-FR')}
+                </span>
+              )}
+            </div>
+          </div>
+        )}
       </div>
 
       <div
