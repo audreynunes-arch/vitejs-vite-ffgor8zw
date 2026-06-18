@@ -14,7 +14,8 @@ type Section =
   | 'vehicules'
   | 'employes'
   | 'cercueils'
-  | 'creusement';
+  | 'creusement'
+  | 'prestations';
 
 // ============================================
 // COMPOSANT GÉNÉRIQUE
@@ -716,6 +717,54 @@ function GestionCreusement({
   );
 }
 
+function GestionPrestations({
+  onRetour,
+  agenceId,
+}: {
+  onRetour: () => void;
+  agenceId: string;
+}) {
+  return (
+    <TableauGenerique
+      titre="📋 Prestations & Tarifs"
+      table="prestations"
+      onRetour={onRetour}
+      agenceScope={agenceId}
+      colonnes={[
+        { key: 'libelle', label: 'Prestation', width: '40%' },
+        { key: 'section', label: 'Section', width: '25%' },
+        { key: 'prix', label: 'Prix (€)', width: '12%' },
+        { key: 'tva', label: 'TVA', width: '13%' },
+        { key: 'ordre', label: 'Ordre', width: '10%' },
+      ]}
+      champsForm={[
+        { key: 'libelle', label: 'Libellé de la prestation' },
+        {
+          key: 'section',
+          label: 'Section',
+          type: 'select',
+          options: [
+            '1 - Préparation / Organisation des Obsèques',
+            '2 - Transport avant mise en bière',
+            '3 - Cercueil & Accessoires',
+            '5 - Transport du défunt après mise en bière',
+            '6 - Cérémonie funéraire',
+            '7A - Inhumation / Exhumation',
+          ],
+        },
+        { key: 'prix', label: 'Prix TTC (€)', type: 'number' },
+        {
+          key: 'tva',
+          label: 'TVA',
+          type: 'select',
+          options: ['tva_20', 'tva_10', 'exonere'],
+        },
+        { key: 'ordre', label: 'Ordre affichage', type: 'number' },
+      ]}
+    />
+  );
+}
+
 function GestionTarifsRapatriement({
   onRetour,
   agenceId,
@@ -1171,6 +1220,14 @@ export default function Referentiels({ onRetour, agenceId }: Props) {
       />
     );
 
+  if (section === 'prestations')
+    return (
+      <GestionPrestations
+        onRetour={() => setSection('menu')}
+        agenceId={agenceId}
+      />
+    );
+
   return (
     <div style={{ padding: '2rem', maxWidth: '700px', margin: '0 auto' }}>
       <div
@@ -1232,6 +1289,12 @@ export default function Referentiels({ onRetour, agenceId }: Props) {
             emoji: '⛏️',
             label: 'Creusement / Inhumation',
             desc: 'Prestations de creusement et tarifs',
+          },
+          {
+            key: 'prestations',
+            emoji: '📋',
+            label: 'Prestations & Tarifs',
+            desc: 'Prix des démarches, transports, coffrets...',
           },
         ].map((s) => (
           <div
