@@ -85,9 +85,22 @@ function TableauGenerique({
   async function sauvegarder() {
     setSaving(true);
     try {
-      const data = agenceScope ? { ...form, agence_id: agenceScope } : form;
-      if (isNew) await supabase.from(table).insert(data);
-      else await supabase.from(table).update(data).eq('id', editItem.id);
+      // Nettoyer : transformer les champs vides ('') en null
+      const formNettoye: any = {};
+      Object.keys(form).forEach((cle) => {
+        formNettoye[cle] = form[cle] === '' ? null : form[cle];
+      });
+      const data = agenceScope
+        ? { ...formNettoye, agence_id: agenceScope }
+        : formNettoye;
+      const { error } = isNew
+        ? await supabase.from(table).insert(data)
+        : await supabase.from(table).update(data).eq('id', editItem.id);
+      if (error) {
+        alert('Erreur : ' + error.message);
+        setSaving(false);
+        return;
+      }
       await charger();
       setEditItem(null);
     } catch (e: any) {
@@ -1251,4 +1264,3 @@ export default function Referentiels({ onRetour, agenceId }: Props) {
     </div>
   );
 }
-
