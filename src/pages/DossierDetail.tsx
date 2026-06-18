@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { supabase } from '../supabase';
 
 interface Props {
@@ -6,6 +6,126 @@ interface Props {
   onRetour: () => void;
   onDevis: () => void;
   onDocuments: () => void;
+}
+
+function AutocompleteAdresse({
+  value,
+  onChange,
+  placeholder,
+  style,
+}: {
+  value: string;
+  onChange: (val: string) => void;
+  placeholder?: string;
+  style?: any;
+}) {
+  const inputRef = useRef<HTMLInputElement>(null);
+  useEffect(() => {
+    if (!inputRef.current || !(window as any).google) return;
+    const autocomplete = new (window as any).google.maps.places.Autocomplete(
+      inputRef.current,
+      { componentRestrictions: { country: 'fr' }, language: 'fr' }
+    );
+    autocomplete.addListener('place_changed', () => {
+      const place = autocomplete.getPlace();
+      if (place.formatted_address) onChange(place.formatted_address);
+      else if (place.name) onChange(place.name);
+    });
+  }, []);
+  return (
+    <input
+      ref={inputRef}
+      defaultValue={value}
+      placeholder={placeholder}
+      style={style}
+    />
+  );
+}
+
+function RechercheGoogleLieu({
+  value,
+  onChange,
+  placeholder,
+  style,
+  types,
+}: {
+  value: string;
+  onChange: (val: string) => void;
+  placeholder?: string;
+  style?: any;
+  types?: string[];
+}) {
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [manuel, setManuel] = useState(false);
+  useEffect(() => {
+    if (!inputRef.current || !(window as any).google || manuel) return;
+    const autocomplete = new (window as any).google.maps.places.Autocomplete(
+      inputRef.current,
+      {
+        componentRestrictions: { country: 'fr' },
+        language: 'fr',
+        types: types || ['establishment'],
+      }
+    );
+    autocomplete.addListener('place_changed', () => {
+      const place = autocomplete.getPlace();
+      if (place.name && place.formatted_address) {
+        onChange(`${place.name} — ${place.formatted_address}`);
+      } else if (place.formatted_address) {
+        onChange(place.formatted_address);
+      } else if (place.name) {
+        onChange(place.name);
+      }
+    });
+  }, [manuel]);
+  return (
+    <div>
+      {!manuel ? (
+        <div style={{ position: 'relative' }}>
+          <input
+            ref={inputRef}
+            defaultValue={value}
+            placeholder={placeholder || 'Rechercher sur Google...'}
+            style={style}
+          />
+          <div style={{ fontSize: '11px', color: '#888', marginTop: '4px' }}>
+            Lieu introuvable ?{' '}
+            <span
+              onClick={() => setManuel(true)}
+              style={{
+                color: '#4F46E5',
+                cursor: 'pointer',
+                textDecoration: 'underline',
+              }}
+            >
+              Saisir manuellement
+            </span>
+          </div>
+        </div>
+      ) : (
+        <div>
+          <input
+            value={value}
+            onChange={(e) => onChange(e.target.value)}
+            placeholder="Saisir manuellement..."
+            style={style}
+          />
+          <div style={{ fontSize: '11px', color: '#888', marginTop: '4px' }}>
+            <span
+              onClick={() => setManuel(false)}
+              style={{
+                color: '#4F46E5',
+                cursor: 'pointer',
+                textDecoration: 'underline',
+              }}
+            >
+              ← Rechercher sur Google
+            </span>
+          </div>
+        </div>
+      )}
+    </div>
+  );
 }
 
 export default function DossierDetail({
@@ -23,6 +143,84 @@ export default function DossierDetail({
   const [defunt, setDefunt] = useState<any>({});
   const [pouvoir, setPouvoir] = useState<any>({});
   const [infos, setInfos] = useState<any>({});
+
+  const [cimetieres, setCimetieres] = useState<any[]>([]);
+  const [partenaires, setPartenaires] = useState<any[]>([]);
+  const [catalogueCercueils, setCatalogueCercueils] = useState<any[]>([]);
+  const [prestationsCreusement, setPrestationsCreusement] = useState<any[]>([]);
+  const [tarifsRapatriement, setTarifsRapatriement] = useState<any[]>([]);
+  const [vehicules, setVehicules] = useState<any[]>([]);
+  const [employes, setEmployes] = useState<any[]>([]);
+  const [cimetiereTarifs, setCimetiereTarifs] = useState<any>(null);
+  const [deptCimetiere, setDeptCimetiere] = useState('');
+
+  const departements = [
+    { code: '75', nom: 'Paris (75)' },
+    { code: '77', nom: 'Seine-et-Marne (77)' },
+    { code: '78', nom: 'Yvelines (78)' },
+    { code: '91', nom: 'Essonne (91)' },
+    { code: '92', nom: 'Hauts-de-Seine (92)' },
+    { code: '93', nom: 'Seine-Saint-Denis (93)' },
+    { code: '94', nom: 'Val-de-Marne (94)' },
+    { code: '95', nom: "Val-d'Oise (95)" },
+  ];
+
+  const filtrer = (liste: any[], dept: string) => {
+    if (!dept) return liste;
+    return liste.filter((item) => (item.code_postal || '').startsWith(dept));
+  };
+
+  function choisirCimetiere(id: string) {
+    setInfos((p: any) => ({
+      ...p,
+      cimetiere_id: id,
+      achat_concession: '',
+      montant_concession: '',
+    }));
+    const cim = cimetieres.find((c) => c.id === id);
+    setCimetiereTarifs(cim || null);
+  }
+
+  function choisirConcession(val: string) {
+    if (!cimetiereTarifs) return;
+    const prix =
+      val === '10ans_adulte'
+        ? cimetiereTarifs.tarif_10ans_adulte
+        : val === '15ans_adulte'
+        ? cimetiereTarifs.tarif_15ans_adulte
+        : val === '30ans_adulte'
+        ? cimetiereTarifs.tarif_30ans_adulte
+        : val === '50ans_adulte'
+        ? cimetiereTarifs.tarif_50ans_adulte
+        : val === 'perpet_adulte'
+        ? cimetiereTarifs.tarif_perpet_adulte
+        : val === '10ans_enfant'
+        ? cimetiereTarifs.tarif_10ans_enfant
+        : val === '15ans_enfant'
+        ? cimetiereTarifs.tarif_15ans_enfant
+        : val === '30ans_enfant'
+        ? cimetiereTarifs.tarif_30ans_enfant
+        : val === '50ans_enfant'
+        ? cimetiereTarifs.tarif_50ans_enfant
+        : val === 'perpet_enfant'
+        ? cimetiereTarifs.tarif_perpet_enfant
+        : 0;
+    setInfos((p: any) => ({
+      ...p,
+      achat_concession: val,
+      montant_concession: val ? String(prix || 0) : '',
+    }));
+  }
+
+  function choisirDestination(id: string) {
+    const t = tarifsRapatriement.find((t) => t.id === id);
+    setInfos((p: any) => ({
+      ...p,
+      destination_id: id,
+      compagnie_aerienne: t ? t.compagnie || p.compagnie_aerienne : p.compagnie_aerienne,
+      aeroport_depart: t ? t.aeroport_depart || p.aeroport_depart : p.aeroport_depart,
+    }));
+  }
 
   useEffect(() => {
     if (dossierId) charger();
@@ -113,7 +311,88 @@ export default function DossierDetail({
         telephone_contact_pays: data.telephone_contact_pays || '',
         ambulance_pays: data.ambulance_pays || '',
         cimetiere_pays: data.cimetiere_pays || '',
+        // Champs ajoutés (alignés sur la création)
+        partenaire_id: data.partenaire_id || '',
+        cimetiere_id: data.cimetiere_id || '',
+        achat_concession: data.achat_concession || '',
+        montant_concession:
+          data.montant_concession !== null &&
+          data.montant_concession !== undefined
+            ? String(data.montant_concession)
+            : '',
+        cercueil_id: data.cercueil_id || '',
+        plaque_identite: data.plaque_identite || '',
+        housse_mortuaire: data.housse_mortuaire || '',
+        zinc: data.zinc === true,
+        housse_cercueil: data.housse_cercueil === true,
+        creusement_type: data.creusement_type || '',
+        creusement_prix:
+          data.creusement_prix !== null && data.creusement_prix !== undefined
+            ? String(data.creusement_prix)
+            : '',
+        chambre_mortuaire_nom: data.chambre_mortuaire_nom || '',
+        mosquee_nom: data.mosquee_nom || '',
+        mairie_deces_nom: data.mairie_deces_nom || '',
+        declarant: data.declarant || '',
+        destination_id: data.destination_id || '',
+        adresse_contact_pays: data.adresse_contact_pays || '',
       });
+
+      // Charger les listes (filtrées par l'agence du dossier)
+      const ag = data.agence_id;
+      supabase
+        .from('cimetieres')
+        .select(
+          'id, nom, ville, code_postal, tarif_10ans_adulte, tarif_15ans_adulte, tarif_30ans_adulte, tarif_50ans_adulte, tarif_perpet_adulte, tarif_10ans_enfant, tarif_15ans_enfant, tarif_30ans_enfant, tarif_50ans_enfant, tarif_perpet_enfant, semelle_imposee, fausse_case_imposee'
+        )
+        .eq('agence_id', ag)
+        .order('nom')
+        .then(({ data: cims }) => {
+          setCimetieres(cims || []);
+          if (data.cimetiere_id) {
+            const cim = (cims || []).find((c) => c.id === data.cimetiere_id);
+            setCimetiereTarifs(cim || null);
+          }
+        });
+      supabase
+        .from('partenaires')
+        .select('id, nom, type')
+        .eq('actif', true)
+        .eq('agence_id', ag)
+        .order('nom')
+        .then(({ data: parts }) => setPartenaires(parts || []));
+      supabase
+        .from('catalogue_cercueils')
+        .select('*')
+        .eq('actif', true)
+        .eq('agence_id', ag)
+        .order('ordre')
+        .then(({ data: cerc }) => setCatalogueCercueils(cerc || []));
+      supabase
+        .from('prestations_creusement')
+        .select('*')
+        .eq('agence_id', ag)
+        .order('ordre')
+        .then(({ data: cre }) => setPrestationsCreusement(cre || []));
+      supabase
+        .from('tarifs_rapatriement')
+        .select('*')
+        .eq('agence_id', ag)
+        .order('ordre')
+        .then(({ data: tr }) => setTarifsRapatriement(tr || []));
+      supabase
+        .from('vehicules')
+        .select('id, immatriculation, marque, modele')
+        .eq('agence_id', ag)
+        .order('immatriculation')
+        .then(({ data: veh }) => setVehicules(veh || []));
+      supabase
+        .from('employes')
+        .select('id, nom, prenom, poste')
+        .eq('actif', true)
+        .eq('agence_id', ag)
+        .order('nom')
+        .then(({ data: emp }) => setEmployes(emp || []));
     }
     setLoading(false);
   }
@@ -195,6 +474,30 @@ export default function DossierDetail({
           telephone_contact_pays: infos.telephone_contact_pays || null,
           ambulance_pays: infos.ambulance_pays || null,
           cimetiere_pays: infos.cimetiere_pays || null,
+          partenaire_id: infos.partenaire_id || null,
+          cimetiere_id:
+            dossier.type_dossier === 'inhumation_locale'
+              ? infos.cimetiere_id || null
+              : null,
+          achat_concession: infos.achat_concession || null,
+          montant_concession: infos.montant_concession
+            ? parseFloat(infos.montant_concession)
+            : null,
+          cercueil_id: infos.cercueil_id || null,
+          plaque_identite: infos.plaque_identite || null,
+          housse_mortuaire: infos.housse_mortuaire || null,
+          zinc: infos.zinc === true,
+          housse_cercueil: infos.housse_cercueil === true,
+          creusement_type: infos.creusement_type || null,
+          creusement_prix: infos.creusement_prix
+            ? parseFloat(infos.creusement_prix)
+            : null,
+          chambre_mortuaire_nom: infos.chambre_mortuaire_nom || null,
+          mosquee_nom: infos.mosquee_nom || null,
+          mairie_deces_nom: infos.mairie_deces_nom || null,
+          declarant: infos.declarant || null,
+          destination_id: infos.destination_id || null,
+          adresse_contact_pays: infos.adresse_contact_pays || null,
           modifie_par: monUserId,
           modifie_le: new Date().toISOString(),
         })
@@ -404,6 +707,57 @@ export default function DossierDetail({
                 }
                 style={inputStyle}
               />
+            </div>
+            <div
+              style={{
+                gridColumn: '1 / -1',
+                background: '#FAEEDA',
+                border: '2px solid #854F0B',
+                borderRadius: '10px',
+                padding: '1rem',
+                marginTop: '0.5rem',
+              }}
+            >
+              <label
+                style={{
+                  fontSize: '15px',
+                  fontWeight: 'bold',
+                  color: '#854F0B',
+                  display: 'block',
+                  marginBottom: '0.5rem',
+                }}
+              >
+                🤝 Partenaire / Assurance
+              </label>
+              <select
+                value={infos.partenaire_id || ''}
+                onChange={(e) =>
+                  setInfos((p: any) => ({ ...p, partenaire_id: e.target.value }))
+                }
+                style={{
+                  ...selectStyle,
+                  fontWeight: 'bold',
+                  border: '2px solid #854F0B',
+                  background: 'white',
+                }}
+              >
+                <option value="">👤 Particulier (tarif normal)</option>
+                {partenaires.map((pa) => (
+                  <option key={pa.id} value={pa.id}>
+                    🤝 {pa.nom} ({pa.type})
+                  </option>
+                ))}
+              </select>
+              <div
+                style={{
+                  fontSize: '12px',
+                  color: '#854F0B',
+                  marginTop: '0.5rem',
+                }}
+              >
+                ⚠️ Le devis se base sur ce partenaire (refais le devis si tu le
+                changes).
+              </div>
             </div>
           </div>
 
@@ -801,6 +1155,351 @@ export default function DossierDetail({
               gap: '1rem',
             }}
           >
+            <div style={{ gridColumn: '1 / -1' }}>
+              <label style={{ fontWeight: 'bold' }}>
+                Chambre mortuaire / Funérarium
+              </label>
+              <RechercheGoogleLieu
+                value={infos.chambre_mortuaire_nom || ''}
+                onChange={(val) =>
+                  setInfos((p: any) => ({ ...p, chambre_mortuaire_nom: val }))
+                }
+                placeholder="Rechercher une chambre mortuaire ou funérarium..."
+                style={inputStyle}
+                types={['establishment']}
+              />
+            </div>
+
+            {!isRapat && (
+              <div style={{ gridColumn: '1 / -1' }}>
+                <label style={{ fontWeight: 'bold' }}>Cimetière</label>
+                <div
+                  style={{
+                    background: '#f0f0f0',
+                    padding: '0.5rem',
+                    borderRadius: '6px',
+                    marginTop: '0.25rem',
+                    marginBottom: '0.25rem',
+                  }}
+                >
+                  <select
+                    value={deptCimetiere}
+                    onChange={(e) => setDeptCimetiere(e.target.value)}
+                    style={selectStyle}
+                  >
+                    <option value="">-- Tous les départements --</option>
+                    {departements.map((dp) => (
+                      <option key={dp.code} value={dp.code}>
+                        {dp.nom}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <select
+                  value={infos.cimetiere_id || ''}
+                  onChange={(e) => choisirCimetiere(e.target.value)}
+                  style={selectStyle}
+                >
+                  <option value="">-- Sélectionner --</option>
+                  {filtrer(cimetieres, deptCimetiere).map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.nom} — {c.ville}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+
+            {!isRapat && cimetiereTarifs && (
+              <div
+                style={{
+                  gridColumn: '1 / -1',
+                  background: '#FAEEDA',
+                  borderRadius: '8px',
+                  padding: '1rem',
+                  border: '1px solid #854F0B',
+                }}
+              >
+                <label style={{ fontWeight: 'bold', color: '#854F0B' }}>
+                  🏛️ Concession — {cimetiereTarifs.nom}
+                </label>
+                <select
+                  value={infos.achat_concession || ''}
+                  onChange={(e) => choisirConcession(e.target.value)}
+                  style={{ ...selectStyle, marginTop: '0.5rem' }}
+                >
+                  <option value="">-- Choisir la durée --</option>
+                  {cimetiereTarifs.tarif_10ans_adulte > 0 && (
+                    <option value="10ans_adulte">
+                      10 ans adulte — {cimetiereTarifs.tarif_10ans_adulte} €
+                    </option>
+                  )}
+                  {cimetiereTarifs.tarif_15ans_adulte > 0 && (
+                    <option value="15ans_adulte">
+                      15 ans adulte — {cimetiereTarifs.tarif_15ans_adulte} €
+                    </option>
+                  )}
+                  {cimetiereTarifs.tarif_30ans_adulte > 0 && (
+                    <option value="30ans_adulte">
+                      30 ans adulte — {cimetiereTarifs.tarif_30ans_adulte} €
+                    </option>
+                  )}
+                  {cimetiereTarifs.tarif_50ans_adulte > 0 && (
+                    <option value="50ans_adulte">
+                      50 ans adulte — {cimetiereTarifs.tarif_50ans_adulte} €
+                    </option>
+                  )}
+                  {cimetiereTarifs.tarif_perpet_adulte > 0 && (
+                    <option value="perpet_adulte">
+                      Perpétuelle adulte — {cimetiereTarifs.tarif_perpet_adulte}{' '}
+                      €
+                    </option>
+                  )}
+                  {cimetiereTarifs.tarif_10ans_enfant > 0 && (
+                    <option value="10ans_enfant">
+                      10 ans enfant — {cimetiereTarifs.tarif_10ans_enfant} €
+                    </option>
+                  )}
+                  {cimetiereTarifs.tarif_15ans_enfant > 0 && (
+                    <option value="15ans_enfant">
+                      15 ans enfant — {cimetiereTarifs.tarif_15ans_enfant} €
+                    </option>
+                  )}
+                  {cimetiereTarifs.tarif_30ans_enfant > 0 && (
+                    <option value="30ans_enfant">
+                      30 ans enfant — {cimetiereTarifs.tarif_30ans_enfant} €
+                    </option>
+                  )}
+                  {cimetiereTarifs.tarif_50ans_enfant > 0 && (
+                    <option value="50ans_enfant">
+                      50 ans enfant — {cimetiereTarifs.tarif_50ans_enfant} €
+                    </option>
+                  )}
+                  {cimetiereTarifs.tarif_perpet_enfant > 0 && (
+                    <option value="perpet_enfant">
+                      Perpétuelle enfant —{' '}
+                      {cimetiereTarifs.tarif_perpet_enfant} €
+                    </option>
+                  )}
+                </select>
+                {infos.montant_concession &&
+                  parseFloat(infos.montant_concession) > 0 && (
+                    <div
+                      style={{
+                        marginTop: '0.5rem',
+                        fontWeight: 'bold',
+                        color: '#854F0B',
+                      }}
+                    >
+                      Montant :{' '}
+                      {parseFloat(infos.montant_concession).toFixed(2)} €
+                    </div>
+                  )}
+              </div>
+            )}
+
+            <div
+              style={{
+                gridColumn: '1 / -1',
+                background: '#f0fdf4',
+                borderRadius: '8px',
+                padding: '1rem',
+                border: '1px solid #0F6E56',
+              }}
+            >
+              <div
+                style={{
+                  fontWeight: 'bold',
+                  fontSize: '13px',
+                  marginBottom: '0.75rem',
+                  color: '#0F6E56',
+                }}
+              >
+                ⚰️ Cercueil & Fournitures
+              </div>
+              <div
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: '1fr 1fr',
+                  gap: '1rem',
+                }}
+              >
+                <div style={{ gridColumn: '1 / -1' }}>
+                  <label>Cercueil</label>
+                  <select
+                    value={infos.cercueil_id || ''}
+                    onChange={(e) =>
+                      setInfos((p: any) => ({
+                        ...p,
+                        cercueil_id: e.target.value,
+                      }))
+                    }
+                    style={selectStyle}
+                  >
+                    <option value="">-- Sélectionner un cercueil --</option>
+                    {catalogueCercueils
+                      .filter((c) => c.type !== 'accessoire')
+                      .map((c) => (
+                        <option key={c.id} value={c.id}>
+                          {c.nom} — {c.prix_ttc} € TTC
+                        </option>
+                      ))}
+                  </select>
+                </div>
+                <div>
+                  <label>Plaque d'identité</label>
+                  <select
+                    value={infos.plaque_identite || ''}
+                    onChange={(e) =>
+                      setInfos((p: any) => ({
+                        ...p,
+                        plaque_identite: e.target.value,
+                      }))
+                    }
+                    style={selectStyle}
+                  >
+                    <option value="">Aucune</option>
+                    <option value="1">1 plaque — 20 €</option>
+                    <option value="2">2 plaques — 40 €</option>
+                  </select>
+                </div>
+                <div>
+                  <label>Housse mortuaire</label>
+                  <select
+                    value={infos.housse_mortuaire || ''}
+                    onChange={(e) =>
+                      setInfos((p: any) => ({
+                        ...p,
+                        housse_mortuaire: e.target.value,
+                      }))
+                    }
+                    style={selectStyle}
+                  >
+                    <option value="">Aucune</option>
+                    <option value="standard">Standard — 50 €</option>
+                    <option value="requise">Requise — 100 €</option>
+                  </select>
+                </div>
+                {isRapat && (
+                  <>
+                    <div
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.5rem',
+                        marginTop: '1.5rem',
+                      }}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={infos.zinc === true}
+                        onChange={(e) =>
+                          setInfos((p: any) => ({
+                            ...p,
+                            zinc: e.target.checked,
+                          }))
+                        }
+                      />
+                      <label>Zinc transport aérien — 70 €</label>
+                    </div>
+                    <div
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.5rem',
+                        marginTop: '1.5rem',
+                      }}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={infos.housse_cercueil === true}
+                        onChange={(e) =>
+                          setInfos((p: any) => ({
+                            ...p,
+                            housse_cercueil: e.target.checked,
+                          }))
+                        }
+                      />
+                      <label>Housse cercueil — 18 €</label>
+                    </div>
+                  </>
+                )}
+              </div>
+            </div>
+
+            {!isRapat && (
+              <div style={{ gridColumn: '1 / -1' }}>
+                <label>Creusement / Inhumation</label>
+                <select
+                  value={infos.creusement_type || ''}
+                  onChange={(e) => {
+                    const presta = prestationsCreusement.find(
+                      (pc) => pc.libelle === e.target.value
+                    );
+                    setInfos((p: any) => ({
+                      ...p,
+                      creusement_type: e.target.value,
+                      creusement_prix: presta ? String(presta.prix) : '',
+                    }));
+                  }}
+                  style={selectStyle}
+                >
+                  <option value="">-- Sélectionner --</option>
+                  {prestationsCreusement.map((pc) => (
+                    <option key={pc.id} value={pc.libelle}>
+                      {pc.libelle} — {pc.prix} €
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+
+            <div style={{ gridColumn: '1 / -1' }}>
+              <label style={{ fontWeight: 'bold' }}>Mairie du décès</label>
+              <RechercheGoogleLieu
+                value={infos.mairie_deces_nom || ''}
+                onChange={(val) =>
+                  setInfos((p: any) => ({ ...p, mairie_deces_nom: val }))
+                }
+                placeholder="Rechercher une mairie..."
+                style={inputStyle}
+                types={['establishment']}
+              />
+            </div>
+
+            <div style={{ gridColumn: '1 / -1' }}>
+              <label style={{ fontWeight: 'bold' }}>
+                Mosquée / Lieu de culte
+              </label>
+              <RechercheGoogleLieu
+                value={infos.mosquee_nom || ''}
+                onChange={(val) =>
+                  setInfos((p: any) => ({ ...p, mosquee_nom: val }))
+                }
+                placeholder="Rechercher une mosquée ou lieu de culte..."
+                style={inputStyle}
+                types={['establishment']}
+              />
+            </div>
+
+            <div>
+              <label>Déclarant</label>
+              <select
+                value={infos.declarant || ''}
+                onChange={(e) =>
+                  setInfos((p: any) => ({ ...p, declarant: e.target.value }))
+                }
+                style={selectStyle}
+              >
+                <option value="">-- Sélectionner --</option>
+                {employes.map((em) => (
+                  <option key={em.id} value={`${em.prenom} ${em.nom}`}>
+                    {em.prenom} {em.nom} — {em.poste}
+                  </option>
+                ))}
+              </select>
+            </div>
+
             <div>
               <label>Taille du défunt</label>
               <select
@@ -1189,6 +1888,37 @@ export default function DossierDetail({
                   gap: '1rem',
                 }}
               >
+                <div
+                  style={{
+                    gridColumn: '1 / -1',
+                    background: 'white',
+                    borderRadius: '6px',
+                    padding: '0.75rem',
+                    border: '1px solid #993C1D',
+                  }}
+                >
+                  <label
+                    style={{
+                      fontWeight: 'bold',
+                      color: '#993C1D',
+                      fontSize: '13px',
+                    }}
+                  >
+                    🌍 Destination — pré-remplit compagnie et aéroport
+                  </label>
+                  <select
+                    value={infos.destination_id || ''}
+                    onChange={(e) => choisirDestination(e.target.value)}
+                    style={{ ...selectStyle, marginTop: '0.5rem' }}
+                  >
+                    <option value="">-- Choisir la destination --</option>
+                    {tarifsRapatriement.map((t) => (
+                      <option key={t.id} value={t.id}>
+                        {t.label} — {t.compagnie}
+                      </option>
+                    ))}
+                  </select>
+                </div>
                 <div>
                   <label>Cimetière au pays</label>
                   <input
@@ -1391,6 +2121,19 @@ export default function DossierDetail({
                       setInfos((p: any) => ({
                         ...p,
                         telephone_contact_pays: e.target.value,
+                      }))
+                    }
+                    style={inputStyle}
+                  />
+                </div>
+                <div style={{ gridColumn: '1 / -1' }}>
+                  <label>Adresse contact au pays</label>
+                  <input
+                    value={infos.adresse_contact_pays}
+                    onChange={(e) =>
+                      setInfos((p: any) => ({
+                        ...p,
+                        adresse_contact_pays: e.target.value,
                       }))
                     }
                     style={inputStyle}
