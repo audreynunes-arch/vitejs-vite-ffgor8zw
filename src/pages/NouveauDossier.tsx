@@ -191,6 +191,7 @@ export default function NouveauDossier({ onRetour }: Props) {
     mosquee_nom: '',
     date_toilette: '',
     heure_toilette: '',
+    afficher_toilette: true,
     date_meb: '',
     heure_meb: '',
     date_fermeture_depart: '',
@@ -1703,6 +1704,34 @@ export default function NouveauDossier({ onRetour }: Props) {
               }
               style={inputStyle}
             />
+          </div>
+          <div
+            style={{
+              gridColumn: '1 / -1',
+              background: '#FAEEDA',
+              borderRadius: '8px',
+              padding: '0.75rem 1rem',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.6rem',
+              border: '1px solid #854F0B',
+            }}
+          >
+            <input
+              type="checkbox"
+              id="afficher_toilette_new"
+              checked={logistique.afficher_toilette !== false}
+              onChange={(e) =>
+                updateLogistique('afficher_toilette', e.target.checked)
+              }
+              style={{ width: '18px', height: '18px', cursor: 'pointer' }}
+            />
+            <label
+              htmlFor="afficher_toilette_new"
+              style={{ cursor: 'pointer', fontSize: '14px', color: '#854F0B' }}
+            >
+              🕌 Afficher la toilette rituelle sur le document Déroulement
+            </label>
           </div>
           <div>
             <label>Mise en bière le</label>
