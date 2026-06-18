@@ -724,44 +724,416 @@ function GestionPrestations({
   onRetour: () => void;
   agenceId: string;
 }) {
+  const SECTIONS = [
+    '1 - Préparation / Organisation des Obsèques',
+    '2 - Transport avant mise en bière',
+    '3 - Cercueil & Accessoires',
+    '5 - Transport du défunt après mise en bière',
+    '6 - Cérémonie funéraire',
+    '7A - Inhumation / Exhumation',
+  ];
+
+  const [lignes, setLignes] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [filtreSection, setFiltreSection] = useState('');
+  const [recherche, setRecherche] = useState('');
+  const [editItem, setEditItem] = useState<any>(null);
+  const [isNew, setIsNew] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [form, setForm] = useState<any>({});
+
+  useEffect(() => {
+    charger();
+  }, []);
+
+  async function charger() {
+    setLoading(true);
+    const { data } = await supabase
+      .from('prestations')
+      .select('*')
+      .eq('agence_id', agenceId)
+      .order('section')
+      .order('ordre');
+    setLignes(data || []);
+    setLoading(false);
+  }
+
+  function ouvrir(item: any) {
+    setEditItem(item);
+    setForm({ ...item });
+    setIsNew(false);
+  }
+
+  function nouveau() {
+    setForm({
+      libelle: '',
+      section: filtreSection || SECTIONS[0],
+      prix: '',
+      tva: 'tva_20',
+      ordre: '',
+      agence_id: agenceId,
+    });
+    setEditItem({});
+    setIsNew(true);
+  }
+
+  async function sauvegarder() {
+    setSaving(true);
+    try {
+      const data: any = {
+        libelle: form.libelle,
+        section: form.section,
+        prix: form.prix === '' ? null : form.prix,
+        tva: form.tva,
+        ordre: form.ordre === '' ? null : form.ordre,
+        agence_id: agenceId,
+      };
+      const { error } = isNew
+        ? await supabase.from('prestations').insert(data)
+        : await supabase.from('prestations').update(data).eq('id', editItem.id);
+      if (error) {
+        alert('Erreur : ' + error.message);
+        setSaving(false);
+        return;
+      }
+      await charger();
+      setEditItem(null);
+    } catch (e: any) {
+      alert('Erreur : ' + e.message);
+    }
+    setSaving(false);
+  }
+
+  async function supprimer(id: string) {
+    if (!confirm('Supprimer cette prestation ?')) return;
+    await supabase.from('prestations').delete().eq('id', id);
+    await charger();
+  }
+
+  const tvaLabel = (tva: string) =>
+    tva === 'tva_20'
+      ? 'TVA 20%'
+      : tva === 'tva_10'
+      ? 'TVA 10%'
+      : 'Exonéré';
+
+  // Filtrage (section + recherche)
+  const lignesFiltrees = lignes.filter((l) => {
+    if (filtreSection && l.section !== filtreSection) return false;
+    if (
+      recherche &&
+      !String(l.libelle || '')
+        .toLowerCase()
+        .includes(recherche.toLowerCase())
+    )
+      return false;
+    return true;
+  });
+
+  // Regroupement par section
+  const sectionsAffichees = filtreSection ? [filtreSection] : SECTIONS;
+
+  const inputStyle = {
+    width: '100%',
+    padding: '0.5rem',
+    marginTop: '0.25rem',
+    borderRadius: '6px',
+    border: '1px solid #ddd',
+    boxSizing: 'border-box' as const,
+  };
+
+  // ----- ÉCRAN ÉDITION -----
+  if (editItem !== null) {
+    return (
+      <div style={{ padding: '2rem', maxWidth: '700px', margin: '0 auto' }}>
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '1rem',
+            marginBottom: '2rem',
+          }}
+        >
+          <button onClick={() => setEditItem(null)}>← Retour</button>
+          <h2 style={{ margin: 0 }}>
+            {isNew ? '➕ Nouvelle prestation' : '✏️ Modifier la prestation'}
+          </h2>
+        </div>
+        <div
+          style={{
+            background: 'white',
+            border: '1px solid #eee',
+            borderRadius: '12px',
+            padding: '1.5rem',
+          }}
+        >
+          <label style={{ fontSize: '13px', fontWeight: '500' }}>
+            Libellé de la prestation
+          </label>
+          <input
+            value={form.libelle || ''}
+            onChange={(e) =>
+              setForm((p: any) => ({ ...p, libelle: e.target.value }))
+            }
+            style={inputStyle}
+          />
+          <div style={{ marginTop: '1rem' }}>
+            <label style={{ fontSize: '13px', fontWeight: '500' }}>
+              Section
+            </label>
+            <select
+              value={form.section || ''}
+              onChange={(e) =>
+                setForm((p: any) => ({ ...p, section: e.target.value }))
+              }
+              style={inputStyle}
+            >
+              {SECTIONS.map((s) => (
+                <option key={s} value={s}>
+                  {s}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: '1fr 1fr 1fr',
+              gap: '1rem',
+              marginTop: '1rem',
+            }}
+          >
+            <div>
+              <label style={{ fontSize: '13px', fontWeight: '500' }}>
+                Prix TTC (€)
+              </label>
+              <input
+                type="number"
+                value={form.prix ?? ''}
+                onChange={(e) =>
+                  setForm((p: any) => ({ ...p, prix: e.target.value }))
+                }
+                style={inputStyle}
+              />
+            </div>
+            <div>
+              <label style={{ fontSize: '13px', fontWeight: '500' }}>TVA</label>
+              <select
+                value={form.tva || 'tva_20'}
+                onChange={(e) =>
+                  setForm((p: any) => ({ ...p, tva: e.target.value }))
+                }
+                style={inputStyle}
+              >
+                <option value="tva_20">TVA 20%</option>
+                <option value="tva_10">TVA 10%</option>
+                <option value="exonere">Exonéré</option>
+              </select>
+            </div>
+            <div>
+              <label style={{ fontSize: '13px', fontWeight: '500' }}>
+                Ordre
+              </label>
+              <input
+                type="number"
+                value={form.ordre ?? ''}
+                onChange={(e) =>
+                  setForm((p: any) => ({ ...p, ordre: e.target.value }))
+                }
+                style={inputStyle}
+              />
+            </div>
+          </div>
+          <button
+            onClick={sauvegarder}
+            disabled={saving}
+            style={{
+              marginTop: '1.5rem',
+              width: '100%',
+              padding: '0.75rem',
+              background: saving ? '#ccc' : '#0F6E56',
+              color: 'white',
+              border: 'none',
+              borderRadius: '6px',
+              cursor: 'pointer',
+              fontWeight: 'bold',
+            }}
+          >
+            {saving ? '⏳...' : '💾 Sauvegarder'}
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // ----- ÉCRAN LISTE -----
   return (
-    <TableauGenerique
-      titre="📋 Prestations & Tarifs"
-      table="prestations"
-      onRetour={onRetour}
-      agenceScope={agenceId}
-      colonnes={[
-        { key: 'libelle', label: 'Prestation', width: '40%' },
-        { key: 'section', label: 'Section', width: '25%' },
-        { key: 'prix', label: 'Prix (€)', width: '12%' },
-        { key: 'tva', label: 'TVA', width: '13%' },
-        { key: 'ordre', label: 'Ordre', width: '10%' },
-      ]}
-      champsForm={[
-        { key: 'libelle', label: 'Libellé de la prestation' },
-        {
-          key: 'section',
-          label: 'Section',
-          type: 'select',
-          options: [
-            '1 - Préparation / Organisation des Obsèques',
-            '2 - Transport avant mise en bière',
-            '3 - Cercueil & Accessoires',
-            '5 - Transport du défunt après mise en bière',
-            '6 - Cérémonie funéraire',
-            '7A - Inhumation / Exhumation',
-          ],
-        },
-        { key: 'prix', label: 'Prix TTC (€)', type: 'number' },
-        {
-          key: 'tva',
-          label: 'TVA',
-          type: 'select',
-          options: ['tva_20', 'tva_10', 'exonere'],
-        },
-        { key: 'ordre', label: 'Ordre affichage', type: 'number' },
-      ]}
-    />
+    <div style={{ padding: '2rem', maxWidth: '1000px', margin: '0 auto' }}>
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '1rem',
+          marginBottom: '1.5rem',
+        }}
+      >
+        <button onClick={onRetour}>← Retour</button>
+        <h2 style={{ margin: 0 }}>
+          📋 Prestations & Tarifs ({lignesFiltrees.length})
+        </h2>
+        <button
+          onClick={nouveau}
+          style={{
+            marginLeft: 'auto',
+            padding: '0.5rem 1rem',
+            background: '#4F46E5',
+            color: 'white',
+            border: 'none',
+            borderRadius: '6px',
+            cursor: 'pointer',
+            fontWeight: 'bold',
+          }}
+        >
+          ➕ Ajouter
+        </button>
+      </div>
+
+      {/* Filtre + recherche */}
+      <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '1.5rem' }}>
+        <select
+          value={filtreSection}
+          onChange={(e) => setFiltreSection(e.target.value)}
+          style={{
+            flex: 1,
+            padding: '0.6rem',
+            borderRadius: '8px',
+            border: '1px solid #ddd',
+          }}
+        >
+          <option value="">📂 Toutes les sections</option>
+          {SECTIONS.map((s) => (
+            <option key={s} value={s}>
+              {s}
+            </option>
+          ))}
+        </select>
+        <input
+          placeholder="🔍 Rechercher une prestation..."
+          value={recherche}
+          onChange={(e) => setRecherche(e.target.value)}
+          style={{
+            flex: 1,
+            padding: '0.6rem',
+            borderRadius: '8px',
+            border: '1px solid #ddd',
+            boxSizing: 'border-box',
+          }}
+        />
+      </div>
+
+      {loading ? (
+        <p>Chargement...</p>
+      ) : (
+        sectionsAffichees.map((section) => {
+          const lignesSection = lignesFiltrees.filter(
+            (l) => l.section === section
+          );
+          if (lignesSection.length === 0) return null;
+          return (
+            <div key={section} style={{ marginBottom: '1.5rem' }}>
+              <div
+                style={{
+                  background: '#4F46E5',
+                  color: 'white',
+                  padding: '0.5rem 1rem',
+                  borderRadius: '8px 8px 0 0',
+                  fontWeight: 'bold',
+                  fontSize: '14px',
+                }}
+              >
+                {section} ({lignesSection.length})
+              </div>
+              <div
+                style={{
+                  background: 'white',
+                  border: '1px solid #eee',
+                  borderTop: 'none',
+                  borderRadius: '0 0 8px 8px',
+                  overflow: 'hidden',
+                }}
+              >
+                {lignesSection.map((l) => (
+                  <div
+                    key={l.id}
+                    style={{
+                      display: 'grid',
+                      gridTemplateColumns: '1fr auto auto auto',
+                      gap: '1rem',
+                      alignItems: 'center',
+                      padding: '0.6rem 1rem',
+                      borderBottom: '1px solid #f5f5f5',
+                    }}
+                  >
+                    <div style={{ fontSize: '13px' }}>{l.libelle}</div>
+                    <div
+                      style={{
+                        fontSize: '13px',
+                        fontWeight: 'bold',
+                        color: '#0F6E56',
+                        minWidth: '70px',
+                        textAlign: 'right',
+                      }}
+                    >
+                      {l.prix > 0 ? `${l.prix} €` : '—'}
+                    </div>
+                    <div
+                      style={{
+                        fontSize: '11px',
+                        color: '#888',
+                        minWidth: '60px',
+                        textAlign: 'right',
+                      }}
+                    >
+                      {tvaLabel(l.tva)}
+                    </div>
+                    <div style={{ display: 'flex', gap: '0.5rem' }}>
+                      <button
+                        onClick={() => ouvrir(l)}
+                        style={{
+                          padding: '0.25rem 0.5rem',
+                          background: '#4F46E5',
+                          color: 'white',
+                          border: 'none',
+                          borderRadius: '4px',
+                          cursor: 'pointer',
+                          fontSize: '12px',
+                        }}
+                      >
+                        ✏️
+                      </button>
+                      <button
+                        onClick={() => supprimer(l.id)}
+                        style={{
+                          padding: '0.25rem 0.5rem',
+                          background: '#FAECE7',
+                          color: '#993C1D',
+                          border: '1px solid #993C1D',
+                          borderRadius: '4px',
+                          cursor: 'pointer',
+                          fontSize: '12px',
+                        }}
+                      >
+                        🗑️
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          );
+        })
+      )}
+    </div>
   );
 }
 
