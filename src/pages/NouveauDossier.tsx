@@ -501,6 +501,7 @@ export default function NouveauDossier({ onRetour }: Props) {
           nom_docteur_certificat: logistique.nom_docteur_certificat || null,
           heure_presentation: logistique.heure_presentation || null,
           compagnie_aerienne: logistique.compagnie_aerienne || null,
+          destination_id: logistique.destination_id || null,
           numero_vol: logistique.numero_vol || null,
           lta: logistique.lta || null,
           aeroport_depart: logistique.aeroport_depart || null,
