@@ -145,6 +145,7 @@ export default function NouveauDossier({ onRetour }: Props) {
     numero_devis: '',
     numero_bon_commande: '',
     numero_facture: '',
+    partenaire_id: '',
   });
 
   const [defunt, setDefunt] = useState({
@@ -244,6 +245,7 @@ export default function NouveauDossier({ onRetour }: Props) {
   });
 
   const [cimetieres, setCimetieres] = useState<any[]>([]);
+  const [partenaires, setPartenaires] = useState<any[]>([]);
   const [marbriers, setMarbriers] = useState<any[]>([]);
   const [prestationsCreusement, setPrestationsCreusement] = useState<any[]>([]);
   const [cimetiereTarifs, setCimetiereTarifs] = useState<any>(null);
@@ -331,6 +333,13 @@ export default function NouveauDossier({ onRetour }: Props) {
             .eq('agence_id', agenceId)
             .order('ordre')
             .then(({ data }) => setCatalogueCercueils(data || []));
+          supabase
+            .from('partenaires')
+            .select('id, nom, type')
+            .eq('actif', true)
+            .eq('agence_id', agenceId)
+            .order('nom')
+            .then(({ data }) => setPartenaires(data || []));
         });
     });
   }, []);
@@ -452,6 +461,7 @@ export default function NouveauDossier({ onRetour }: Props) {
           type_dossier: type,
           statut: 'en_cours',
           compte_client: refs.reference_agence || null,
+          partenaire_id: refs.partenaire_id || null,
           numero_devis: refs.numero_devis || null,
           numero_bon_commande: refs.numero_bon_commande || null,
           numero_facture: refs.numero_facture || null,
@@ -800,6 +810,52 @@ export default function NouveauDossier({ onRetour }: Props) {
                 onChange={(e) => updateRefs('numero_facture', e.target.value)}
                 style={inputStyle}
               />
+            </div>
+            <div
+              style={{
+                gridColumn: '1 / -1',
+                background: '#FAEEDA',
+                border: '2px solid #854F0B',
+                borderRadius: '10px',
+                padding: '1rem',
+                marginTop: '0.5rem',
+              }}
+            >
+              <label
+                style={{
+                  fontSize: '15px',
+                  fontWeight: 'bold',
+                  color: '#854F0B',
+                  display: 'block',
+                  marginBottom: '0.5rem',
+                }}
+              >
+                🤝 Partenaire / Assurance
+              </label>
+              <select
+                value={refs.partenaire_id}
+                onChange={(e) => updateRefs('partenaire_id', e.target.value)}
+                style={{
+                  ...selectStyle,
+                  fontSize: '15px',
+                  fontWeight: 'bold',
+                  border: '2px solid #854F0B',
+                  background: 'white',
+                }}
+              >
+                <option value="">👤 Particulier (tarif normal)</option>
+                {partenaires.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    🤝 {p.nom} ({p.type})
+                  </option>
+                ))}
+              </select>
+              <div
+                style={{ fontSize: '12px', color: '#854F0B', marginTop: '0.5rem' }}
+              >
+                ⚠️ Important : si vous choisissez un partenaire, le devis sera
+                pré-rempli avec ses tarifs négociés.
+              </div>
             </div>
           </div>
         </div>
