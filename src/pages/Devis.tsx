@@ -333,6 +333,64 @@ const LIGNES_DEFAUT: Ligne[] = [
     ordre: 10,
   },
 ];
+function appliquerTarifsPartenaire(
+  base: Ligne[],
+  tarifsP: any[],
+  prestasRef: any[]
+): Ligne[] {
+  if (!tarifsP || tarifsP.length === 0) return base;
+  let result = [...base];
+  const libres: Ligne[] = [];
+  let partenaireACercueil = false;
+
+  tarifsP.forEach((tp, idx) => {
+    const prix = parseFloat(tp.prix) || 0;
+    if (tp.libelle_libre) {
+      const estObl = tp.categorie === 'prestations_obligatoires';
+      if (estObl && tp.libelle_libre.toLowerCase().includes('cercueil')) {
+        partenaireACercueil = true;
+      }
+      libres.push({
+        libelle: tp.libelle_libre,
+        tva: (tp.tva as Ligne['tva']) || 'tva_20',
+        categorie: estObl
+          ? 'prestations_obligatoires'
+          : 'prestations_non_obligatoires',
+        section: estObl
+          ? '3 - Cercueil & Accessoires'
+          : '1 - Préparation / Organisation des Obsèques',
+        prix_ttc: prix,
+        inclus: prix > 0,
+        ordre: 90 + idx,
+      });
+    } else if (tp.prestation_id) {
+      const presta = prestasRef.find((p) => p.id === tp.prestation_id);
+      if (presta) {
+        result = result.map((l) =>
+          l.libelle === presta.libelle
+            ? { ...l, prix_ttc: prix, inclus: prix > 0 }
+            : l
+        );
+      }
+    }
+  });
+
+  // Si le partenaire a son propre cercueil, on retire le cercueil par défaut
+  if (partenaireACercueil) {
+    result = result.filter(
+      (l) =>
+        !(
+          l.categorie === 'prestations_obligatoires' &&
+          l.section === '3 - Cercueil & Accessoires' &&
+          l.libelle.toLowerCase().includes('cercueil') &&
+          !l.libelle.toLowerCase().includes('plaque') &&
+          !l.libelle.toLowerCase().includes('housse')
+        )
+    );
+  }
+
+  return [...result, ...libres];
+}
 
 export default function Devis({ dossierId, onRetour }: Props) {
   const [onglet, setOnglet] = useState<Onglet>('devis');
@@ -352,6 +410,8 @@ export default function Devis({ dossierId, onRetour }: Props) {
   const [destinationChoisie, setDestinationChoisie] = useState('');
   const [catalogueCercueils, setCatalogueCercueils] = useState<any[]>([]);
   const [prestationsRef, setPrestationsRef] = useState<any[]>([]);
+  const [tarifsPartenaire, setTarifsPartenaire] = useState<any[]>([]);
+  const [partenaireNom, setPartenaireNom] = useState('');
 
   useEffect(() => {
     chargerDossier();
@@ -394,8 +454,21 @@ export default function Devis({ dossierId, onRetour }: Props) {
         .eq('agence_id', data.agence_id)
         .order('section')
         .order('ordre');
-      setPrestationsRef(prestas || []);
-    }
+        setPrestationsRef(prestas || []);
+        if (data.partenaire_id) {
+          const { data: part } = await supabase
+            .from('partenaires')
+            .select('nom')
+            .eq('id', data.partenaire_id)
+            .maybeSingle();
+          setPartenaireNom(part?.nom || '');
+          const { data: tp } = await supabase
+            .from('tarifs_partenaires')
+            .select('*')
+            .eq('partenaire_id', data.partenaire_id);
+          setTarifsPartenaire(tp || []);
+        }
+      }
     const { data: lignesSaved } = await supabase
       .from('lignes_dossier')
       .select('*')
@@ -424,6 +497,16 @@ export default function Devis({ dossierId, onRetour }: Props) {
         .order('section')
         .order('ordre');
 
+      // Tarifs du partenaire (pour la construction du devis)
+      let tarifsPLocal: any[] = [];
+      if (data?.partenaire_id) {
+        const { data: tpl } = await supabase
+          .from('tarifs_partenaires')
+          .select('*')
+          .eq('partenaire_id', data.partenaire_id);
+        tarifsPLocal = tpl || [];
+      }
+
       let lignesInit: Ligne[];
 // Rapatriement : pré-remplir automatiquement depuis la destination du dossier
 if (data?.type_dossier === 'rapatriement') {
@@ -437,7 +520,13 @@ if (data?.type_dossier === 'rapatriement') {
   );
   if (t) {
     setDestinationChoisie(t.id);
-    setLignes(construireLignesRapatriement(t));
+    setLignes(
+      appliquerTarifsPartenaire(
+        construireLignesRapatriement(t),
+        tarifsPLocal,
+        prestasInit || []
+      )
+    );
   } else {
     setLignes([]);
   }
@@ -582,6 +671,11 @@ if (data?.type_dossier === 'rapatriement') {
           return l;
         });
       }
+      lignesInit = appliquerTarifsPartenaire(
+        lignesInit,
+        tarifsPLocal,
+        prestasInit || []
+      );
       setLignes(lignesInit);
     }
   }
@@ -897,7 +991,13 @@ if (data?.type_dossier === 'rapatriement') {
     }
     const t = tarifsRapatriement.find((t) => t.id === id);
     if (!t) return;
-    setLignes(construireLignesRapatriement(t));
+    setLignes(
+      appliquerTarifsPartenaire(
+        construireLignesRapatriement(t),
+        tarifsPartenaire,
+        prestationsRef
+      )
+    );
   }
 
   const lignesObl = lignes.filter(
@@ -1663,11 +1763,31 @@ ${
               fontWeight: 'bold',
               opacity: 0.85,
             }}
-          >
+            >
             📥 Télécharger PDF
           </button>
         </div>
       </div>
+
+      {partenaireNom && (
+        <div
+          style={{
+            background: '#FAEEDA',
+            border: '2px solid #854F0B',
+            borderRadius: '8px',
+            padding: '0.75rem 1rem',
+            marginBottom: '1.5rem',
+            color: '#854F0B',
+            fontWeight: 'bold',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.5rem',
+          }}
+        >
+          🤝 Tarifs partenaire « {partenaireNom} » appliqués — modifiables ligne
+          par ligne.
+        </div>
+      )}
 
       <div
         style={{
