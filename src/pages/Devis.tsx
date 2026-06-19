@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../supabase';
 import DevisLibre from './DevisLibre';
+import html2pdf from 'html2pdf.js';
 
 interface Props {
   dossierId: string;
@@ -1352,7 +1353,7 @@ if (data?.type_dossier === 'rapatriement') {
     );
   };
 
-  function imprimer() {
+  function construireHTMLDocument() {
     const titreDoc =
       onglet === 'devis'
         ? 'Devis'
@@ -1466,7 +1467,7 @@ if (data?.type_dossier === 'rapatriement') {
     const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${titreDoc} — ${
       d?.prenom
     } ${d?.nom}</title>
-<style>* { box-sizing: border-box; } body { font-family: Arial, sans-serif; font-size: 11px; color: #333; margin: 0; padding: 0.5cm 1cm; } table { width: 100%; border-collapse: collapse; } .print-hint { background: #EEF2FF; border: 1px solid ${couleur}; border-radius: 8px; padding: 0.75rem; margin-bottom: 1rem; font-size: 12px; color: ${couleur}; text-align: center; } @media print { .print-hint { display: none; } } @page { margin: 1cm; size: A4; }</style>
+<style>* { box-sizing: border-box; } body { font-family: Arial, sans-serif; font-size: 11px; color: #333; margin: 0; padding: 0.5cm 1cm; }table { width: 100%; border-collapse: collapse; } .print-hint { background: #EEF2FF; border: 1px solid ${couleur}; border-radius: 8px; padding: 0.75rem; margin-bottom: 1rem; font-size: 12px; color: ${couleur}; text-align: center; } @media print { .print-hint { display: none; } } @page { margin: 1cm; size: A4; }</style>
 </head><body>
 <div class="print-hint">💡 <strong>Ctrl+P</strong> → <strong>"Enregistrer en PDF"</strong> → <strong>Enregistrer</strong></div>
 <table style="margin-bottom:0.5rem;"><tr>
@@ -1632,7 +1633,7 @@ ${servicesHTML}
       agence?.ville || '............'
     }<br><br>
     <em>Signature précédée de la mention "Lu et Approuvé, bon pour acceptation"</em><br>
-    <div style="border:1px solid #eee; height:60px; margin-top:0.5rem; background:#fafafa;"></div>
+    <div id="case-signature-client" style="border:1px solid #eee; height:60px; margin-top:0.5rem; background:#fafafa;"></div>
   </td>
   <td style="width:50%; font-size:10px; padding:0.5rem;">
     Signature ${agence?.nom || ''}<br>
@@ -1687,10 +1688,146 @@ ${
 </div>
 </body></html>`;
 
-    const blob = new Blob([html], { type: 'text/html' });
-    const url = URL.createObjectURL(blob);
-    window.open(url, '_blank');
+return html;
+}
+
+function imprimer() {
+  const html = construireHTMLDocument();
+  const blob = new Blob([html], { type: 'text/html' });
+  const url = URL.createObjectURL(blob);
+  window.open(url, '_blank');
+}
+
+async function telechargerPDF() {
+  const html = construireHTMLDocument();
+  const conteneur = document.createElement('div');
+  conteneur.innerHTML = html;
+  // Retirer le bandeau d'aide "Ctrl+P" qui ne doit pas apparaître dans le PDF
+  const hint = conteneur.querySelector('.print-hint');
+  if (hint) hint.remove();
+  document.body.appendChild(conteneur);
+  try {
+    await (html2pdf as any)()
+      .set({
+        margin: 5,
+          pagebreak: { mode: ['css', 'legacy'] },
+          filename: `${onglet}-${
+          dossier?.numero_devis || dossier?.numero_dossier || 'document'
+        }.pdf`,
+        image: { type: 'jpeg', quality: 0.95 },
+        html2canvas: { scale: 2, useCORS: true },
+        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+      })
+      .from(conteneur)
+      .save();
+  } finally {
+    document.body.removeChild(conteneur);
   }
+}
+
+async function envoyerPourSignature() {
+  const pouvoir = dossier?.pouvoirs?.[0];
+  if (!pouvoir?.email) {
+    alert(
+      "⚠️ Impossible d'envoyer : le mandataire n'a pas d'email renseigné dans le dossier."
+    );
+    return;
+  }
+  if (
+    !confirm(
+      `Envoyer le document pour signature à ${pouvoir.prenom} ${pouvoir.nom} (${pouvoir.email}) ?`
+    )
+  )
+    return;
+
+  setSaving(true);
+  try {
+    // 1) Générer le PDF (largeur A4 fixe pour des positions fiables)
+    const html = construireHTMLDocument();
+    const conteneur = document.createElement('div');
+    conteneur.style.width = '756px';
+    conteneur.innerHTML = html;
+    const hint = conteneur.querySelector('.print-hint');
+    if (hint) hint.remove();
+    document.body.appendChild(conteneur);
+
+    // 2) Mesurer la position exacte du cadre de signature dans le devis
+    let champ: any = null;
+    const caseSig = conteneur.querySelector('#case-signature-client');
+    if (caseSig) {
+      const cRect = conteneur.getBoundingClientRect();
+      const bRect = (caseSig as HTMLElement).getBoundingClientRect();
+      const sc = 200 / cRect.width; // mm par pixel (largeur utile A4 = 200 mm)
+      const MM_PT = 2.83465;
+      const pageContentH = 287; // hauteur utile A4 (mm)
+      const yTopMM = (bRect.top - cRect.top) * sc;
+      const xMM = 5 + (bRect.left - cRect.left) * sc;
+      const pageIndex = Math.floor(yTopMM / pageContentH);
+      const yOnPageMM = 5 + (yTopMM - pageIndex * pageContentH);
+      champ = {
+        page: pageIndex + 1,
+        x: Math.round(xMM * MM_PT),
+        y: Math.round(yOnPageMM * MM_PT),
+        width: Math.round(bRect.width * sc * MM_PT),
+        height: Math.round(bRect.height * sc * MM_PT),
+      };
+    }
+
+    // 3) Produire le PDF
+    const pdfBlob = await (html2pdf as any)()
+      .set({
+        margin: 5,
+        pagebreak: { mode: [] },
+        image: { type: 'jpeg', quality: 0.95 },
+        html2canvas: { scale: 2, useCORS: true },
+        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+      })
+      .from(conteneur)
+      .outputPdf('blob');
+    document.body.removeChild(conteneur);
+
+    // 4) PDF -> base64
+    const base64: string = await new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(String(reader.result).split(',')[1]);
+      reader.onerror = reject;
+      reader.readAsDataURL(pdfBlob);
+    });
+
+    // 5) Envoyer à l'Edge Function
+    const { data, error } = await supabase.functions.invoke('yousign', {
+      body: {
+        pdf_base64: base64,
+        champ,
+        nom_document: `${
+          onglet === 'devis'
+            ? 'Devis'
+            : onglet === 'bon_commande'
+            ? 'Bon de commande'
+            : 'Facture'
+        } — ${dossier?.defunts?.prenom || ''} ${dossier?.defunts?.nom || ''}`,
+        signataire: {
+          prenom: pouvoir.prenom,
+          nom: pouvoir.nom,
+          email: pouvoir.email,
+        },
+      },
+    });
+
+    if (error) {
+      alert('Erreur : ' + error.message);
+    } else if (data && data.ok) {
+      alert(data.message || '✅ Demande de signature envoyée !');
+    } else {
+      alert(
+        '❌ Problème : ' + JSON.stringify(data?.erreur || data || 'inconnu')
+      );
+    }
+  } catch (e: any) {
+    alert('Erreur : ' + e.message);
+  }
+  setSaving(false);
+}
 
   const couleurAgence = dossier?.agences?.couleur_principale || '#2d6a4f';
 
@@ -1752,19 +1889,33 @@ ${
             {saving ? '⏳...' : '💾 Sauvegarder'}
           </button>
           <button
-            onClick={imprimer}
+            onClick={telechargerPDF}
             style={{
               padding: '0.6rem 1.2rem',
-              background: couleurAgence,
-              color: 'white',
-              border: 'none',
+              background: 'white',
+              color: couleurAgence,
+              border: `1px solid ${couleurAgence}`,
               borderRadius: '6px',
               cursor: 'pointer',
               fontWeight: 'bold',
-              opacity: 0.85,
             }}
-            >
-            📥 Télécharger PDF
+          >
+            📄 PDF
+          </button>
+          <button
+            onClick={envoyerPourSignature}
+            disabled={saving}
+            style={{
+              padding: '0.6rem 1.2rem',
+              background: saving ? '#ccc' : '#0F6E56',
+              color: 'white',
+              border: 'none',
+              borderRadius: '6px',
+              cursor: saving ? 'not-allowed' : 'pointer',
+              fontWeight: 'bold',
+            }}
+          >
+            📤 Envoyer pour signature
           </button>
         </div>
       </div>
