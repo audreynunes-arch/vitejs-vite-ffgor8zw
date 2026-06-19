@@ -85,6 +85,22 @@ export default function GestionStocks({ agenceId, onRetour }: Props) {
     charger()
   }
 
+  async function supprimerMouvement(m: any) {
+    if (!confirm('Supprimer ce mouvement ? Le stock sera réajusté en conséquence.')) return
+    // Annuler l'effet du mouvement sur le stock
+    const stock = stocks.find(s => s.cercueil_id === m.cercueil_id)
+    if (stock) {
+      // Une entrée avait ajouté → on retire ; une sortie/casse avait retiré → on remet
+      const newQty = m.type_mouvement === 'entree'
+        ? stock.quantite - m.quantite
+        : stock.quantite + m.quantite
+      await supabase.from('stocks_cercueils')
+        .update({ quantite: Math.max(0, newQty) })
+        .eq('id', stock.id)
+    }
+    await supabase.from('mouvements_stock').delete().eq('id', m.id)
+    charger()
+  }
   const alertes = stocks.filter(s => s.quantite <= s.seuil_alerte)
 
   if (loading) return <p style={{ padding: '2rem' }}>Chargement...</p>
@@ -130,6 +146,7 @@ export default function GestionStocks({ agenceId, onRetour }: Props) {
                 style={{ width: '100%', padding: '0.5rem', borderRadius: '6px', border: '1px solid #ddd', marginTop: '0.25rem' }}>
                 <option value="entree">📥 Entrée stock</option>
                 <option value="sortie">📤 Sortie stock</option>
+                <option value="casse">💥 Casse / Perte</option>
               </select>
             </div>
             <div>
@@ -214,6 +231,7 @@ export default function GestionStocks({ agenceId, onRetour }: Props) {
                 <th style={{ padding: '0.75rem 1rem', textAlign: 'center' }}>Type</th>
                 <th style={{ padding: '0.75rem 1rem', textAlign: 'center' }}>Qté</th>
                 <th style={{ padding: '0.75rem 1rem', textAlign: 'left' }}>Notes</th>
+                <th style={{ padding: '0.75rem 1rem', textAlign: 'center' }}>Action</th>
               </tr>
             </thead>
             <tbody>
@@ -227,13 +245,22 @@ export default function GestionStocks({ agenceId, onRetour }: Props) {
                   </td>
                   <td style={{ padding: '0.75rem 1rem' }}>{m.catalogue_cercueils?.nom}</td>
                   <td style={{ padding: '0.75rem 1rem', textAlign: 'center' }}>
-                    {m.type_mouvement === 'entree'
+                      {m.type_mouvement === 'entree'
                       ? <span style={{ background: '#E1F5EE', color: '#0F6E56', padding: '0.2rem 0.6rem', borderRadius: '12px', fontSize: '11px', fontWeight: 'bold' }}>📥 Entrée</span>
+                      : m.type_mouvement === 'casse'
+                      ? <span style={{ background: '#FAEEDA', color: '#854F0B', padding: '0.2rem 0.6rem', borderRadius: '12px', fontSize: '11px', fontWeight: 'bold' }}>💥 Casse / Perte</span>
                       : <span style={{ background: '#FAECE7', color: '#993C1D', padding: '0.2rem 0.6rem', borderRadius: '12px', fontSize: '11px', fontWeight: 'bold' }}>📤 Sortie</span>
                     }
                   </td>
                   <td style={{ padding: '0.75rem 1rem', textAlign: 'center', fontWeight: 'bold' }}>{m.quantite}</td>
                   <td style={{ padding: '0.75rem 1rem', color: '#666' }}>{m.notes || '—'}</td>
+                  <td style={{ padding: '0.75rem 1rem', textAlign: 'center' }}>
+                    <button onClick={() => supprimerMouvement(m)}
+                      title="Supprimer ce mouvement"
+                      style={{ background: '#FAECE7', color: '#993C1D', border: '1px solid #993C1D', borderRadius: '4px', cursor: 'pointer', padding: '0.25rem 0.5rem', fontSize: '12px' }}>
+                      🗑️
+                    </button>
+                  </td>
                 </tr>
               ))}
             </tbody>
