@@ -10,6 +10,7 @@ import Documents from './pages/Documents';
 import Statistiques from './pages/Statistiques';
 import SuiviTravaux from './pages/SuiviTravaux';
 import GestionStocks from './pages/GestionStocks';
+import Agenda from './pages/Agenda';
 
 export default function App() {
   const [session, setSession] = useState<any>(null);
@@ -214,6 +215,14 @@ export default function App() {
                     texte: '#6A4A9C',
                     action: () => setPage('stocks'),
                   },
+                  {
+                    key: 'agenda',
+                    emoji: '📅',
+                    label: 'Agenda',
+                    bg: '#FCE8D6',
+                    texte: '#B85C38',
+                    action: () => setPage('agenda'),
+                  },
                 ].map((carte) => (
                   <div
                     key={carte.key}
@@ -311,6 +320,16 @@ export default function App() {
             <GestionStocks
               agenceId={utilisateur.agence_id}
               onRetour={() => setPage('accueil')}
+            />
+          )}
+          {page === 'agenda' && (
+            <Agenda
+              agenceId={utilisateur.agence_id}
+              onRetour={() => setPage('accueil')}
+              onOuvrir={(id) => {
+                setPage('dossiers');
+                setDossierId(id);
+              }}
             />
           )}
         </div>
