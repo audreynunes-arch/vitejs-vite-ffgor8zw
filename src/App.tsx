@@ -10,6 +10,7 @@ import Documents from './pages/Documents';
 import Statistiques from './pages/Statistiques';
 import SuiviTravaux from './pages/SuiviTravaux';
 import GestionStocks from './pages/GestionStocks';
+import SuiviSignatures from './pages/SuiviSignatures';
 import Agenda from './pages/Agenda';
 
 export default function App() {
@@ -223,6 +224,14 @@ export default function App() {
                     texte: '#B85C38',
                     action: () => setPage('agenda'),
                   },
+                  {
+                    key: 'signatures',
+                    emoji: '🖊️',
+                    label: 'Signatures',
+                    bg: '#E1F5EE',
+                    texte: '#0F6E56',
+                    action: () => setPage('signatures'),
+                  },
                 ].map((carte) => (
                   <div
                     key={carte.key}
@@ -324,6 +333,16 @@ export default function App() {
           )}
           {page === 'agenda' && (
             <Agenda
+              agenceId={utilisateur.agence_id}
+              onRetour={() => setPage('accueil')}
+              onOuvrir={(id) => {
+                setPage('dossiers');
+                setDossierId(id);
+              }}
+            />
+          )}
+          {page === 'signatures' && (
+            <SuiviSignatures
               agenceId={utilisateur.agence_id}
               onRetour={() => setPage('accueil')}
               onOuvrir={(id) => {
