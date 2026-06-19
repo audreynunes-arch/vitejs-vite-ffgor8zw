@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../supabase';
+import html2pdf from 'html2pdf.js';
 
 interface Props {
   dossierId: string;
@@ -32,6 +33,7 @@ export default function Documents({ dossierId, onRetour }: Props) {
   const [dossier, setDossier] = useState<any>(null);
   const [gerant, setGerant] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [envoi, setEnvoi] = useState(false);
 
   useEffect(() => {
     charger();
@@ -410,6 +412,7 @@ export default function Documents({ dossierId, onRetour }: Props) {
             {labelG}
           </div>
           <div
+            id="case-signature-mandant"
             style={{
               border: `1px solid ${couleur}33`,
               height: '70px',
@@ -2466,6 +2469,89 @@ export default function Documents({ dossierId, onRetour }: Props) {
     window.open(url, '_blank');
   }
 
+  async function envoyerPouvoirSignature() {
+    if (!p?.email) {
+      alert("⚠️ Le mandataire n'a pas d'email renseigné dans le dossier.");
+      return;
+    }
+    if (
+      !confirm(
+        `Envoyer le Pouvoir pour signature à ${p.prenom} ${p.nom} (${p.email}) ?`
+      )
+    )
+      return;
+    const contenu = document.querySelector('.document-print');
+    if (!contenu) return;
+    setEnvoi(true);
+    try {
+      const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><style>* { box-sizing: border-box; } body { margin:0; font-family: Arial, sans-serif; }</style></head><body>${contenu.innerHTML}</body></html>`;
+      const conteneur = document.createElement('div');
+      conteneur.style.width = '756px';
+      conteneur.innerHTML = html;
+      document.body.appendChild(conteneur);
+
+      let champ: any = null;
+      const caseSig = conteneur.querySelector('#case-signature-mandant');
+      if (caseSig) {
+        const cRect = conteneur.getBoundingClientRect();
+        const bRect = (caseSig as HTMLElement).getBoundingClientRect();
+        const sc = 200 / cRect.width;
+        const MM_PT = 2.83465;
+        const pageContentH = 287;
+        const yTopMM = (bRect.top - cRect.top) * sc;
+        const xMM = 5 + (bRect.left - cRect.left) * sc;
+        const pageIndex = Math.floor(yTopMM / pageContentH);
+        const yOnPageMM = 5 + (yTopMM - pageIndex * pageContentH);
+        champ = {
+          page: pageIndex + 1,
+          x: Math.round(xMM * MM_PT),
+          y: Math.round(yOnPageMM * MM_PT),
+          width: Math.round(bRect.width * sc * MM_PT),
+          height: Math.round(bRect.height * sc * MM_PT),
+        };
+      }
+
+      const pdfBlob = await (html2pdf as any)()
+        .set({
+          margin: 5,
+          pagebreak: { mode: [] },
+          image: { type: 'jpeg', quality: 0.95 },
+          html2canvas: { scale: 2, useCORS: true },
+          jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+        })
+        .from(conteneur)
+        .outputPdf('blob');
+      document.body.removeChild(conteneur);
+
+      const base64: string = await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(String(reader.result).split(',')[1]);
+        reader.onerror = reject;
+        reader.readAsDataURL(pdfBlob);
+      });
+
+      const { data, error } = await supabase.functions.invoke('yousign', {
+        body: {
+          pdf_base64: base64,
+          champ,
+          nom_document: `Pouvoir — ${d?.prenom || ''} ${d?.nom || ''}`,
+          signataire: { prenom: p.prenom, nom: p.nom, email: p.email },
+        },
+      });
+
+      if (error) alert('Erreur : ' + error.message);
+      else if (data && data.ok)
+        alert(data.message || '✅ Demande de signature envoyée !');
+      else
+        alert(
+          '❌ Problème : ' + JSON.stringify(data?.erreur || data || 'inconnu')
+        );
+    } catch (e: any) {
+      alert('Erreur : ' + e.message);
+    }
+    setEnvoi(false);
+  }
+
   return (
     <div style={{ padding: '2rem', maxWidth: '1000px', margin: '0 auto' }}>
       <div
@@ -2496,6 +2582,23 @@ export default function Documents({ dossierId, onRetour }: Props) {
         >
           📥 Télécharger / PDF
         </button>
+        {onglet === 'pouvoir' && (
+          <button
+            onClick={envoyerPouvoirSignature}
+            disabled={envoi}
+            style={{
+              padding: '0.5rem 1.2rem',
+              background: envoi ? '#ccc' : '#0F6E56',
+              color: 'white',
+              border: 'none',
+              borderRadius: '6px',
+              cursor: envoi ? 'not-allowed' : 'pointer',
+              fontWeight: 'bold',
+            }}
+          >
+            📤 Envoyer pour signature
+          </button>
+        )}
       </div>
       <div
         className="no-print"
