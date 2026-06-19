@@ -2096,19 +2096,6 @@ function GestionTarifsRapatriement({
       label: 'Billet enfant Skymaster (€)',
       type: 'number',
     },
-    { key: 'cercueil_adulte', label: 'Cercueil adulte (€)', type: 'number' },
-    { key: 'cercueil_enfant', label: 'Cercueil enfant (€)', type: 'number' },
-    {
-      key: 'cercueil_hors_gabarit',
-      label: 'Cercueil hors gabarit (€)',
-      type: 'number',
-    },
-    { key: 'cercueil_tombeau', label: 'Cercueil tombeau (€)', type: 'number' },
-    {
-      key: 'cercueil_enveloppe',
-      label: 'Cercueil enveloppe (€)',
-      type: 'number',
-    },
     {
       key: 'transport_avant_meb_adulte',
       label: 'Transport avant MEB adulte (€)',
@@ -2373,16 +2360,6 @@ function GestionTarifsRapatriement({
                         borderRadius: '4px',
                       }}
                     >
-                      Cercueil : {t.cercueil_adulte} €
-                    </span>
-                    <span
-                      style={{
-                        fontSize: '12px',
-                        background: '#f0f0f0',
-                        padding: '0.2rem 0.5rem',
-                        borderRadius: '4px',
-                      }}
-                    >
                       Zinc : {t.zinc} €
                     </span>
                   </div>
@@ -2537,7 +2514,7 @@ export default function Referentiels({ onRetour, agenceId }: Props) {
             key: 'tarifs_rapatriement',
             emoji: '✈️',
             label: 'Tarifs Rapatriement',
-            desc: 'Billets, cercueils, transport par destination',
+            desc: 'Billets, transport, zinc & housses par destination',
           },
           {
             key: 'vehicules',
