@@ -1525,7 +1525,7 @@ export default function DossierDetail({
             </div>
             <div>
               <label>Immatriculation véhicule</label>
-              <input
+              <select
                 value={infos.immatriculation_vehicule}
                 onChange={(e) =>
                   setInfos((p: any) => ({
@@ -1533,8 +1533,25 @@ export default function DossierDetail({
                     immatriculation_vehicule: e.target.value,
                   }))
                 }
-                style={inputStyle}
-              />
+                style={selectStyle}
+              >
+                <option value="">-- Sélectionner un véhicule --</option>
+                {vehicules.map((v) => (
+                  <option key={v.id} value={v.immatriculation}>
+                    {v.immatriculation}
+                    {v.marque ? ` — ${v.marque}` : ''}
+                    {v.modele ? ` ${v.modele}` : ''}
+                  </option>
+                ))}
+                {infos.immatriculation_vehicule &&
+                  !vehicules.some(
+                    (v) => v.immatriculation === infos.immatriculation_vehicule
+                  ) && (
+                    <option value={infos.immatriculation_vehicule}>
+                      {infos.immatriculation_vehicule} (actuel)
+                    </option>
+                  )}
+              </select>
             </div>
             <div>
               <label>Convoi effectué par</label>
