@@ -422,7 +422,7 @@ export default function DossierDetail({
         })
         .eq('id', dossier.defunt_id);
 
-      await supabase
+      const { error: errDossier } = await supabase
         .from('dossiers')
         .update({
           compte_client: infos.compte_client || null,
@@ -502,6 +502,12 @@ export default function DossierDetail({
           modifie_le: new Date().toISOString(),
         })
         .eq('id', dossierId);
+
+      if (errDossier) {
+        alert('⚠️ Erreur enregistrement dossier : ' + errDossier.message);
+        setSaving(false);
+        return;
+      }
 
       if (pouvoir.nom && pouvoir.prenom && dossier.pouvoirs?.[0]?.id) {
         await supabase
