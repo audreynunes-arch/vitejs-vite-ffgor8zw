@@ -409,6 +409,9 @@ export default function Devis({ dossierId, onRetour }: Props) {
   const [remise] = useState(0);
   const [tarifsRapatriement, setTarifsRapatriement] = useState<any[]>([]);
   const [destinationChoisie, setDestinationChoisie] = useState('');
+  const [typeRapatrie, setTypeRapatrie] = useState<'adulte' | 'enfant'>(
+    'adulte'
+  );
   const [catalogueCercueils, setCatalogueCercueils] = useState<any[]>([]);
   const [prestationsRef, setPrestationsRef] = useState<any[]>([]);
   const [tarifsPartenaire, setTarifsPartenaire] = useState<any[]>([]);
@@ -519,11 +522,16 @@ if (data?.type_dossier === 'rapatriement') {
   const t = (tarifsR || []).find(
     (x: any) => x.id === data.destination_id
   );
+  const typeR =
+    data?.defunts?.civilite === 'Enfant' || data?.defunts?.civilite === 'Bébé'
+      ? 'enfant'
+      : 'adulte';
+  setTypeRapatrie(typeR);
   if (t) {
     setDestinationChoisie(t.id);
     setLignes(
       appliquerTarifsPartenaire(
-        construireLignesRapatriement(t),
+        construireLignesRapatriement(t, typeR),
         tarifsPLocal,
         prestasInit || []
       )
@@ -747,15 +755,22 @@ if (data?.type_dossier === 'rapatriement') {
     );
   }
 
-  function construireLignesRapatriement(t: any): Ligne[] {
+  function construireLignesRapatriement(
+    t: any,
+    type: 'adulte' | 'enfant' = 'adulte'
+  ): Ligne[] {
+    const estEnfant = type === 'enfant';
     return [
       {
-        libelle:
-          '* Cercueil Prestige couleur bois (essence de peuplier, forme lyonnaise, avec cuvette étanche, 4 poignées, capiton) (*)',
+        libelle: estEnfant
+          ? '* Cercueil Enfant couleur bois (essence de peuplier, forme lyonnaise, avec cuvette étanche, 4 poignées, capiton) (*)'
+          : '* Cercueil Prestige couleur bois (essence de peuplier, forme lyonnaise, avec cuvette étanche, 4 poignées, capiton) (*)',
         tva: 'tva_20',
         categorie: 'prestations_obligatoires',
         section: '3 - Cercueil & Accessoires',
-        prix_ttc: t.cercueil_adulte || 960,
+        prix_ttc: estEnfant
+          ? t.cercueil_enfant || 510
+          : t.cercueil_adulte || 960,
         inclus: true,
         ordre: 1,
       },
@@ -797,8 +812,9 @@ if (data?.type_dossier === 'rapatriement') {
         ordre: 1,
       },
       {
-        libelle:
-          '* Coffret Adulte toilette rituelle (Linceul musulman, savon & musk…) (**)',
+        libelle: estEnfant
+          ? '* Coffret Enfant toilette rituelle (Linceul, savon & musk…) (**)'
+          : '* Coffret Adulte toilette rituelle (Linceul musulman, savon & musk…) (**)',
         tva: 'tva_20',
         categorie: 'prestations_non_obligatoires',
         section: '1 - Préparation / Organisation des Obsèques',
@@ -845,12 +861,15 @@ if (data?.type_dossier === 'rapatriement') {
         ordre: 6,
       },
       {
-        libelle:
-          "* Transport Avant MEB Adulte - mise à disposition d'un véhicule funéraire agréé avec son équipe - forfait (60 km) (*)",
+        libelle: estEnfant
+          ? "* Transport Avant MEB Enfant - mise à disposition d'un véhicule funéraire agréé avec son équipe - forfait (60 km) (*)"
+          : "* Transport Avant MEB Adulte - mise à disposition d'un véhicule funéraire agréé avec son équipe - forfait (60 km) (*)",
         tva: 'tva_10',
         categorie: 'prestations_non_obligatoires',
         section: '2 - Transport avant mise en bière',
-        prix_ttc: t.transport_avant_meb_adulte || 250,
+        prix_ttc: estEnfant
+          ? t.transport_avant_meb_enfant || 160
+          : t.transport_avant_meb_adulte || 250,
         inclus: true,
         ordre: 1,
       },
@@ -882,12 +901,15 @@ if (data?.type_dossier === 'rapatriement') {
         ordre: 4,
       },
       {
-        libelle:
-          "* Transport Après MEB Adulte - mise à disposition d'un véhicule funéraire agréé avec son équipe - forfait (60 km) (*)",
+        libelle: estEnfant
+          ? "* Transport Après MEB Enfant - mise à disposition d'un véhicule funéraire agréé avec son équipe - forfait (60 km) (*)"
+          : "* Transport Après MEB Adulte - mise à disposition d'un véhicule funéraire agréé avec son équipe - forfait (60 km) (*)",
         tva: 'tva_10',
         categorie: 'prestations_non_obligatoires',
         section: '5 - Transport après mise en bière',
-        prix_ttc: t.transport_apres_meb_adulte || 350,
+        prix_ttc: estEnfant
+          ? t.transport_apres_meb_enfant || 160
+          : t.transport_apres_meb_adulte || 350,
         inclus: true,
         ordre: 1,
       },
@@ -914,7 +936,7 @@ if (data?.type_dossier === 'rapatriement') {
         tva: 'exonere',
         categorie: 'prestations_non_obligatoires',
         section: '7 - Exhumation & Rapatriement',
-        prix_ttc: t.billet_adulte || 0,
+        prix_ttc: estEnfant ? t.billet_enfant || 0 : t.billet_adulte || 0,
         inclus: true,
         ordre: 1,
       },
@@ -984,7 +1006,10 @@ if (data?.type_dossier === 'rapatriement') {
     ];
   }
 
-  function choisirDestination(id: string) {
+  async function choisirDestination(
+    id: string,
+    type: 'adulte' | 'enfant' = typeRapatrie
+  ) {
     setDestinationChoisie(id);
     if (!id) {
       setLignes([]);
@@ -994,11 +1019,22 @@ if (data?.type_dossier === 'rapatriement') {
     if (!t) return;
     setLignes(
       appliquerTarifsPartenaire(
-        construireLignesRapatriement(t),
+        construireLignesRapatriement(t, type),
         tarifsPartenaire,
         prestationsRef
       )
     );
+    // Synchroniser le choix dans le dossier (un seul et même choix partout)
+    await supabase
+      .from('dossiers')
+      .update({ destination_id: id })
+      .eq('id', dossierId);
+    setDossier((d: any) => (d ? { ...d, destination_id: id } : d));
+  }
+
+  function changerTypeRapatrie(type: 'adulte' | 'enfant') {
+    setTypeRapatrie(type);
+    if (destinationChoisie) choisirDestination(destinationChoisie, type);
   }
 
   const lignesObl = lignes.filter(
@@ -2021,7 +2057,7 @@ async function envoyerPourSignature() {
           </label>
           <select
             value={destinationChoisie}
-            onChange={(e) => choisirDestination(e.target.value)}
+            onChange={(e) => choisirDestination(e.target.value, typeRapatrie)}
             style={{
               width: '100%',
               padding: '0.5rem',
@@ -2037,6 +2073,60 @@ async function envoyerPourSignature() {
               </option>
             ))}
           </select>
+          <div
+            style={{
+              marginTop: '0.75rem',
+              display: 'flex',
+              gap: '1.5rem',
+              alignItems: 'center',
+            }}
+          >
+            <span
+              style={{
+                fontSize: '13px',
+                fontWeight: 'bold',
+                color: '#993C1D',
+              }}
+            >
+              Tarif :
+            </span>
+            <label
+              style={{
+                fontSize: '13px',
+                color: '#993C1D',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.3rem',
+              }}
+            >
+              <input
+                type="radio"
+                name="typeRapatrie"
+                checked={typeRapatrie === 'adulte'}
+                onChange={() => changerTypeRapatrie('adulte')}
+              />
+              Adulte
+            </label>
+            <label
+              style={{
+                fontSize: '13px',
+                color: '#993C1D',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.3rem',
+              }}
+            >
+              <input
+                type="radio"
+                name="typeRapatrie"
+                checked={typeRapatrie === 'enfant'}
+                onChange={() => changerTypeRapatrie('enfant')}
+              />
+              Enfant
+            </label>
+          </div>
           {destinationChoisie && (
             <div
               style={{
@@ -2045,8 +2135,8 @@ async function envoyerPourSignature() {
                 marginTop: '0.5rem',
               }}
             >
-              ⚠️ Sélectionner une destination remplace toutes les lignes du
-              devis
+              ⚠️ Sélectionner une destination (ou changer Adulte/Enfant) remplace
+              toutes les lignes du devis
             </div>
           )}
         </div>
