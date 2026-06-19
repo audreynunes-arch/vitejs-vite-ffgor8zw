@@ -1817,6 +1817,14 @@ async function envoyerPourSignature() {
     if (error) {
       alert('Erreur : ' + error.message);
     } else if (data && data.ok) {
+      await supabase.from('signatures').insert({
+        dossier_id: dossierId,
+        agence_id: dossier?.agence_id,
+        type_document: onglet,
+        demande_id: data.demande_id,
+        signataire_email: pouvoir.email,
+        statut: 'en_attente',
+      });
       alert(data.message || '✅ Demande de signature envoyée !');
     } else {
       alert(
