@@ -421,6 +421,65 @@ export default function Devis({ dossierId, onRetour }: Props) {
     chargerDossier();
   }, [dossierId]);
 
+  // Génère un numéro dédié (DEV / BC / FAC) la 1re fois qu'on ouvre chaque onglet
+  useEffect(() => {
+    if (!dossier) return;
+    const col =
+      onglet === 'devis'
+        ? 'numero_devis'
+        : onglet === 'bon_commande'
+        ? 'numero_bon_commande'
+        : 'numero_facture';
+    if (!(dossier as any)[col]) genererNumero(onglet);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [onglet, dossier]);
+
+  async function genererNumero(type: Onglet) {
+    if (!dossier) return;
+    const config: Record<Onglet, { col: string; pfx: string }> = {
+      devis: { col: 'numero_devis', pfx: 'DEV' },
+      bon_commande: { col: 'numero_bon_commande', pfx: 'BC' },
+      facture: { col: 'numero_facture', pfx: 'FAC' },
+    };
+    const { col, pfx } = config[type];
+    if ((dossier as any)[col]) return; // déjà un numéro
+    try {
+      const annee = new Date().getFullYear();
+      const prefixe = `${pfx}-${annee}-`;
+      const { data: derniers } = await supabase
+        .from('dossiers')
+        .select(col)
+        .eq('agence_id', dossier.agence_id)
+        .like(col, `${prefixe}%`)
+        .order(col, { ascending: false })
+        .limit(1);
+      let seq = 1;
+      if (derniers && derniers.length > 0 && (derniers[0] as any)[col]) {
+        const n = parseInt(
+          String((derniers[0] as any)[col]).split('-').pop() || '0',
+          10
+        );
+        if (!isNaN(n)) seq = n + 1;
+      }
+      const nouveau = `${prefixe}${String(seq).padStart(4, '0')}`;
+      await supabase
+        .from('dossiers')
+        .update({ [col]: nouveau })
+        .eq('id', dossierId);
+      setDossier((d: any) => (d ? { ...d, [col]: nouveau } : d));
+    } catch (e) {
+      // En cas d'échec, on n'empêche pas l'ouverture du document
+    }
+  }
+
+  // Numéro du document actuellement affiché
+  const numeroDocument = () =>
+    (onglet === 'devis'
+      ? dossier?.numero_devis
+      : onglet === 'bon_commande'
+      ? dossier?.numero_bon_commande
+      : dossier?.numero_facture) || '';
+
   async function chargerDossier() {
     const { data } = await supabase
       .from('dossiers')
@@ -1503,7 +1562,7 @@ if (data?.type_dossier === 'rapatriement') {
     const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${titreDoc} — ${
       d?.prenom
     } ${d?.nom}</title>
-<style>* { box-sizing: border-box; } body { font-family: Arial, sans-serif; font-size: 11px; color: #333; margin: 0; padding: 0.5cm 1cm; }table { width: 100%; border-collapse: collapse; } .print-hint { background: #EEF2FF; border: 1px solid ${couleur}; border-radius: 8px; padding: 0.75rem; margin-bottom: 1rem; font-size: 12px; color: ${couleur}; text-align: center; } @media print { .print-hint { display: none; } } @page { margin: 1cm; size: A4; }</style>
+<style>* { box-sizing: border-box; } body { font-family: Arial, sans-serif; font-size: 10.5px; color: #333; margin: 0; padding: 0.15cm 0.6cm; line-height: 1.18; }table { width: 100%; border-collapse: collapse; margin-bottom: 0.25rem !important; } td, th { padding: 0.1rem 0.4rem !important; font-size: 10px !important; } img { max-height: 44px !important; } body > div { margin-bottom: 0.25rem !important; } .print-hint { background: #EEF2FF; border: 1px solid ${couleur}; border-radius: 8px; padding: 0.6rem; margin-bottom: 0.6rem; font-size: 12px; color: ${couleur}; text-align: center; } @media print { .print-hint { display: none; } } @page { margin: 0.4cm; size: A4; }</style>
 </head><body>
 <div class="print-hint">💡 <strong>Ctrl+P</strong> → <strong>"Enregistrer en PDF"</strong> → <strong>Enregistrer</strong></div>
 <table style="margin-bottom:0.5rem;"><tr>
@@ -1512,7 +1571,7 @@ if (data?.type_dossier === 'rapatriement') {
       ? `<img src="${agence.logo_url}" style="max-height:70px; max-width:150px;">`
       : ''
   }</td>
-  <td style="vertical-align:top; text-align:center;"><strong style="font-size:14px;">${
+  <td style="vertical-align:top; text-align:center;"><strong style="font-size:12px;">${
     agence?.nom || ''
   }</strong><br>${agence?.adresse_complete || ''}<br>Tél : ${
       agence?.telephone || ''
@@ -1525,8 +1584,8 @@ if (data?.type_dossier === 'rapatriement') {
 </tr></table>
 <table style="margin-bottom:0.5rem; font-size:11px;"><tr>
   <td style="width:50%; vertical-align:top;">
-    <strong>Référence dossier : ${dossier?.compte_client || ''}</strong><br>
-    <strong>${titreDoc} n° ${dossier?.numero_devis || ''}</strong><br>
+    <strong>Référence dossier : ${dossier?.numero_dossier || ''}</strong><br>
+    <strong>${titreDoc} n° ${numeroDocument()}</strong><br>
     ${titreDoc} établi le : ${new Date().toLocaleDateString(
       'fr-FR'
     )}, valable ${agence?.validite_devis_jours || 30} jours<br>
@@ -1669,11 +1728,11 @@ ${servicesHTML}
       agence?.ville || '............'
     }<br><br>
     <em>Signature précédée de la mention "Lu et Approuvé, bon pour acceptation"</em><br>
-    <div id="case-signature-client" style="border:1px solid #eee; height:60px; margin-top:0.5rem; background:#fafafa;"></div>
+    <div id="case-signature-client" style="border:1px solid #eee; height:45px; margin-top:0.3rem; background:#fafafa;"></div>
   </td>
   <td style="width:50%; font-size:10px; padding:0.5rem;">
     Signature ${agence?.nom || ''}<br>
-    <div style="border:1px solid #eee; height:60px; margin-top:0.5rem; background:#fafafa; display:flex; align-items:center; justify-content:center;">
+    <div style="border:1px solid #eee; height:45px; margin-top:0.3rem; background:#fafafa; display:flex; align-items:center; justify-content:center;">
       ${
         agence?.signature_url
           ? `<img src="${agence.signature_url}" style="max-height:55px;">`
@@ -1745,10 +1804,10 @@ async function telechargerPDF() {
   try {
     await (html2pdf as any)()
       .set({
-        margin: 5,
+        margin: 4,
           pagebreak: { mode: ['css', 'legacy'] },
           filename: `${onglet}-${
-          dossier?.numero_devis || dossier?.numero_dossier || 'document'
+          numeroDocument() || dossier?.numero_dossier || 'document'
         }.pdf`,
         image: { type: 'jpeg', quality: 0.95 },
         html2canvas: { scale: 2, useCORS: true },
@@ -1787,40 +1846,57 @@ async function envoyerPourSignature() {
     if (hint) hint.remove();
     document.body.appendChild(conteneur);
 
-    // 2) Mesurer la position exacte du cadre de signature dans le devis
-    let champ: any = null;
-    const caseSig = conteneur.querySelector('#case-signature-client');
+    // 2) Mesurer le cadre de signature (avant de retirer le conteneur)
+    const MM_PT = 2.83465;
+    const pageHmm = 297; // hauteur A4 en mm
+    const marge = 4; // marge du PDF en mm
+    const cRect = conteneur.getBoundingClientRect();
+    const sc = 200 / cRect.width; // mm par pixel (largeur utile A4 = 200 mm)
+    const caseSig = conteneur.querySelector(
+      '#case-signature-client'
+    ) as HTMLElement | null;
+    let mesure: any = null;
     if (caseSig) {
-      const cRect = conteneur.getBoundingClientRect();
-      const bRect = (caseSig as HTMLElement).getBoundingClientRect();
-      const sc = 200 / cRect.width; // mm par pixel (largeur utile A4 = 200 mm)
-      const MM_PT = 2.83465;
-      const pageContentH = 287; // hauteur utile A4 (mm)
-      const yTopMM = (bRect.top - cRect.top) * sc;
-      const xMM = 5 + (bRect.left - cRect.left) * sc;
-      const pageIndex = Math.floor(yTopMM / pageContentH);
-      const yOnPageMM = 5 + (yTopMM - pageIndex * pageContentH);
-      champ = {
-        page: pageIndex + 1,
-        x: Math.round(xMM * MM_PT),
-        y: Math.round((297 - yOnPageMM - bRect.height * sc) * MM_PT),
-        width: Math.round(bRect.width * sc * MM_PT),
-        height: Math.round(bRect.height * sc * MM_PT),
+      const bRect = caseSig.getBoundingClientRect();
+      // distance entre le bas du cadre et le bas du contenu (mm)
+      const distBasMM =
+        (conteneur.scrollHeight - (bRect.bottom - cRect.top)) * sc;
+      mesure = {
+        xMM: marge + (bRect.left - cRect.left) * sc,
+        distBasMM,
+        boxHmm: bRect.height * sc,
+        wMM: bRect.width * sc,
       };
     }
 
-    // 3) Produire le PDF
-    const pdfBlob = await (html2pdf as any)()
+    // 3) Générer le PDF ET récupérer le vrai nombre de pages
+    const worker = (html2pdf as any)()
       .set({
-        margin: 5,
+        margin: marge,
         pagebreak: { mode: [] },
         image: { type: 'jpeg', quality: 0.95 },
         html2canvas: { scale: 2, useCORS: true },
         jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
       })
       .from(conteneur)
-      .outputPdf('blob');
+      .toPdf();
+    const pdfObj = await worker.get('pdf');
+    const totalPages = pdfObj.internal.getNumberOfPages();
+    const pdfBlob = pdfObj.output('blob');
     document.body.removeChild(conteneur);
+
+    // 3b) Champ ancré au bas de la DERNIÈRE page (origine haut-gauche)
+    let champ: any = null;
+    if (mesure) {
+      const yMM = pageHmm - marge - mesure.distBasMM - mesure.boxHmm;
+      champ = {
+        page: totalPages,
+        x: Math.round(mesure.xMM * MM_PT),
+        y: Math.round(yMM * MM_PT),
+        width: Math.round(mesure.wMM * MM_PT),
+        height: Math.round(mesure.boxHmm * MM_PT),
+      };
+    }
 
     // 4) PDF -> base64
     const base64: string = await new Promise((resolve, reject) => {
