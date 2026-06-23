@@ -2590,7 +2590,8 @@ export default function Documents({ dossierId, onRetour }: Props) {
         champ = {
           page: pageIndex + 1,
           x: Math.round(xMM * MM_PT),
-          y: Math.round(yOnPageMM * MM_PT),
+          // SignWell mesure y depuis le BAS de la page (A4 = 297 mm)
+          y: Math.round((297 - yOnPageMM - bRect.height * sc) * MM_PT),
           width: Math.round(bRect.width * sc * MM_PT),
           height: Math.round(bRect.height * sc * MM_PT),
         };
