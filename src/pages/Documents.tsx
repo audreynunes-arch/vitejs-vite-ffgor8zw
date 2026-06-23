@@ -34,6 +34,8 @@ export default function Documents({ dossierId, onRetour }: Props) {
   const [gerant, setGerant] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [envoi, setEnvoi] = useState(false);
+  const [afficherSalat, setAfficherSalat] = useState(true);
+  const [afficherInhumation, setAfficherInhumation] = useState(true);
 
   useEffect(() => {
     charger();
@@ -146,7 +148,7 @@ export default function Documents({ dossierId, onRetour }: Props) {
     lineHeight: '1.8',
   };
 
-  const entete = () => (
+  const entete = (masquerInfos = false) => (
     <div style={{ marginBottom: '1.5rem' }}>
       <div
         style={{
@@ -200,36 +202,38 @@ export default function Documents({ dossierId, onRetour }: Props) {
             )}
           </div>
         </div>
-        <div
-          style={{
-            textAlign: 'right',
-            fontSize: '11px',
-            color: '#666',
-            background: `${couleur}11`,
-            padding: '0.5rem 0.75rem',
-            borderRadius: '6px',
-            border: `1px solid ${couleur}33`,
-          }}
-        >
-          <div style={{ fontWeight: 'bold', color: couleur }}>
-            {agence?.ville || ''} le {aujourd_hui}
+        {!masquerInfos && (
+          <div
+            style={{
+              textAlign: 'right',
+              fontSize: '11px',
+              color: '#666',
+              background: `${couleur}11`,
+              padding: '0.5rem 0.75rem',
+              borderRadius: '6px',
+              border: `1px solid ${couleur}33`,
+            }}
+          >
+            <div style={{ fontWeight: 'bold', color: couleur }}>
+              {agence?.ville || ''} le {aujourd_hui}
+            </div>
+            {dossier.numero_dossier && (
+              <div>
+                N° dossier : <strong>{dossier.numero_dossier}</strong>
+              </div>
+            )}
+            {dossier.compte_client && (
+              <div>
+                Réf : <strong>{dossier.compte_client}</strong>
+              </div>
+            )}
+            {dossier.numero_devis && (
+              <div>
+                Devis : <strong>{dossier.numero_devis}</strong>
+              </div>
+            )}
           </div>
-          {dossier.numero_dossier && (
-            <div>
-              N° dossier : <strong>{dossier.numero_dossier}</strong>
-            </div>
-          )}
-          {dossier.compte_client && (
-            <div>
-              Réf : <strong>{dossier.compte_client}</strong>
-            </div>
-          )}
-          {dossier.numero_devis && (
-            <div>
-              Devis : <strong>{dossier.numero_devis}</strong>
-            </div>
-          )}
-        </div>
+        )}
       </div>
     </div>
   );
@@ -1438,476 +1442,474 @@ export default function Documents({ dossierId, onRetour }: Props) {
     </div>
   );
 
-  const renderDeroulement = () => (
-    <div style={docStyle}>
-      {entete()}
-      {titrePrincipal('DÉROULEMENT DES OBSÈQUES')}
-      <div style={{ textAlign: 'center', marginBottom: '1.5rem' }}>
-        <div style={{ fontSize: '16px', marginBottom: '0.25rem' }}>
-          السلام عليكم و رحمة الله و بركاته
-        </div>
-        <div style={{ fontSize: '13px', fontStyle: 'italic', color: '#666' }}>
-          Salam alaykum wa rahmatullahi wa barakatu
-        </div>
-        <div style={{ fontSize: '14px', margin: '0.5rem 0' }}>
-          إنا لله وإنا إليه راجعون
-        </div>
-        <div style={{ fontSize: '12px', fontStyle: 'italic', color: '#666' }}>
-          «C'est à Allah que nous appartenons et c'est à Lui que nous
-          retournerons»
-        </div>
-      </div>
-      <p
-        style={{
-          textAlign: 'center',
-          fontWeight: 'bold',
-          marginBottom: '1.5rem',
-        }}
-      >
-        {d?.civilite} {d?.prenom} {d?.nom} — décédé(e) le{' '}
-        {fmt(dossier.date_deces)}
-      </p>
-      <div
-        style={{ borderLeft: `3px solid ${couleur}`, paddingLeft: '1.5rem' }}
-      >
-        {[
-          {
-            emoji: '🕌',
-            label: 'Toilette rituelle',
-            date: dossier.date_toilette,
-            heure: dossier.heure_toilette,
-            lieu: mosquee,
-          },
-          {
-            emoji: '⚰️',
-            label: 'Mise en bière',
-            date: dossier.date_meb,
-            heure: dossier.heure_meb,
-            lieu: etab,
-          },
-          {
-            emoji: '🚗',
-            label: 'Fermeture & Départ',
-            date: dossier.date_fermeture_depart,
-            heure: dossier.heure_fermeture_depart,
-            lieu: etab,
-            adresse: dossier.convoi_effectue_par
-              ? `Convoi : ${dossier.convoi_effectue_par}`
-              : undefined,
-          },
-          {
-            emoji: '🕌',
-            label: 'Salat Al Janāza إن شاء الله',
-            date: dossier.date_inhumation,
-            heure: undefined,
-            lieu: mosquee || nomCim,
-          },
-          {
-            emoji: '⚱️',
-            label: 'Inhumation',
-            date: dossier.date_inhumation,
-            heure: dossier.heure_inhumation,
-            lieu: nomCim,
-            adresse: cim
-              ? `${cim.adresse || ''} ${cim.code_postal || ''} ${
-                  cim.ville || ''
-                }`
-              : undefined,
-          },
-        ]
-        .filter(
-          (etape) =>
-            !(
-              etape.label === 'Toilette rituelle' &&
-              dossier.afficher_toilette === false
-            )
-        )
-        .map((etape, i) => (
+  const renderDeroulement = () => {
+    const etapes = [
+      {
+        type: 'toilette',
+        emoji: '🕌',
+        label: 'Toilette rituelle',
+        date: dossier.date_toilette,
+        heure: dossier.heure_toilette,
+        lieu: mosquee,
+      },
+      {
+        type: 'meb',
+        emoji: '⚰️',
+        label: 'Mise en bière',
+        date: dossier.date_meb,
+        heure: dossier.heure_meb,
+        lieu: etab,
+      },
+      {
+        type: 'depart',
+        emoji: '🚗',
+        label: 'Fermeture & Départ',
+        date: dossier.date_fermeture_depart,
+        heure: dossier.heure_fermeture_depart,
+        lieu: etab,
+        adresse: dossier.convoi_effectue_par
+          ? `Convoi : ${dossier.convoi_effectue_par}`
+          : undefined,
+      },
+      {
+        type: 'salat',
+        emoji: '🕌',
+        label: 'Salat Al Janāza إن شاء الله',
+        date: dossier.date_inhumation,
+        heure: undefined,
+        lieu: mosquee || nomCim,
+      },
+      {
+        type: 'inhumation',
+        emoji: '⚱️',
+        label: 'Inhumation',
+        date: dossier.date_inhumation,
+        heure: dossier.heure_inhumation,
+        lieu: nomCim,
+        adresse: adresseCim || undefined,
+      },
+    ].filter((etape) => {
+      if (etape.type === 'toilette' && dossier.afficher_toilette === false)
+        return false;
+      if (etape.type === 'salat' && !afficherSalat) return false;
+      if (etape.type === 'inhumation' && !afficherInhumation) return false;
+      return true;
+    });
+
+    return (
+      <div style={{ ...docStyle, lineHeight: '1.4' }}>
+        {entete(true)}
+        {/* Bandeau coloré avec le nom du défunt */}
+        <div
+          style={{
+            background: `linear-gradient(135deg, ${couleur}, ${couleur}bb)`,
+            color: 'white',
+            borderRadius: '14px',
+            padding: '1rem 1.25rem',
+            textAlign: 'center',
+            marginBottom: '1rem',
+            boxShadow: `0 4px 14px ${couleur}33`,
+          }}
+        >
+          <div style={{ fontSize: '15px', marginBottom: '0.15rem' }}>
+            السلام عليكم و رحمة الله و بركاته
+          </div>
           <div
-            key={i}
-            style={{ marginBottom: '1.25rem', position: 'relative' }}
+            style={{
+              fontSize: '17px',
+              fontWeight: 'bold',
+              letterSpacing: '0.5px',
+              margin: '0.25rem 0',
+            }}
           >
+            {d?.civilite} {d?.prenom} {d?.nom}
+          </div>
+          <div style={{ fontSize: '12px', opacity: 0.95 }}>
+            رحمه الله — décédé(e) le {fmt(dossier.date_deces)}
+          </div>
+          <div
+            style={{
+              fontSize: '11px',
+              fontStyle: 'italic',
+              opacity: 0.9,
+              marginTop: '0.35rem',
+            }}
+          >
+            إنا لله وإنا إليه راجعون — «C'est à Allah que nous appartenons et
+            c'est à Lui que nous retournerons»
+          </div>
+        </div>
+        {/* Étapes en cartes colorées */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
+          {etapes.map((etape, i) => (
+            <div
+              key={i}
+              style={{
+                display: 'flex',
+                alignItems: 'flex-start',
+                gap: '0.75rem',
+                background: `${couleur}0d`,
+                border: `1px solid ${couleur}22`,
+                borderLeft: `4px solid ${couleur}`,
+                borderRadius: '10px',
+                padding: '0.7rem 0.85rem',
+              }}
+            >
+              <div
+                style={{
+                  flexShrink: 0,
+                  width: '34px',
+                  height: '34px',
+                  borderRadius: '50%',
+                  background: couleur,
+                  color: 'white',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: '17px',
+                }}
+              >
+                {etape.emoji}
+              </div>
+              <div style={{ flex: 1 }}>
+                <div
+                  style={{
+                    fontWeight: 'bold',
+                    color: couleur,
+                    fontSize: '14px',
+                    marginBottom: '0.1rem',
+                  }}
+                >
+                  {etape.label}
+                </div>
+                <div style={{ fontSize: '12.5px', color: '#333' }}>
+                  📅 {etape.date ? fmt(etape.date) : '...............'}{' '}
+                  {etape.heure ? `à ${etape.heure}` : ''}
+                </div>
+                {etape.lieu && (
+                  <div style={{ fontSize: '12.5px', color: '#333' }}>
+                    📍 {etape.lieu}
+                  </div>
+                )}
+                {(etape as any).adresse && (
+                  <div style={{ fontSize: '11px', color: '#777' }}>
+                    {(etape as any).adresse}
+                  </div>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+        {dossier.observations && (
+          <div
+            style={{
+              background: '#f9f9f9',
+              borderRadius: '10px',
+              padding: '0.7rem 0.85rem',
+              marginTop: '0.7rem',
+            }}
+          >
+            <div style={{ fontSize: '11px', color: '#888' }}>Observations</div>
+            <div style={{ fontSize: '12.5px' }}>{dossier.observations}</div>
+          </div>
+        )}
+        <div
+          style={{
+            textAlign: 'center',
+            fontSize: '11.5px',
+            fontStyle: 'italic',
+            color: '#666',
+            marginTop: '0.9rem',
+          }}
+        >
+          <div>Kullu nafsin dhaiqatu almawt</div>
+          <div>(Sourate 3: Al 'Imran; Verset 185)</div>
+          <div style={{ marginTop: '0.3rem', color: couleur, fontWeight: 600 }}>
+            Allahumma ghfir lahum wa rhamhum Amine
+          </div>
+        </div>
+        {piedPage()}
+      </div>
+    );
+  };
+
+  const renderPageDeGarde = () => {
+    const carte: React.CSSProperties = {
+      background: '#f9f9f9',
+      borderRadius: '10px',
+      padding: '0.85rem 1rem',
+      marginBottom: '0.8rem',
+    };
+    const titreCarte: React.CSSProperties = {
+      color: couleur,
+      margin: '0 0 0.6rem',
+      fontSize: '15px',
+      borderBottom: `1px solid ${couleur}22`,
+      paddingBottom: '0.35rem',
+    };
+    const grille: React.CSSProperties = {
+      display: 'grid',
+      gridTemplateColumns: '1fr 1fr',
+      gap: '0.5rem 0.75rem',
+      fontSize: '12.5px',
+    };
+    const lib: React.CSSProperties = { color: '#888', fontSize: '11px' };
+    return (
+      <div style={{ ...docStyle, lineHeight: '1.4' }}>
+        <div
+          style={{
+            textAlign: 'center',
+            marginBottom: '1rem',
+            borderBottom: `3px solid ${couleur}`,
+            paddingBottom: '0.6rem',
+          }}
+        >
+          {agence?.logo_url && (
+            <img
+              src={agence.logo_url}
+              alt="logo"
+              style={{
+                maxHeight: '55px',
+                marginBottom: '0.5rem',
+                display: 'block',
+                margin: '0 auto 0.5rem',
+              }}
+            />
+          )}
+          <div style={{ fontWeight: 'bold', fontSize: '18px', color: couleur }}>
+            {agence?.nom}
+          </div>
+          <div style={{ fontSize: '12px', color: '#666' }}>
+            {agence?.adresse_complete}
+          </div>
+          <div style={{ fontSize: '12px', color: '#666' }}>
+            Tél : {agence?.telephone} — {agence?.email}
+          </div>
+        </div>
+        <div
+          style={{
+            background: couleur,
+            color: 'white',
+            padding: '0.7rem',
+            borderRadius: '8px',
+            textAlign: 'center',
+            marginBottom: '1rem',
+          }}
+        >
+          <div style={{ fontSize: '17px', fontWeight: 'bold' }}>
+            {dossier.type_dossier === 'inhumation_locale'
+              ? '⚰️ INHUMATION LOCALE'
+              : '✈️ RAPATRIEMENT'}
+          </div>
+          <div style={{ fontSize: '13px', marginTop: '0.25rem', opacity: 0.9 }}>
+            {dossier.numero_dossier}
+          </div>
+        </div>
+        <div style={carte}>
+          <h3 style={titreCarte}>👤 Défunt</h3>
+          <div style={grille}>
+            <div>
+              <span style={lib}>Nom / Prénom :</span>
+              <br />
+              <strong>
+                {d?.civilite} {d?.prenom} {d?.nom}
+              </strong>
+            </div>
+            <div>
+              <span style={lib}>Date de naissance :</span>
+              <br />
+              <strong>
+                {d?.date_naissance
+                  ? new Date(d.date_naissance).toLocaleDateString('fr-FR')
+                  : '—'}
+              </strong>
+            </div>
+            <div>
+              <span style={lib}>Lieu de naissance :</span>
+              <br />
+              <strong>{d?.lieu_naissance || '—'}</strong>
+            </div>
+            <div>
+              <span style={lib}>Nationalité :</span>
+              <br />
+              <strong>{d?.nationalite || '—'}</strong>
+            </div>
+            <div style={{ gridColumn: '1 / -1' }}>
+              <span style={lib}>Domicile :</span>
+              <br />
+              <strong>{d?.domicile || '—'}</strong>
+            </div>
+            <div>
+              <span style={lib}>Date de décès :</span>
+              <br />
+              <strong>
+                {dossier.date_deces
+                  ? new Date(dossier.date_deces).toLocaleDateString('fr-FR')
+                  : '—'}
+              </strong>
+            </div>
+            <div>
+              <span style={lib}>Heure de décès :</span>
+              <br />
+              <strong>{dossier.heure_deces || '—'}</strong>
+            </div>
+            <div style={{ gridColumn: '1 / -1' }}>
+              <span style={lib}>Lieu de décès :</span>
+              <br />
+              <strong>{dossier.lieu_deces || '—'}</strong>
+            </div>
+          </div>
+        </div>
+        <div style={carte}>
+          <h3 style={titreCarte}>📋 Mandataire</h3>
+          <div style={grille}>
+            <div>
+              <span style={lib}>Nom / Prénom :</span>
+              <br />
+              <strong>
+                {p ? `${p.civilite || ''} ${p.prenom} ${p.nom}` : '—'}
+              </strong>
+            </div>
+            <div>
+              <span style={lib}>Lien de parenté :</span>
+              <br />
+              <strong>{p?.lien_parente || '—'}</strong>
+            </div>
+            <div>
+              <span style={lib}>Téléphone 1 :</span>
+              <br />
+              <strong>{p?.telephone_1 || '—'}</strong>
+            </div>
+            <div>
+              <span style={lib}>Téléphone 2 :</span>
+              <br />
+              <strong>{p?.telephone_2 || '—'}</strong>
+            </div>
+            <div style={{ gridColumn: '1 / -1' }}>
+              <span style={lib}>Adresse :</span>
+              <br />
+              <strong>{p?.adresse || '—'}</strong>
+            </div>
+          </div>
+        </div>
+        <div style={carte}>
+          <h3 style={titreCarte}>🗓️ Logistique</h3>
+          <div style={grille}>
+            <div>
+              <span style={lib}>Chambre mortuaire :</span>
+              <br />
+              <strong>{etab || '—'}</strong>
+            </div>
+            <div>
+              <span style={lib}>Cimetière :</span>
+              <br />
+              <strong>{cim?.nom || dossier.cimetiere_pays || '—'}</strong>
+            </div>
+            <div>
+              <span style={lib}>Toilette rituelle :</span>
+              <br />
+              <strong>
+                {dossier.date_toilette
+                  ? `${new Date(dossier.date_toilette).toLocaleDateString(
+                      'fr-FR'
+                    )} ${dossier.heure_toilette || ''}`
+                  : '—'}
+              </strong>
+            </div>
+            <div>
+              <span style={lib}>Mise en bière :</span>
+              <br />
+              <strong>
+                {dossier.date_meb
+                  ? `${new Date(dossier.date_meb).toLocaleDateString(
+                      'fr-FR'
+                    )} ${dossier.heure_meb || ''}`
+                  : '—'}
+              </strong>
+            </div>
+            <div>
+              <span style={lib}>Fermeture & Départ :</span>
+              <br />
+              <strong>
+                {dossier.date_fermeture_depart
+                  ? `${new Date(
+                      dossier.date_fermeture_depart
+                    ).toLocaleDateString('fr-FR')} ${
+                      dossier.heure_fermeture_depart || ''
+                    }`
+                  : '—'}
+              </strong>
+            </div>
+            <div>
+              <span style={lib}>Inhumation :</span>
+              <br />
+              <strong>
+                {dossier.date_inhumation
+                  ? `${new Date(dossier.date_inhumation).toLocaleDateString(
+                      'fr-FR'
+                    )} ${dossier.heure_inhumation || ''}`
+                  : '—'}
+              </strong>
+            </div>
+          </div>
+        </div>
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: '1fr 1fr 1fr',
+            gap: '0.6rem',
+            fontSize: '12px',
+          }}
+        >
+          {dossier.numero_dossier && (
             <div
               style={{
-                position: 'absolute',
-                left: '-1.9rem',
-                top: '0.2rem',
-                width: '12px',
-                height: '12px',
-                borderRadius: '50%',
-                background: couleur,
+                background: `${couleur}11`,
+                padding: '0.5rem',
+                borderRadius: '8px',
+                textAlign: 'center',
+                border: `1px solid ${couleur}33`,
               }}
-            ></div>
-            <div style={{ fontWeight: 'bold', color: couleur }}>
-              {etape.emoji} {etape.label}
+            >
+              <div style={{ color: '#888', fontSize: '10px' }}>N° dossier</div>
+              <strong style={{ color: couleur }}>
+                {dossier.numero_dossier}
+              </strong>
             </div>
-            <div style={{ fontSize: '13px' }}>
-              📅 {etape.date ? fmt(etape.date) : '...............'}{' '}
-              {etape.heure ? `à ${etape.heure}` : ''}
+          )}
+          {dossier.compte_client && (
+            <div
+              style={{
+                background: `${couleur}11`,
+                padding: '0.5rem',
+                borderRadius: '8px',
+                textAlign: 'center',
+                border: `1px solid ${couleur}33`,
+              }}
+            >
+              <div style={{ color: '#888', fontSize: '10px' }}>Référence</div>
+              <strong>{dossier.compte_client}</strong>
             </div>
-            {etape.lieu && (
-              <div style={{ fontSize: '13px' }}>📍 {etape.lieu}</div>
-            )}
-            {(etape as any).adresse && (
-              <div style={{ fontSize: '12px', color: '#666' }}>
-                {(etape as any).adresse}
-              </div>
-            )}
-          </div>
-        ))}
+          )}
+          {dossier.numero_devis && (
+            <div
+              style={{
+                background: `${couleur}11`,
+                padding: '0.5rem',
+                borderRadius: '8px',
+                textAlign: 'center',
+                border: `1px solid ${couleur}33`,
+              }}
+            >
+              <div style={{ color: '#888', fontSize: '10px' }}>N° Devis</div>
+              <strong>{dossier.numero_devis}</strong>
+            </div>
+          )}
+        </div>
+        {piedPage()}
       </div>
-      {dossier.observations && (
-        <div
-          style={{
-            background: '#f9f9f9',
-            borderRadius: '8px',
-            padding: '1rem',
-            marginTop: '1rem',
-          }}
-        >
-          <div style={{ fontSize: '12px', color: '#888' }}>Observations</div>
-          <div style={{ fontSize: '13px' }}>{dossier.observations}</div>
-        </div>
-      )}
-      <div
-        style={{
-          textAlign: 'center',
-          fontSize: '12px',
-          fontStyle: 'italic',
-          color: '#666',
-          marginTop: '1.5rem',
-        }}
-      >
-        <div>Kullu nafsin dhaiqatu almawt</div>
-        <div>(Sourate 3: Al 'Imran; Verset 185)</div>
-        <div style={{ marginTop: '0.5rem' }}>
-          Allahumma ghfir lahum wa rhamhum Amine
-        </div>
-      </div>
-      {piedPage()}
-    </div>
-  );
-
-  const renderPageDeGarde = () => (
-    <div style={docStyle}>
-      <div
-        style={{
-          textAlign: 'center',
-          marginBottom: '2rem',
-          borderBottom: `3px solid ${couleur}`,
-          paddingBottom: '1rem',
-        }}
-      >
-        {agence?.logo_url && (
-          <img
-            src={agence.logo_url}
-            alt="logo"
-            style={{
-              maxHeight: '80px',
-              marginBottom: '1rem',
-              display: 'block',
-              margin: '0 auto 1rem',
-            }}
-          />
-        )}
-        <div style={{ fontWeight: 'bold', fontSize: '20px', color: couleur }}>
-          {agence?.nom}
-        </div>
-        <div style={{ fontSize: '13px', color: '#666' }}>
-          {agence?.adresse_complete}
-        </div>
-        <div style={{ fontSize: '13px', color: '#666' }}>
-          Tél : {agence?.telephone} — {agence?.email}
-        </div>
-      </div>
-      <div
-        style={{
-          background: couleur,
-          color: 'white',
-          padding: '1rem',
-          borderRadius: '8px',
-          textAlign: 'center',
-          marginBottom: '2rem',
-        }}
-      >
-        <div style={{ fontSize: '22px', fontWeight: 'bold' }}>
-          {dossier.type_dossier === 'inhumation_locale'
-            ? '⚰️ INHUMATION LOCALE'
-            : '✈️ RAPATRIEMENT'}
-        </div>
-        <div style={{ fontSize: '14px', marginTop: '0.5rem', opacity: 0.9 }}>
-          {dossier.numero_dossier}
-        </div>
-      </div>
-      <div
-        style={{
-          background: '#f9f9f9',
-          borderRadius: '12px',
-          padding: '1.5rem',
-          marginBottom: '1.5rem',
-        }}
-      >
-        <h3
-          style={{
-            color: couleur,
-            margin: '0 0 1rem',
-            borderBottom: `1px solid ${couleur}22`,
-            paddingBottom: '0.5rem',
-          }}
-        >
-          👤 Défunt
-        </h3>
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: '1fr 1fr',
-            gap: '0.75rem',
-            fontSize: '14px',
-          }}
-        >
-          <div>
-            <span style={{ color: '#888' }}>Nom / Prénom :</span>
-            <br />
-            <strong>
-              {d?.civilite} {d?.prenom} {d?.nom}
-            </strong>
-          </div>
-          <div>
-            <span style={{ color: '#888' }}>Date de naissance :</span>
-            <br />
-            <strong>
-              {d?.date_naissance
-                ? new Date(d.date_naissance).toLocaleDateString('fr-FR')
-                : '—'}
-            </strong>
-          </div>
-          <div>
-            <span style={{ color: '#888' }}>Lieu de naissance :</span>
-            <br />
-            <strong>{d?.lieu_naissance || '—'}</strong>
-          </div>
-          <div>
-            <span style={{ color: '#888' }}>Nationalité :</span>
-            <br />
-            <strong>{d?.nationalite || '—'}</strong>
-          </div>
-          <div style={{ gridColumn: '1 / -1' }}>
-            <span style={{ color: '#888' }}>Domicile :</span>
-            <br />
-            <strong>{d?.domicile || '—'}</strong>
-          </div>
-          <div>
-            <span style={{ color: '#888' }}>Date de décès :</span>
-            <br />
-            <strong>
-              {dossier.date_deces
-                ? new Date(dossier.date_deces).toLocaleDateString('fr-FR')
-                : '—'}
-            </strong>
-          </div>
-          <div>
-            <span style={{ color: '#888' }}>Heure de décès :</span>
-            <br />
-            <strong>{dossier.heure_deces || '—'}</strong>
-          </div>
-          <div style={{ gridColumn: '1 / -1' }}>
-            <span style={{ color: '#888' }}>Lieu de décès :</span>
-            <br />
-            <strong>{dossier.lieu_deces || '—'}</strong>
-          </div>
-        </div>
-      </div>
-      <div
-        style={{
-          background: '#f9f9f9',
-          borderRadius: '12px',
-          padding: '1.5rem',
-          marginBottom: '1.5rem',
-        }}
-      >
-        <h3
-          style={{
-            color: couleur,
-            margin: '0 0 1rem',
-            borderBottom: `1px solid ${couleur}22`,
-            paddingBottom: '0.5rem',
-          }}
-        >
-          📋 Mandataire
-        </h3>
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: '1fr 1fr',
-            gap: '0.75rem',
-            fontSize: '14px',
-          }}
-        >
-          <div>
-            <span style={{ color: '#888' }}>Nom / Prénom :</span>
-            <br />
-            <strong>
-              {p ? `${p.civilite || ''} ${p.prenom} ${p.nom}` : '—'}
-            </strong>
-          </div>
-          <div>
-            <span style={{ color: '#888' }}>Lien de parenté :</span>
-            <br />
-            <strong>{p?.lien_parente || '—'}</strong>
-          </div>
-          <div>
-            <span style={{ color: '#888' }}>Téléphone 1 :</span>
-            <br />
-            <strong>{p?.telephone_1 || '—'}</strong>
-          </div>
-          <div>
-            <span style={{ color: '#888' }}>Téléphone 2 :</span>
-            <br />
-            <strong>{p?.telephone_2 || '—'}</strong>
-          </div>
-          <div style={{ gridColumn: '1 / -1' }}>
-            <span style={{ color: '#888' }}>Adresse :</span>
-            <br />
-            <strong>{p?.adresse || '—'}</strong>
-          </div>
-        </div>
-      </div>
-      <div
-        style={{
-          background: '#f9f9f9',
-          borderRadius: '12px',
-          padding: '1.5rem',
-          marginBottom: '1.5rem',
-        }}
-      >
-        <h3
-          style={{
-            color: couleur,
-            margin: '0 0 1rem',
-            borderBottom: `1px solid ${couleur}22`,
-            paddingBottom: '0.5rem',
-          }}
-        >
-          🗓️ Logistique
-        </h3>
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: '1fr 1fr',
-            gap: '0.75rem',
-            fontSize: '14px',
-          }}
-        >
-          <div>
-            <span style={{ color: '#888' }}>Chambre mortuaire :</span>
-            <br />
-            <strong>{etab || '—'}</strong>
-          </div>
-          <div>
-            <span style={{ color: '#888' }}>Cimetière :</span>
-            <br />
-            <strong>{cim?.nom || dossier.cimetiere_pays || '—'}</strong>
-          </div>
-          <div>
-            <span style={{ color: '#888' }}>Toilette rituelle :</span>
-            <br />
-            <strong>
-              {dossier.date_toilette
-                ? `${new Date(dossier.date_toilette).toLocaleDateString(
-                    'fr-FR'
-                  )} ${dossier.heure_toilette || ''}`
-                : '—'}
-            </strong>
-          </div>
-          <div>
-            <span style={{ color: '#888' }}>Mise en bière :</span>
-            <br />
-            <strong>
-              {dossier.date_meb
-                ? `${new Date(dossier.date_meb).toLocaleDateString('fr-FR')} ${
-                    dossier.heure_meb || ''
-                  }`
-                : '—'}
-            </strong>
-          </div>
-          <div>
-            <span style={{ color: '#888' }}>Fermeture & Départ :</span>
-            <br />
-            <strong>
-              {dossier.date_fermeture_depart
-                ? `${new Date(dossier.date_fermeture_depart).toLocaleDateString(
-                    'fr-FR'
-                  )} ${dossier.heure_fermeture_depart || ''}`
-                : '—'}
-            </strong>
-          </div>
-          <div>
-            <span style={{ color: '#888' }}>Inhumation :</span>
-            <br />
-            <strong>
-              {dossier.date_inhumation
-                ? `${new Date(dossier.date_inhumation).toLocaleDateString(
-                    'fr-FR'
-                  )} ${dossier.heure_inhumation || ''}`
-                : '—'}
-            </strong>
-          </div>
-        </div>
-      </div>
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: '1fr 1fr 1fr',
-          gap: '1rem',
-          fontSize: '13px',
-        }}
-      >
-        {dossier.numero_dossier && (
-          <div
-            style={{
-              background: `${couleur}11`,
-              padding: '0.75rem',
-              borderRadius: '8px',
-              textAlign: 'center',
-              border: `1px solid ${couleur}33`,
-            }}
-          >
-            <div style={{ color: '#888', fontSize: '11px' }}>N° dossier</div>
-            <strong style={{ color: couleur }}>{dossier.numero_dossier}</strong>
-          </div>
-        )}
-        {dossier.compte_client && (
-          <div
-            style={{
-              background: `${couleur}11`,
-              padding: '0.75rem',
-              borderRadius: '8px',
-              textAlign: 'center',
-              border: `1px solid ${couleur}33`,
-            }}
-          >
-            <div style={{ color: '#888', fontSize: '11px' }}>Référence</div>
-            <strong>{dossier.compte_client}</strong>
-          </div>
-        )}
-        {dossier.numero_devis && (
-          <div
-            style={{
-              background: `${couleur}11`,
-              padding: '0.75rem',
-              borderRadius: '8px',
-              textAlign: 'center',
-              border: `1px solid ${couleur}33`,
-            }}
-          >
-            <div style={{ color: '#888', fontSize: '11px' }}>N° Devis</div>
-            <strong>{dossier.numero_devis}</strong>
-          </div>
-        )}
-      </div>
-      {piedPage()}
-    </div>
-  );
+    );
+  };
 
   const renderCalendrier = () => (
     <div style={docStyle}>
@@ -2629,6 +2631,47 @@ export default function Documents({ dossierId, onRetour }: Props) {
           </button>
         ))}
       </div>
+      {onglet === 'deroulement' && (
+        <div
+          className="no-print"
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            flexWrap: 'wrap',
+            gap: '1.25rem',
+            background: `${couleur}0d`,
+            border: `1px solid ${couleur}22`,
+            borderRadius: '8px',
+            padding: '0.6rem 0.9rem',
+            marginBottom: '1rem',
+            fontSize: '13px',
+          }}
+        >
+          <span style={{ fontWeight: 600, color: '#555' }}>
+            Afficher sur le déroulement :
+          </span>
+          <label
+            style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', cursor: 'pointer' }}
+          >
+            <input
+              type="checkbox"
+              checked={afficherSalat}
+              onChange={(e) => setAfficherSalat(e.target.checked)}
+            />
+            🕌 Salat Al Janāza
+          </label>
+          <label
+            style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', cursor: 'pointer' }}
+          >
+            <input
+              type="checkbox"
+              checked={afficherInhumation}
+              onChange={(e) => setAfficherInhumation(e.target.checked)}
+            />
+            ⚱️ Lieu d'inhumation
+          </label>
+        </div>
+      )}
       <div className="document-print">
         {onglet === 'pouvoir' && renderPouvoir()}
         {onglet === 'declaration_deces' && renderDeclarationDeces()}
