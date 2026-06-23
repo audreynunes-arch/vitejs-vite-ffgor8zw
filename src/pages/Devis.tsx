@@ -1803,7 +1803,7 @@ async function envoyerPourSignature() {
       champ = {
         page: pageIndex + 1,
         x: Math.round(xMM * MM_PT),
-        y: Math.round(yOnPageMM * MM_PT),
+        y: Math.round((yOnPageMM + 6) * MM_PT),
         width: Math.round(bRect.width * sc * MM_PT),
         height: Math.round(bRect.height * sc * MM_PT),
       };
