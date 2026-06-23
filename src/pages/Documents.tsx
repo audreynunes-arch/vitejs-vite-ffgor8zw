@@ -143,21 +143,21 @@ export default function Documents({ dossierId, onRetour }: Props) {
     background: 'white',
     border: '1px solid #eee',
     borderRadius: '12px',
-    padding: '2rem',
+    padding: '1.25rem 1.5rem',
     maxWidth: '750px',
     margin: '0 auto',
-    fontSize: '13px',
-    lineHeight: '1.8',
+    fontSize: '12.5px',
+    lineHeight: '1.45',
   };
 
   const entete = (masquerInfos = false) => (
-    <div style={{ marginBottom: '1.5rem' }}>
+    <div style={{ marginBottom: '0.7rem' }}>
       <div
         style={{
           background: couleur,
-          height: '4px',
+          height: '3px',
           borderRadius: '2px',
-          marginBottom: '1rem',
+          marginBottom: '0.5rem',
         }}
       />
       <div
@@ -165,7 +165,7 @@ export default function Documents({ dossierId, onRetour }: Props) {
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'flex-start',
-          paddingBottom: '1rem',
+          paddingBottom: '0.6rem',
           borderBottom: `1px solid ${couleur}22`,
         }}
       >
@@ -174,7 +174,7 @@ export default function Documents({ dossierId, onRetour }: Props) {
             <img
               src={agence.logo_url}
               alt="logo"
-              style={{ maxHeight: '55px', maxWidth: '120px' }}
+              style={{ maxHeight: '44px', maxWidth: '110px' }}
             />
           )}
           <div>
@@ -241,11 +241,11 @@ export default function Documents({ dossierId, onRetour }: Props) {
   );
 
   const titrePrincipal = (titre: string) => (
-    <div style={{ textAlign: 'center', marginBottom: '1.5rem' }}>
+    <div style={{ textAlign: 'center', marginBottom: '0.7rem' }}>
       <h2
         style={{
           color: couleur,
-          fontSize: '17px',
+          fontSize: '15px',
           margin: '0 0 0.25rem',
           textTransform: 'uppercase',
           letterSpacing: '0.5px',
@@ -306,7 +306,7 @@ export default function Documents({ dossierId, onRetour }: Props) {
   const ligne = (label: string, valeur?: string) => (
     <div
       style={{
-        marginBottom: '0.5rem',
+        marginBottom: '0.32rem',
         display: 'flex',
         gap: '0.5rem',
         alignItems: 'baseline',
@@ -402,8 +402,8 @@ export default function Documents({ dossierId, onRetour }: Props) {
         style={{
           display: 'grid',
           gridTemplateColumns: '1fr 1fr',
-          gap: '3rem',
-          marginTop: '2rem',
+          gap: '2.5rem',
+          marginTop: '1rem',
         }}
       >
         <div>
@@ -421,7 +421,7 @@ export default function Documents({ dossierId, onRetour }: Props) {
             id="case-signature-mandant"
             style={{
               border: `1px solid ${couleur}33`,
-              height: '70px',
+              height: '56px',
               borderRadius: '4px',
               background: '#fafafa',
               display: 'flex',
@@ -447,7 +447,7 @@ export default function Documents({ dossierId, onRetour }: Props) {
           <div
             style={{
               border: `1px solid ${couleur}33`,
-              height: '70px',
+              height: '56px',
               borderRadius: '4px',
               background: '#fafafa',
               display: 'flex',
@@ -2575,39 +2575,78 @@ export default function Documents({ dossierId, onRetour }: Props) {
       conteneur.innerHTML = html;
       document.body.appendChild(conteneur);
 
-      let champ: any = null;
-      const caseSig = conteneur.querySelector('#case-signature-mandant');
+      // 1) Mesurer le cadre de signature (avant de retirer le conteneur)
+      const LETTER_W = 612;
+      const LETTER_H = 792;
+      const A4_W = 210; // largeur A4 (mm)
+      const A4_H = 297; // hauteur A4 (mm)
+      const marge = 5; // marge du PDF en mm
+      const contentPageH = A4_H - 2 * marge; // hauteur utile d'une page (mm)
+      const cRect = conteneur.getBoundingClientRect();
+      const sc = (A4_W - 2 * marge) / cRect.width; // px -> mm (largeur utile)
+      const caseSig = conteneur.querySelector(
+        '#case-signature-mandant'
+      ) as HTMLElement | null;
+      let mesure: any = null;
       if (caseSig) {
-        const cRect = conteneur.getBoundingClientRect();
-        const bRect = (caseSig as HTMLElement).getBoundingClientRect();
-        const sc = 200 / cRect.width;
-        const MM_PT = 2.83465;
-        const pageContentH = 287;
-        const yTopMM = (bRect.top - cRect.top) * sc;
-        const xMM = 5 + (bRect.left - cRect.left) * sc;
-        const pageIndex = Math.floor(yTopMM / pageContentH);
-        const yOnPageMM = 5 + (yTopMM - pageIndex * pageContentH);
-        champ = {
-          page: pageIndex + 1,
-          x: Math.round(xMM * MM_PT),
-          // SignWell mesure y depuis le BAS de la page (A4 = 297 mm)
-          y: Math.round((297 - yOnPageMM - bRect.height * sc) * MM_PT),
-          width: Math.round(bRect.width * sc * MM_PT),
-          height: Math.round(bRect.height * sc * MM_PT),
+        const bRect = caseSig.getBoundingClientRect();
+        const xFromContent = (bRect.left - cRect.left) * sc; // mm
+        const yFromContent = (bRect.top - cRect.top) * sc; // mm
+        const pageIndex = Math.floor(yFromContent / contentPageH); // 0-based
+        mesure = {
+          pageIndex,
+          xOnPage: marge + xFromContent, // mm depuis le bord gauche de la page
+          yOnPage: marge + (yFromContent - pageIndex * contentPageH), // mm depuis le haut de la page
+          wMM: bRect.width * sc,
+          hMM: bRect.height * sc,
         };
       }
 
-      const pdfBlob = await (html2pdf as any)()
+      // 2) Générer le PDF ET récupérer le vrai nombre de pages
+      const worker = (html2pdf as any)()
         .set({
-          margin: 5,
+          margin: marge,
           pagebreak: { mode: [] },
           image: { type: 'jpeg', quality: 0.95 },
           html2canvas: { scale: 2, useCORS: true },
           jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
         })
         .from(conteneur)
-        .outputPdf('blob');
+        .toPdf();
+      const pdfObj = await worker.get('pdf');
+      const totalPages = pdfObj.internal.getNumberOfPages();
+      const pdfBlob = pdfObj.output('blob');
       document.body.removeChild(conteneur);
+
+      // 3) Projeter la position sur du US Letter (612x792), origine haut-gauche,
+      //    avec bornage pour ne jamais sortir de la page (évite l'erreur SignWell).
+      let champ: any = null;
+      if (mesure) {
+        const page = Math.min(mesure.pageIndex + 1, totalPages);
+        let xPt = (mesure.xOnPage / A4_W) * LETTER_W;
+        let yPt = (mesure.yOnPage / A4_H) * LETTER_H;
+        let wPt = (mesure.wMM / A4_W) * LETTER_W;
+        let hPt = (mesure.hMM / A4_H) * LETTER_H;
+        // petite marge intérieure + hauteur de signature raisonnable
+        xPt += wPt * 0.1;
+        wPt *= 0.8;
+        if (hPt > 36) {
+          yPt += (hPt - 36) / 2;
+          hPt = 36;
+        }
+        const x = Math.max(0, Math.min(Math.round(xPt), LETTER_W - 20));
+        const y = Math.max(0, Math.min(Math.round(yPt), LETTER_H - 20));
+        // largeur/hauteur en 80 DPI (x1.111) selon SignWell
+        const width = Math.max(
+          40,
+          Math.min(Math.round(wPt * 1.111), LETTER_W - x)
+        );
+        const height = Math.max(
+          20,
+          Math.min(Math.round(hPt * 1.111), LETTER_H - y)
+        );
+        champ = { page, x, y, width, height };
+      }
 
       const base64: string = await new Promise((resolve, reject) => {
         const reader = new FileReader();
