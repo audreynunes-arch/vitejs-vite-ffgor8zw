@@ -1847,25 +1847,29 @@ async function envoyerPourSignature() {
     document.body.appendChild(conteneur);
 
     // 2) Mesurer le cadre de signature (avant de retirer le conteneur)
-    const MM_PT = 2.83465;
-    const pageHmm = 297; // hauteur A4 en mm
+    const LETTER_W = 612;
+    const LETTER_H = 792;
+    const A4_W = 210; // largeur A4 (mm)
+    const A4_H = 297; // hauteur A4 (mm)
     const marge = 4; // marge du PDF en mm
+    const contentPageH = A4_H - 2 * marge; // hauteur utile d'une page (mm)
     const cRect = conteneur.getBoundingClientRect();
-    const sc = 200 / cRect.width; // mm par pixel (largeur utile A4 = 200 mm)
+    const sc = (A4_W - 2 * marge) / cRect.width; // px -> mm (largeur utile)
     const caseSig = conteneur.querySelector(
       '#case-signature-client'
     ) as HTMLElement | null;
     let mesure: any = null;
     if (caseSig) {
       const bRect = caseSig.getBoundingClientRect();
-      // distance entre le bas du cadre et le bas du contenu (mm)
-      const distBasMM =
-        (conteneur.scrollHeight - (bRect.bottom - cRect.top)) * sc;
+      const xFromContent = (bRect.left - cRect.left) * sc; // mm
+      const yFromContent = (bRect.top - cRect.top) * sc; // mm
+      const pageIndex = Math.floor(yFromContent / contentPageH); // 0-based
       mesure = {
-        xMM: marge + (bRect.left - cRect.left) * sc,
-        distBasMM,
-        boxHmm: bRect.height * sc,
+        pageIndex,
+        xOnPage: marge + xFromContent, // mm depuis le bord gauche de la page
+        yOnPage: marge + (yFromContent - pageIndex * contentPageH), // mm depuis le haut de la page
         wMM: bRect.width * sc,
+        hMM: bRect.height * sc,
       };
     }
 
@@ -1885,17 +1889,28 @@ async function envoyerPourSignature() {
     const pdfBlob = pdfObj.output('blob');
     document.body.removeChild(conteneur);
 
-    // 3b) Champ ancré au bas de la DERNIÈRE page (origine haut-gauche)
+    // 3b) Projeter la position sur du US Letter (612x792), origine haut-gauche,
+    //     avec bornage pour ne jamais sortir de la page (évite l'erreur SignWell).
     let champ: any = null;
     if (mesure) {
-      const yMM = pageHmm - marge - mesure.distBasMM - mesure.boxHmm;
-      champ = {
-        page: totalPages,
-        x: Math.round(mesure.xMM * MM_PT),
-        y: Math.round(yMM * MM_PT),
-        width: Math.round(mesure.wMM * MM_PT),
-        height: Math.round(mesure.boxHmm * MM_PT),
-      };
+      const page = Math.min(mesure.pageIndex + 1, totalPages);
+      let xPt = (mesure.xOnPage / A4_W) * LETTER_W;
+      let yPt = (mesure.yOnPage / A4_H) * LETTER_H;
+      let wPt = (mesure.wMM / A4_W) * LETTER_W;
+      let hPt = (mesure.hMM / A4_H) * LETTER_H;
+      // petite marge intérieure + hauteur de signature raisonnable
+      xPt += wPt * 0.1;
+      wPt *= 0.8;
+      if (hPt > 36) {
+        yPt += (hPt - 36) / 2;
+        hPt = 36;
+      }
+      const x = Math.max(0, Math.min(Math.round(xPt), LETTER_W - 20));
+      const y = Math.max(0, Math.min(Math.round(yPt), LETTER_H - 20));
+      // largeur/hauteur en 80 DPI (x1.111) selon SignWell
+      const width = Math.max(40, Math.min(Math.round(wPt * 1.111), LETTER_W - x));
+      const height = Math.max(20, Math.min(Math.round(hPt * 1.111), LETTER_H - y));
+      champ = { page, x, y, width, height };
     }
 
     // 4) PDF -> base64
