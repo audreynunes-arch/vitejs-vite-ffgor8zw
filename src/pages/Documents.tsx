@@ -11,6 +11,7 @@ type Onglet =
   | 'pouvoir'
   | 'declaration_deces'
   | 'apres_meb'
+  | 'declaration_avant_meb'
   | 'acquisition'
   | 'demande_inhumation'
   | 'bon_travaux'
@@ -102,6 +103,7 @@ export default function Documents({ dossierId, onRetour }: Props) {
     { key: 'pouvoir', label: '📋 Pouvoir' },
     { key: 'declaration_deces', label: '📄 Déclaration décès' },
     { key: 'apres_meb', label: '🚗 Après MEB' },
+    { key: 'declaration_avant_meb', label: '🚐 Avant MEB' },
     { key: 'acquisition', label: '🏛️ Acquisition' },
     { key: 'demande_inhumation', label: '⚰️ Inhumation' },
     { key: 'bon_travaux', label: '🪨 Bon travaux' },
@@ -640,6 +642,87 @@ export default function Documents({ dossierId, onRetour }: Props) {
         Fait à {agence?.ville || '............'}, le {aujourd_hui}
       </p>
       {zoneSignature('Signature', 'CACHET MAIRIE', true)}
+      {piedPage()}
+    </div>
+  );
+
+  const renderDeclarationAvantMeb = () => (
+    <div style={docStyle}>
+      {entete()}
+      {titrePrincipal(
+        'DÉCLARATION PRÉALABLE AU TRANSPORT DE CORPS AVANT MISE EN BIÈRE'
+      )}
+      <p
+        style={{
+          textAlign: 'center',
+          fontSize: '12px',
+          color: '#666',
+          marginBottom: '1.5rem',
+        }}
+      >
+        (articles R.2213-7 à R.2213-14 du C.G.C.T)
+      </p>
+      <p>
+        Je soussigné(e){nomGerant ? `, ${nomGerant}` : ''}, Gérant(e) de{' '}
+        <strong style={{ color: couleur }}>{agence?.nom}</strong>, domiciliée{' '}
+        {agence?.adresse_complete}, déclare par la présente que le transport du
+        corps avant mise en bière de :
+      </p>
+      {encadreDefunt()}
+      {ligne('Lieu de départ :', etab)}
+      <p style={{ marginTop: '0.5rem' }}>Vers :</p>
+      <div style={{ marginLeft: '1rem', marginBottom: '0.75rem' }}>
+        {[
+          'Résidence du défunt(e)',
+          "Établissement de santé, d'enseignement ou de recherche (art. R.2213-13 et 14 du C.G.C.T)",
+          'Chambre funéraire',
+          'Résidence',
+        ].map((item, i) => (
+          <div
+            key={i}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.5rem',
+              marginBottom: '0.35rem',
+            }}
+          >
+            <div
+              style={{
+                width: '14px',
+                height: '14px',
+                border: `1px solid ${couleur}`,
+                borderRadius: '2px',
+                flexShrink: 0,
+              }}
+            ></div>
+            <span style={{ fontSize: '12px' }}>{item}</span>
+          </div>
+        ))}
+      </div>
+      {ligne('Degré de parenté :', p?.lien_parente)}
+      {ligne('Située au :', p?.adresse)}
+      <br />
+      <p style={{ fontSize: '12px' }}>
+        Conformément à la réglementation en vigueur, transport effectué par
+        l'entreprise{' '}
+        <strong style={{ color: couleur }}>{agence?.nom}</strong>, numéro
+        d'habilitation {agence?.habilitation}.
+      </p>
+      <p style={{ fontSize: '12px' }}>
+        • Atteste sur l'honneur avoir la qualité pour pourvoir aux funérailles
+        du défunt sus-identifié(e) ; avoir réglementairement qualité pour agir
+        au nom et pour le compte de la personne ayant qualité pour pourvoir aux
+        funérailles du / de la défunt(e) sus-identifié(e).
+      </p>
+      <p style={{ fontSize: '12px' }}>
+        • Reconnais être informé(e) que ma responsabilité civile et pénale peut
+        être engagée en cas de fausse déclaration.
+      </p>
+      <p style={{ fontSize: '12px', color: '#666', marginTop: '1rem' }}>
+        Fait à {agence?.ville || '............'}, le {aujourd_hui}
+      </p>
+      {zoneSignature(`Signature ${agence?.nom}`, '', true)}
       {piedPage()}
     </div>
   );
@@ -2676,6 +2759,7 @@ export default function Documents({ dossierId, onRetour }: Props) {
         {onglet === 'pouvoir' && renderPouvoir()}
         {onglet === 'declaration_deces' && renderDeclarationDeces()}
         {onglet === 'apres_meb' && renderApresMeb()}
+        {onglet === 'declaration_avant_meb' && renderDeclarationAvantMeb()}
         {onglet === 'acquisition' && renderAcquisition()}
         {onglet === 'demande_inhumation' && renderDemandeInhumation()}
         {onglet === 'bon_travaux' && renderBonTravaux()}
