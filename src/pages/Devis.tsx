@@ -1840,17 +1840,17 @@ async function envoyerPourSignature() {
     // 1) Générer le PDF (largeur A4 fixe pour des positions fiables)
     const html = construireHTMLDocument();
     const conteneur = document.createElement('div');
-    conteneur.style.width = '756px';
-    conteneur.innerHTML = html;
+    conteneur.innerHTML = html; // même rendu que le téléchargement (largeur libre)
     const hint = conteneur.querySelector('.print-hint');
     if (hint) hint.remove();
     document.body.appendChild(conteneur);
 
-    // 2) Mesurer le cadre de signature (avant de retirer le conteneur)
-    const LETTER_W = 612;
-    const LETTER_H = 792;
+    // 2) Mesurer le cadre de signature (dans le MÊME rendu que le PDF)
+    const PT = 2.83465; // mm -> points
     const A4_W = 210; // largeur A4 (mm)
     const A4_H = 297; // hauteur A4 (mm)
+    const A4_W_PT = 595; // largeur A4 (points)
+    const A4_H_PT = 842; // hauteur A4 (points)
     const marge = 4; // marge du PDF en mm
     const contentPageH = A4_H - 2 * marge; // hauteur utile d'une page (mm)
     const cRect = conteneur.getBoundingClientRect();
@@ -1877,7 +1877,7 @@ async function envoyerPourSignature() {
     const worker = (html2pdf as any)()
       .set({
         margin: marge,
-        pagebreak: { mode: [] },
+        pagebreak: { mode: ['css', 'legacy'] },
         image: { type: 'jpeg', quality: 0.95 },
         html2canvas: { scale: 2, useCORS: true },
         jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
@@ -1889,27 +1889,26 @@ async function envoyerPourSignature() {
     const pdfBlob = pdfObj.output('blob');
     document.body.removeChild(conteneur);
 
-    // 3b) Projeter la position sur du US Letter (612x792), origine haut-gauche,
-    //     avec bornage pour ne jamais sortir de la page (évite l'erreur SignWell).
+    // 3b) Convertir en points (le PDF est un A4 réel : 595 x 842 pt),
+    //     origine en haut-gauche, avec bornage de sécurité.
     let champ: any = null;
     if (mesure) {
       const page = Math.min(mesure.pageIndex + 1, totalPages);
-      let xPt = (mesure.xOnPage / A4_W) * LETTER_W;
-      let yPt = (mesure.yOnPage / A4_H) * LETTER_H;
-      let wPt = (mesure.wMM / A4_W) * LETTER_W;
-      let hPt = (mesure.hMM / A4_H) * LETTER_H;
+      let xPt = mesure.xOnPage * PT;
+      let yPt = mesure.yOnPage * PT;
+      let wPt = mesure.wMM * PT;
+      let hPt = mesure.hMM * PT;
       // petite marge intérieure + hauteur de signature raisonnable
       xPt += wPt * 0.1;
       wPt *= 0.8;
-      if (hPt > 36) {
-        yPt += (hPt - 36) / 2;
-        hPt = 36;
+      if (hPt > 40) {
+        yPt += (hPt - 40) / 2;
+        hPt = 40;
       }
-      const x = Math.max(0, Math.min(Math.round(xPt), LETTER_W - 20));
-      const y = Math.max(0, Math.min(Math.round(yPt), LETTER_H - 20));
-      // largeur/hauteur en 80 DPI (x1.111) selon SignWell
-      const width = Math.max(40, Math.min(Math.round(wPt * 1.111), LETTER_W - x));
-      const height = Math.max(20, Math.min(Math.round(hPt * 1.111), LETTER_H - y));
+      const x = Math.max(0, Math.min(Math.round(xPt), A4_W_PT - 20));
+      const y = Math.max(0, Math.min(Math.round(yPt), A4_H_PT - 20));
+      const width = Math.max(40, Math.min(Math.round(wPt), A4_W_PT - x));
+      const height = Math.max(20, Math.min(Math.round(hPt), A4_H_PT - y));
       champ = { page, x, y, width, height };
     }
 
