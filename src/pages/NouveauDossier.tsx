@@ -85,8 +85,9 @@ function AutocompleteAdresse({
   );
 }
 
-// Recherche d'un LIEU par son nom (hôpital, mosquée, mairie, funérarium…)
-// via l'autocomplétion officielle IGN. Saisie manuelle toujours prise en compte.
+// Recherche d'un LIEU par son nom (hôpital, mosquée, mairie, funérarium…).
+// Essaie l'IGN (lieux par nom) ; si bloqué, bascule sur l'API adresse.
+// Saisie manuelle toujours prise en compte.
 function RechercheGoogleLieu({
   value,
   onChange,
@@ -118,22 +119,32 @@ function RechercheGoogleLieu({
       return;
     }
     timer.current = setTimeout(async () => {
+      let res: string[] = [];
+      // 1) Recherche de lieu (IGN) via Supabase (contourne le blocage CORS)
       try {
-        const r = await fetch(
-          `https://data.geopf.fr/geocodage/completion/?text=${encodeURIComponent(
-            q
-          )}&type=PositionOfInterest,StreetAddress&maximumResponses=8`
-        );
-        const data = await r.json();
-        setSuggestions(
-          (data.results || [])
-            .map((x: any) => x.fulltext)
-            .filter((v: any) => !!v)
-        );
-        setOuvert(true);
+        const { data } = await supabase.functions.invoke('recherche-lieu', {
+          body: { text: q },
+        });
+        res = ((data && data.resultats) || []).filter((v: any) => !!v);
       } catch {
-        setSuggestions([]);
+        res = [];
       }
+      // 2) Repli : suggestions d'adresses si rien (ou fonction indisponible)
+      if (res.length === 0) {
+        try {
+          const r2 = await fetch(
+            `https://api-adresse.data.gouv.fr/search/?q=${encodeURIComponent(
+              q
+            )}&limit=5`
+          );
+          const d2 = await r2.json();
+          res = (d2.features || []).map((f: any) => f.properties.label);
+        } catch {
+          res = [];
+        }
+      }
+      setSuggestions(res);
+      setOuvert(res.length > 0);
     }, 300);
   }
 
