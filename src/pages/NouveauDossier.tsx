@@ -86,8 +86,8 @@ function AutocompleteAdresse({
 }
 
 // Recherche d'un LIEU par son nom (hôpital, mosquée, mairie, funérarium…).
-// Essaie l'IGN (lieux par nom) ; si bloqué, bascule sur l'API adresse.
-// Saisie manuelle toujours prise en compte.
+// Passe par la fonction Supabase (IGN), et complète l'adresse complète
+// quand on choisit un lieu. Saisie manuelle toujours prise en compte.
 function RechercheGoogleLieu({
   value,
   onChange,
@@ -101,7 +101,7 @@ function RechercheGoogleLieu({
   types?: string[];
 }) {
   const [texte, setTexte] = useState(value || '');
-  const [suggestions, setSuggestions] = useState<string[]>([]);
+  const [suggestions, setSuggestions] = useState<any[]>([]);
   const [ouvert, setOuvert] = useState(false);
   const timer = useRef<any>(null);
 
@@ -119,17 +119,16 @@ function RechercheGoogleLieu({
       return;
     }
     timer.current = setTimeout(async () => {
-      let res: string[] = [];
-      // 1) Recherche de lieu (IGN) via Supabase (contourne le blocage CORS)
+      let res: any[] = [];
       try {
         const { data } = await supabase.functions.invoke('recherche-lieu', {
           body: { text: q },
         });
-        res = ((data && data.resultats) || []).filter((v: any) => !!v);
+        res = (data && data.resultats) || [];
       } catch {
         res = [];
       }
-      // 2) Repli : suggestions d'adresses si rien (ou fonction indisponible)
+      // Repli direct sur les adresses si la fonction ne répond pas
       if (res.length === 0) {
         try {
           const r2 = await fetch(
@@ -138,7 +137,13 @@ function RechercheGoogleLieu({
             )}&limit=5`
           );
           const d2 = await r2.json();
-          res = (d2.features || []).map((f: any) => f.properties.label);
+          res = (d2.features || []).map((f: any) => ({
+            nom: f.properties.label,
+            label: f.properties.label,
+            lon: f.geometry?.coordinates?.[0],
+            lat: f.geometry?.coordinates?.[1],
+            estLieu: false,
+          }));
         } catch {
           res = [];
         }
@@ -148,9 +153,23 @@ function RechercheGoogleLieu({
     }, 300);
   }
 
-  function choisir(label: string) {
-    setTexte(label);
-    onChange(label);
+  async function choisir(s: any) {
+    let valeur = s.label;
+    // Pour un lieu, on va chercher son adresse complète (rue) via ses coordonnées
+    if (s.estLieu && s.lon != null && s.lat != null) {
+      try {
+        const r = await fetch(
+          `https://api-adresse.data.gouv.fr/reverse/?lon=${s.lon}&lat=${s.lat}`
+        );
+        const d = await r.json();
+        const rue = d.features?.[0]?.properties?.label;
+        if (rue) valeur = `${s.nom} — ${rue}`;
+      } catch {
+        // en cas d'échec, on garde le label simple
+      }
+    }
+    setTexte(valeur);
+    onChange(valeur);
     setSuggestions([]);
     setOuvert(false);
   }
@@ -168,9 +187,9 @@ function RechercheGoogleLieu({
       />
       {ouvert && suggestions.length > 0 && (
         <div style={liste}>
-          {suggestions.map((label, i) => (
-            <div key={i} onMouseDown={() => choisir(label)} style={item}>
-              {label}
+          {suggestions.map((s, i) => (
+            <div key={i} onMouseDown={() => choisir(s)} style={item}>
+              {s.label}
             </div>
           ))}
         </div>
