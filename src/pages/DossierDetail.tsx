@@ -20,7 +20,7 @@ function AutocompleteAdresse({
   style?: any;
 }) {
   const [texte, setTexte] = useState(value || '');
-  const [suggestions, setSuggestions] = useState<any[]>([]);
+  const [suggestions, setSuggestions] = useState<string[]>([]);
   const [ouvert, setOuvert] = useState(false);
   const timer = useRef<any>(null);
 
@@ -30,7 +30,7 @@ function AutocompleteAdresse({
 
   function rechercher(q: string) {
     setTexte(q);
-    onChange(q); // saisie libre toujours possible (adresses étrangères, etc.)
+    onChange(q); // saisie manuelle toujours enregistrée
     if (timer.current) clearTimeout(timer.current);
     if (q.trim().length < 3) {
       setSuggestions([]);
@@ -45,7 +45,9 @@ function AutocompleteAdresse({
           )}&limit=5`
         );
         const data = await r.json();
-        setSuggestions(data.features || []);
+        setSuggestions(
+          (data.features || []).map((f: any) => f.properties.label)
+        );
         setOuvert(true);
       } catch {
         setSuggestions([]);
@@ -86,10 +88,10 @@ function AutocompleteAdresse({
             marginTop: '2px',
           }}
         >
-          {suggestions.map((s, i) => (
+          {suggestions.map((label, i) => (
             <div
               key={i}
-              onMouseDown={() => choisir(s.properties.label)}
+              onMouseDown={() => choisir(label)}
               style={{
                 padding: '0.5rem 0.75rem',
                 cursor: 'pointer',
@@ -97,7 +99,7 @@ function AutocompleteAdresse({
                 borderBottom: '1px solid #f2f2f2',
               }}
             >
-              {s.properties.label}
+              {label}
             </div>
           ))}
         </div>
@@ -106,8 +108,8 @@ function AutocompleteAdresse({
   );
 }
 
-// Recherche de lieu (chambre funéraire, mairie, mosquée…) :
-// mêmes suggestions d'adresses FR, saisie libre du nom possible.
+// Recherche d'un LIEU par son nom (hôpital, mosquée, mairie, funérarium…)
+// via OpenStreetMap. Saisie manuelle toujours prise en compte.
 function RechercheGoogleLieu({
   value,
   onChange,
@@ -120,13 +122,92 @@ function RechercheGoogleLieu({
   style?: any;
   types?: string[];
 }) {
+  const [texte, setTexte] = useState(value || '');
+  const [suggestions, setSuggestions] = useState<string[]>([]);
+  const [ouvert, setOuvert] = useState(false);
+  const timer = useRef<any>(null);
+
+  useEffect(() => {
+    setTexte(value || '');
+  }, [value]);
+
+  function rechercher(q: string) {
+    setTexte(q);
+    onChange(q); // saisie manuelle toujours enregistrée
+    if (timer.current) clearTimeout(timer.current);
+    if (q.trim().length < 3) {
+      setSuggestions([]);
+      setOuvert(false);
+      return;
+    }
+    timer.current = setTimeout(async () => {
+      try {
+        const r = await fetch(
+          `https://nominatim.openstreetmap.org/search?format=json&limit=5&countrycodes=fr&q=${encodeURIComponent(
+            q
+          )}`
+        );
+        const data = await r.json();
+        setSuggestions(
+          Array.isArray(data) ? data.map((d: any) => d.display_name) : []
+        );
+        setOuvert(true);
+      } catch {
+        setSuggestions([]);
+      }
+    }, 500);
+  }
+
+  function choisir(label: string) {
+    setTexte(label);
+    onChange(label);
+    setSuggestions([]);
+    setOuvert(false);
+  }
+
   return (
-    <AutocompleteAdresse
-      value={value}
-      onChange={onChange}
-      placeholder={placeholder || 'Nom ou adresse…'}
-      style={style}
-    />
+    <div style={{ position: 'relative' }}>
+      <input
+        value={texte}
+        onChange={(e) => rechercher(e.target.value)}
+        onFocus={() => suggestions.length > 0 && setOuvert(true)}
+        onBlur={() => setTimeout(() => setOuvert(false), 200)}
+        placeholder={placeholder || 'Nom du lieu ou adresse…'}
+        style={style}
+        autoComplete="off"
+      />
+      {ouvert && suggestions.length > 0 && (
+        <div
+          style={{
+            position: 'absolute',
+            zIndex: 2000,
+            background: 'white',
+            border: '1px solid #ddd',
+            borderRadius: '6px',
+            width: '100%',
+            boxShadow: '0 6px 18px rgba(0,0,0,0.12)',
+            maxHeight: '240px',
+            overflowY: 'auto',
+            marginTop: '2px',
+          }}
+        >
+          {suggestions.map((label, i) => (
+            <div
+              key={i}
+              onMouseDown={() => choisir(label)}
+              style={{
+                padding: '0.5rem 0.75rem',
+                cursor: 'pointer',
+                fontSize: '13px',
+                borderBottom: '1px solid #f2f2f2',
+              }}
+            >
+              {label}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
   );
 }
 
