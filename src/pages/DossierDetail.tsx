@@ -19,35 +19,100 @@ function AutocompleteAdresse({
   placeholder?: string;
   style?: any;
 }) {
-  const inputRef = useRef<HTMLInputElement>(null);
+  const [texte, setTexte] = useState(value || '');
+  const [suggestions, setSuggestions] = useState<any[]>([]);
+  const [ouvert, setOuvert] = useState(false);
+  const timer = useRef<any>(null);
+
   useEffect(() => {
-    if (!inputRef.current || !(window as any).google) return;
-    const autocomplete = new (window as any).google.maps.places.Autocomplete(
-      inputRef.current,
-      { componentRestrictions: { country: 'fr' }, language: 'fr' }
-    );
-    autocomplete.addListener('place_changed', () => {
-      const place = autocomplete.getPlace();
-      if (place.formatted_address) onChange(place.formatted_address);
-      else if (place.name) onChange(place.name);
-    });
-  }, []);
+    setTexte(value || '');
+  }, [value]);
+
+  function rechercher(q: string) {
+    setTexte(q);
+    onChange(q); // saisie libre toujours possible (adresses étrangères, etc.)
+    if (timer.current) clearTimeout(timer.current);
+    if (q.trim().length < 3) {
+      setSuggestions([]);
+      setOuvert(false);
+      return;
+    }
+    timer.current = setTimeout(async () => {
+      try {
+        const r = await fetch(
+          `https://api-adresse.data.gouv.fr/search/?q=${encodeURIComponent(
+            q
+          )}&limit=5`
+        );
+        const data = await r.json();
+        setSuggestions(data.features || []);
+        setOuvert(true);
+      } catch {
+        setSuggestions([]);
+      }
+    }, 250);
+  }
+
+  function choisir(label: string) {
+    setTexte(label);
+    onChange(label);
+    setSuggestions([]);
+    setOuvert(false);
+  }
+
   return (
-    <input
-      ref={inputRef}
-      defaultValue={value}
-      placeholder={placeholder}
-      style={style}
-    />
+    <div style={{ position: 'relative' }}>
+      <input
+        value={texte}
+        onChange={(e) => rechercher(e.target.value)}
+        onFocus={() => suggestions.length > 0 && setOuvert(true)}
+        onBlur={() => setTimeout(() => setOuvert(false), 200)}
+        placeholder={placeholder || 'Commencez à taper une adresse...'}
+        style={style}
+        autoComplete="off"
+      />
+      {ouvert && suggestions.length > 0 && (
+        <div
+          style={{
+            position: 'absolute',
+            zIndex: 2000,
+            background: 'white',
+            border: '1px solid #ddd',
+            borderRadius: '6px',
+            width: '100%',
+            boxShadow: '0 6px 18px rgba(0,0,0,0.12)',
+            maxHeight: '220px',
+            overflowY: 'auto',
+            marginTop: '2px',
+          }}
+        >
+          {suggestions.map((s, i) => (
+            <div
+              key={i}
+              onMouseDown={() => choisir(s.properties.label)}
+              style={{
+                padding: '0.5rem 0.75rem',
+                cursor: 'pointer',
+                fontSize: '14px',
+                borderBottom: '1px solid #f2f2f2',
+              }}
+            >
+              {s.properties.label}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
   );
 }
 
+// Recherche de lieu (chambre funéraire, mairie, mosquée…) :
+// mêmes suggestions d'adresses FR, saisie libre du nom possible.
 function RechercheGoogleLieu({
   value,
   onChange,
   placeholder,
   style,
-  types,
 }: {
   value: string;
   onChange: (val: string) => void;
@@ -55,76 +120,13 @@ function RechercheGoogleLieu({
   style?: any;
   types?: string[];
 }) {
-  const inputRef = useRef<HTMLInputElement>(null);
-  const [manuel, setManuel] = useState(false);
-  useEffect(() => {
-    if (!inputRef.current || !(window as any).google || manuel) return;
-    const autocomplete = new (window as any).google.maps.places.Autocomplete(
-      inputRef.current,
-      {
-        componentRestrictions: { country: 'fr' },
-        language: 'fr',
-        types: types || ['establishment'],
-      }
-    );
-    autocomplete.addListener('place_changed', () => {
-      const place = autocomplete.getPlace();
-      if (place.name && place.formatted_address) {
-        onChange(`${place.name} — ${place.formatted_address}`);
-      } else if (place.formatted_address) {
-        onChange(place.formatted_address);
-      } else if (place.name) {
-        onChange(place.name);
-      }
-    });
-  }, [manuel]);
   return (
-    <div>
-      {!manuel ? (
-        <div style={{ position: 'relative' }}>
-          <input
-            ref={inputRef}
-            defaultValue={value}
-            placeholder={placeholder || 'Rechercher sur Google...'}
-            style={style}
-          />
-          <div style={{ fontSize: '11px', color: '#888', marginTop: '4px' }}>
-            Lieu introuvable ?{' '}
-            <span
-              onClick={() => setManuel(true)}
-              style={{
-                color: '#4F46E5',
-                cursor: 'pointer',
-                textDecoration: 'underline',
-              }}
-            >
-              Saisir manuellement
-            </span>
-          </div>
-        </div>
-      ) : (
-        <div>
-          <input
-            value={value}
-            onChange={(e) => onChange(e.target.value)}
-            placeholder="Saisir manuellement..."
-            style={style}
-          />
-          <div style={{ fontSize: '11px', color: '#888', marginTop: '4px' }}>
-            <span
-              onClick={() => setManuel(false)}
-              style={{
-                color: '#4F46E5',
-                cursor: 'pointer',
-                textDecoration: 'underline',
-              }}
-            >
-              ← Rechercher sur Google
-            </span>
-          </div>
-        </div>
-      )}
-    </div>
+    <AutocompleteAdresse
+      value={value}
+      onChange={onChange}
+      placeholder={placeholder || 'Nom ou adresse…'}
+      style={style}
+    />
   );
 }
 
