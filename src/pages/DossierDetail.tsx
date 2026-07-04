@@ -8,7 +8,7 @@ interface Props {
   onDocuments: () => void;
 }
 
-ffunction AutocompleteAdresse({
+function AutocompleteAdresse({
   value,
   onChange,
   placeholder,
@@ -121,21 +121,16 @@ function RechercheGoogleLieu({
     }
     timer.current = setTimeout(async () => {
       let res: string[] = [];
-      // 1) Recherche par nom de lieu (IGN)
+      // 1) Recherche de lieu (IGN) via Supabase (contourne le blocage CORS)
       try {
-        const r = await fetch(
-          `https://data.geopf.fr/geocodage/completion/?text=${encodeURIComponent(
-            q
-          )}&type=PositionOfInterest&maximumResponses=8`
-        );
-        const data = await r.json();
-        res = (data.results || [])
-          .map((x: any) => x.fulltext)
-          .filter((v: any) => !!v);
+        const { data } = await supabase.functions.invoke('recherche-lieu', {
+          body: { text: q },
+        });
+        res = ((data && data.resultats) || []).filter((v: any) => !!v);
       } catch {
         res = [];
       }
-      // 2) Repli : suggestions d'adresses si aucun lieu trouvé (ou IGN bloqué)
+      // 2) Repli : suggestions d'adresses si rien (ou fonction indisponible)
       if (res.length === 0) {
         try {
           const r2 = await fetch(
