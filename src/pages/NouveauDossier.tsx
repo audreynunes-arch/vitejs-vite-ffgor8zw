@@ -73,31 +73,9 @@ function AutocompleteAdresse({
         autoComplete="off"
       />
       {ouvert && suggestions.length > 0 && (
-        <div
-          style={{
-            position: 'absolute',
-            zIndex: 2000,
-            background: 'white',
-            border: '1px solid #ddd',
-            borderRadius: '6px',
-            width: '100%',
-            boxShadow: '0 6px 18px rgba(0,0,0,0.12)',
-            maxHeight: '220px',
-            overflowY: 'auto',
-            marginTop: '2px',
-          }}
-        >
+        <div style={liste}>
           {suggestions.map((label, i) => (
-            <div
-              key={i}
-              onMouseDown={() => choisir(label)}
-              style={{
-                padding: '0.5rem 0.75rem',
-                cursor: 'pointer',
-                fontSize: '14px',
-                borderBottom: '1px solid #f2f2f2',
-              }}
-            >
+            <div key={i} onMouseDown={() => choisir(label)} style={item}>
               {label}
             </div>
           ))}
@@ -108,7 +86,7 @@ function AutocompleteAdresse({
 }
 
 // Recherche d'un LIEU par son nom (hôpital, mosquée, mairie, funérarium…)
-// via OpenStreetMap. Saisie manuelle toujours prise en compte.
+// via l'autocomplétion officielle IGN. Saisie manuelle toujours prise en compte.
 function RechercheGoogleLieu({
   value,
   onChange,
@@ -142,19 +120,21 @@ function RechercheGoogleLieu({
     timer.current = setTimeout(async () => {
       try {
         const r = await fetch(
-          `https://nominatim.openstreetmap.org/search?format=json&limit=5&countrycodes=fr&q=${encodeURIComponent(
+          `https://data.geopf.fr/geocodage/completion/?text=${encodeURIComponent(
             q
-          )}`
+          )}&type=PositionOfInterest,StreetAddress&maximumResponses=8`
         );
         const data = await r.json();
         setSuggestions(
-          Array.isArray(data) ? data.map((d: any) => d.display_name) : []
+          (data.results || [])
+            .map((x: any) => x.fulltext)
+            .filter((v: any) => !!v)
         );
         setOuvert(true);
       } catch {
         setSuggestions([]);
       }
-    }, 500);
+    }, 300);
   }
 
   function choisir(label: string) {
@@ -176,31 +156,9 @@ function RechercheGoogleLieu({
         autoComplete="off"
       />
       {ouvert && suggestions.length > 0 && (
-        <div
-          style={{
-            position: 'absolute',
-            zIndex: 2000,
-            background: 'white',
-            border: '1px solid #ddd',
-            borderRadius: '6px',
-            width: '100%',
-            boxShadow: '0 6px 18px rgba(0,0,0,0.12)',
-            maxHeight: '240px',
-            overflowY: 'auto',
-            marginTop: '2px',
-          }}
-        >
+        <div style={liste}>
           {suggestions.map((label, i) => (
-            <div
-              key={i}
-              onMouseDown={() => choisir(label)}
-              style={{
-                padding: '0.5rem 0.75rem',
-                cursor: 'pointer',
-                fontSize: '13px',
-                borderBottom: '1px solid #f2f2f2',
-              }}
-            >
+            <div key={i} onMouseDown={() => choisir(label)} style={item}>
               {label}
             </div>
           ))}
@@ -209,6 +167,26 @@ function RechercheGoogleLieu({
     </div>
   );
 }
+
+// Styles partagés par les listes de suggestions
+const liste: any = {
+  position: 'absolute',
+  zIndex: 2000,
+  background: 'white',
+  border: '1px solid #ddd',
+  borderRadius: '6px',
+  width: '100%',
+  boxShadow: '0 6px 18px rgba(0,0,0,0.12)',
+  maxHeight: '240px',
+  overflowY: 'auto',
+  marginTop: '2px',
+};
+const item: any = {
+  padding: '0.5rem 0.75rem',
+  cursor: 'pointer',
+  fontSize: '13px',
+  borderBottom: '1px solid #f2f2f2',
+};
 
 export default function NouveauDossier({ onRetour }: Props) {
   const [etape, setEtape] = useState(1);
