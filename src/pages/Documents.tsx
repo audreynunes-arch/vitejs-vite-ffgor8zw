@@ -37,6 +37,7 @@ export default function Documents({ dossierId, onRetour }: Props) {
   const [envoi, setEnvoi] = useState(false);
   const [afficherSalat, setAfficherSalat] = useState(true);
   const [afficherInhumation, setAfficherInhumation] = useState(true);
+  const [afficherPresentation, setAfficherPresentation] = useState(true);
 
   useEffect(() => {
     charger();
