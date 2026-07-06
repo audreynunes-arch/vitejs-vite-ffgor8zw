@@ -623,9 +623,10 @@ export default function Documents({ dossierId, onRetour }: Props) {
       <p>Pour servir et valoir ce que de droit.</p>
       <br />
       <div style={{ marginTop: '1.5rem' }}>
-        <p style={{ marginBottom: '0.3rem' }}>Signature</p>
+        <p style={{ marginBottom: '0.3rem' }}>
+          Signature du mandataire (personne ayant pouvoir aux funérailles)
+        </p>
         <div
-          id="case-signature-mandant"
           style={{
             border: '1px solid #eee',
             height: '80px',
