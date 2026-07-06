@@ -38,23 +38,24 @@ export default function ListeDossiers({ onOuvrir, onRetour }: Props) {
     setLoading(false);
   }
   const TERMINES = ['paye', 'clos', 'annule', 'refuse'];
-  // Statut DOSSIER automatique : Annulé (manuel) > Terminé (date passée)
-  // > Validé (devis validé) > En cours
+  // Statut DOSSIER automatique :
+  // Annulé (manuel) > si devis validé : Terminé (date passée) sinon Validé
+  // > sinon En cours
   const statutDossier = (d: any): string => {
     if (d.statut === 'annule') return 'annule';
     const dateEvent = d.date_inhumation || d.date_vol;
-    if (dateEvent) {
-      const aujourdhui = new Date();
-      aujourdhui.setHours(0, 0, 0, 0);
-      if (new Date(dateEvent) < aujourdhui) return 'termine';
-    }
-    if (d.statut_devis === 'valide') return 'valide';
+    const aujourdhui = new Date();
+    aujourdhui.setHours(0, 0, 0, 0);
+    const datePassee = dateEvent && new Date(dateEvent) < aujourdhui;
+    if (d.statut_devis === 'valide') return datePassee ? 'termine' : 'valide';
     return 'en_cours';
   };
   const filtres = dossiers.filter((d) => {
     const st = statutDossier(d);
-    if (!afficherTermines && (st === 'termine' || st === 'annule'))
-      return false;
+    // On ne cache QUE les dossiers vraiment finis : Terminé + Payé (ou Annulé).
+    // Un Terminé NON payé reste affiché (pour ne pas oublier le paiement).
+    const finiEtPaye = st === 'termine' && d.statut_facture === 'payee';
+    if (!afficherTermines && (finiEtPaye || st === 'annule')) return false;
     if (!recherche) return true;
     const q = recherche.toLowerCase();
     const nomDefunt = `${d.defunts?.prenom} ${d.defunts?.nom}`.toLowerCase();
@@ -141,7 +142,7 @@ export default function ListeDossiers({ onOuvrir, onRetour }: Props) {
           checked={afficherTermines}
           onChange={(e) => setAfficherTermines(e.target.checked)}
         />
-        Afficher les dossiers terminés (payés, clos, annulés)
+        Afficher aussi les dossiers clôturés (terminés &amp; payés, annulés)
       </label>
       {filtres.length === 0 && (
         <div style={{ textAlign: 'center', padding: '3rem', color: '#999' }}>
