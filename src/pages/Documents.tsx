@@ -571,8 +571,22 @@ export default function Documents({ dossierId, onRetour }: Props) {
       {ligne('Domicilié(e) :', d?.domicile)}
       {ligne('Situation familiale :', d?.situation_familiale)}
       {sectionTitre('AFFILIATION')}
-      {ligne('Prénom et Nom du père :', d?.filiation_pere)}
-      {ligne('Nom de la mère :', d?.filiation_mere)}
+      {ligne(
+        'Père :',
+        d?.filiation_pere
+          ? `${d.filiation_pere}${d?.pere_statut ? ` (${d.pere_statut})` : ''}${
+              d?.pere_adresse ? ` — ${d.pere_adresse}` : ''
+            }`
+          : undefined
+      )}
+      {ligne(
+        'Mère :',
+        d?.filiation_mere
+          ? `${d.filiation_mere}${d?.mere_statut ? ` (${d.mere_statut})` : ''}${
+              d?.mere_adresse ? ` — ${d.mere_adresse}` : ''
+            }`
+          : undefined
+      )}
       {ligne('Époux(se) :', d?.epoux)}
       {sectionTitre('DÉCLARATION')}
       <p>
