@@ -1910,8 +1910,14 @@ async function envoyerPourSignature() {
       let yOnPageMM: number;
       if (totalPages <= 1) {
         pageIndex = 0;
+        // Correction empirique : le rendu PDF (tableau + pied de page) place
+        // la signature plus bas que la mesure DOM. Facteur calibré.
+        const FACTEUR_DESCENTE = 1.4;
         yOnPageMM =
-          marge + (mesure.yBoxPx / mesure.contentHeightPx) * contentPageH;
+          marge +
+          (mesure.yBoxPx / mesure.contentHeightPx) *
+            contentPageH *
+            FACTEUR_DESCENTE;
       } else {
         const yFromContentMM = mesure.yBoxPx * mesure.sc;
         pageIndex = Math.min(
