@@ -677,23 +677,21 @@ export default function DossierDetail({
               />
             </div>
             <div>
-              <label>Statut</label>
+              <label>Statut du dossier</label>
               <select
-                value={infos.statut}
+                value={infos.statut === 'annule' ? 'annule' : 'en_cours'}
                 onChange={(e) =>
                   setInfos((p: any) => ({ ...p, statut: e.target.value }))
                 }
                 style={selectStyle}
               >
-                <option value="en_cours">🔵 En cours</option>
-                <option value="valide">✅ Validé</option>
+                <option value="en_cours">🔵 Actif</option>
                 <option value="annule">❌ Annulé</option>
-                <option value="en_attente_paiement">
-                  ⏳ En attente de paiement
-                </option>
-                <option value="paye">💰 Payé</option>
-                <option value="clos">📁 Clos</option>
               </select>
+              <div style={{ fontSize: '11px', color: '#888', marginTop: '4px' }}>
+                « Validé » et « Terminé » se mettent à jour automatiquement
+                (validation du devis / date passée).
+              </div>
             </div>
             <div>
               <label>N° Devis</label>
