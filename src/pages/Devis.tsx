@@ -1875,12 +1875,12 @@ async function envoyerPourSignature() {
     if (caseSig) {
       const bRect = caseSig.getBoundingClientRect();
       mesure = {
-        yBoxPx: bRect.top - cRect.top,
         xBoxPx: bRect.left - cRect.left,
+        yBoxPx: bRect.top - cRect.top,
+        wPx: bRect.width,
+        hPx: bRect.height,
+        contentWidthPx: cRect.width,
         contentHeightPx: cRect.height,
-        sc,
-        wMM: bRect.width * sc,
-        hMM: bRect.height * sc,
       };
     }
 
@@ -1900,58 +1900,28 @@ async function envoyerPourSignature() {
     const pdfBlob = pdfObj.output('blob');
     document.body.removeChild(conteneur);
 
-    // 3b) Convertir en points (le PDF est un A4 réel : 595 x 842 pt),
-    //     origine en haut-gauche, avec bornage de sécurité.
+    // 3b) SignWell attend les coordonnées en PIXELS de la page rendue
+    //     (≈ contentHeightPx), et NON en points A4. On envoie donc les
+    //     pixels bruts mesurés — origine haut-gauche.
     let champ: any = null;
     if (mesure) {
-      // Le devis tient sur la PAGE 1 (la 2e page est vierge). On force donc
-      // la page 1, et on applique une correction de descente (le rendu PDF
-      // place la signature plus bas que la mesure DOM).
-      // 👉 Si la signature est trop haute, AUGMENTE FACTEUR_DESCENTE (ex: 1.6).
-      //    Si elle est trop basse, DIMINUE-le (ex: 1.2).
-      const FACTEUR_DESCENTE = 1.55;
-      const pageIndex = 0;
-      const yOnPageMM = marge + mesure.yBoxPx * mesure.sc * FACTEUR_DESCENTE;
-      const xOnPageMM = marge + mesure.xBoxPx * mesure.sc;
-      const page = pageIndex + 1;
-      let xPt = xOnPageMM * PT;
-      let yPt = yOnPageMM * PT;
-      let wPt = mesure.wMM * PT;
-      let hPt = mesure.hMM * PT;
+      let x = mesure.xBoxPx;
+      let y = mesure.yBoxPx;
+      let width = mesure.wPx;
+      let height = mesure.hPx;
       // petite marge intérieure + hauteur de signature raisonnable
-      xPt += wPt * 0.1;
-      wPt *= 0.8;
-      if (hPt > 40) {
-        yPt += (hPt - 40) / 2;
-        hPt = 40;
+      x += width * 0.1;
+      width *= 0.8;
+      if (height > 60) {
+        y += (height - 60) / 2;
+        height = 60;
       }
-      const x = Math.max(0, Math.min(Math.round(xPt), A4_W_PT - 20));
-      const y = Math.max(0, Math.min(Math.round(yPt), A4_H_PT - 20));
-      const width = Math.max(40, Math.min(Math.round(wPt), A4_W_PT - x));
-      const height = Math.max(20, Math.min(Math.round(hPt), A4_H_PT - y));
-      champ = { page, x, y, width, height };
+      x = Math.max(0, Math.min(Math.round(x), mesure.contentWidthPx - 20));
+      y = Math.max(0, Math.min(Math.round(y), mesure.contentHeightPx - 20));
+      width = Math.max(60, Math.round(width));
+      height = Math.max(25, Math.round(height));
+      champ = { page: 1, x, y, width, height };
     }
-
-    // === DEBUG (temporaire) : affiche les coordonnées sans envoyer ===
-    alert(
-      'DEBUG signature\n\n' +
-        'champ envoyé : ' +
-        JSON.stringify(champ) +
-        '\n\n' +
-        'yBoxPx : ' +
-        (mesure ? Math.round(mesure.yBoxPx) : '?') +
-        '\nsc (mm/px) : ' +
-        (mesure ? mesure.sc.toFixed(4) : '?') +
-        '\ncontentHeightPx : ' +
-        (mesure ? Math.round(mesure.contentHeightPx) : '?') +
-        '\ntotalPages : ' +
-        totalPages +
-        '\nhauteur A4 (pt) : ' +
-        A4_H_PT
-    );
-    setSaving(false);
-    return;
-    // === FIN DEBUG ===
 
     // 4) PDF -> base64
     const base64: string = await new Promise((resolve, reject) => {
