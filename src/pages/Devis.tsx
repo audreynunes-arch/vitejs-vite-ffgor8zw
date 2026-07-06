@@ -1840,7 +1840,8 @@ async function envoyerPourSignature() {
     // 1) Générer le PDF (largeur A4 fixe pour des positions fiables)
     const html = construireHTMLDocument();
     const conteneur = document.createElement('div');
-    conteneur.innerHTML = html; // même rendu que le téléchargement (largeur libre)
+    conteneur.style.width = '756px'; // largeur A4 fixe = mesure fiable
+    conteneur.innerHTML = html;
     const hint = conteneur.querySelector('.print-hint');
     if (hint) hint.remove();
     document.body.appendChild(conteneur);
@@ -1879,7 +1880,7 @@ async function envoyerPourSignature() {
         margin: marge,
         pagebreak: { mode: ['css', 'legacy'] },
         image: { type: 'jpeg', quality: 0.95 },
-        html2canvas: { scale: 2, useCORS: true },
+        html2canvas: { scale: 2, useCORS: true, windowWidth: 756 },
         jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
       })
       .from(conteneur)
