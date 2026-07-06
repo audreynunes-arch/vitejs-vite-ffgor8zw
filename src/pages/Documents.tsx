@@ -2605,7 +2605,8 @@ export default function Documents({ dossierId, onRetour }: Props) {
     const contenu = document.querySelector('.document-print');
     if (!contenu) return;
     const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Document — ${d?.prenom} ${d?.nom}</title><style>
-      * { box-sizing: border-box; }
+      * { box-sizing: border-box; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+      html, body { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
       body { font-family: Arial, sans-serif; padding: 0; font-size: 11px; line-height: 1.4; color: #333; margin: 0; }
       .print-hint { background: #EEF2FF; border: 1px solid ${couleur}; border-radius: 8px; padding: 1rem; margin-bottom: 1.5rem; font-size: 13px; color: ${couleur}; text-align: center; }
       .no-print { display: none !important; }
