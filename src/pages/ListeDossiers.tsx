@@ -54,11 +54,7 @@ export default function ListeDossiers({ onOuvrir, onRetour }: Props) {
     const st = statutDossier(d);
     // On ne cache QUE les dossiers vraiment finis : Terminé + Payé (ou Annulé).
     // Un Terminé NON payé reste affiché (pour ne pas oublier le paiement).
-    // Les devis libres n'ont pas de paiement : on les cache dès qu'ils sont terminés.
-    const finiEtPaye =
-      d.type_dossier === 'devis_libre'
-        ? st === 'termine'
-        : st === 'termine' && d.statut_facture === 'payee';
+    const finiEtPaye = st === 'termine' && d.statut_facture === 'payee';
     if (!afficherTermines && (finiEtPaye || st === 'annule')) return false;
     if (!recherche) return true;
     const q = recherche.toLowerCase();
@@ -249,20 +245,18 @@ export default function ListeDossiers({ onOuvrir, onRetour }: Props) {
                   >
                     {statut.label}
                   </span>
-                  {d.type_dossier !== 'devis_libre' && (
-                    <span
-                      style={{
-                        background: paiement.bg,
-                        color: paiement.color,
-                        padding: '0.2rem 0.6rem',
-                        borderRadius: '12px',
-                        fontSize: '12px',
-                        fontWeight: 'bold',
-                      }}
-                    >
-                      {paiement.label}
-                    </span>
-                  )}
+                  <span
+                    style={{
+                      background: paiement.bg,
+                      color: paiement.color,
+                      padding: '0.2rem 0.6rem',
+                      borderRadius: '12px',
+                      fontSize: '12px',
+                      fontWeight: 'bold',
+                    }}
+                  >
+                    {paiement.label}
+                  </span>
                   <span style={{ fontSize: '12px', color: '#bbb' }}>
                     {new Date(d.created_at).toLocaleDateString('fr-FR')}
                   </span>
