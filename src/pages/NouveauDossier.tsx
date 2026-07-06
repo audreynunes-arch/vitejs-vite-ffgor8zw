@@ -479,7 +479,7 @@ export default function NouveauDossier({ onRetour }: Props) {
           nom_medecin: defunt.nom_medecin || null,
           chambre_mortuaire_nom: logistique.chambre_mortuaire_nom || null,
           cimetiere_id:
-            type === 'inhumation_locale'
+            type === 'inhumation_locale' || type === 'devis_libre'
               ? logistique.cimetiere_id || null
               : null,
           cimetiere_pays:
@@ -968,6 +968,50 @@ export default function NouveauDossier({ onRetour }: Props) {
                 style={inputStyle}
                 placeholder="ex: KHEMIRI Bechir, ou objet de la prestation"
               />
+            </div>
+            <div>
+              <label>Lien de parenté</label>
+              <input
+                value={pouvoir.lien_parente}
+                onChange={(e) => updatePouvoir('lien_parente', e.target.value)}
+                style={inputStyle}
+                placeholder="ex: Concessionnaire, Fils…"
+              />
+            </div>
+            <div></div>
+            <div>
+              <label>Cimetière</label>
+              <select
+                value={logistique.cimetiere_id}
+                onChange={(e) =>
+                  updateLogistique('cimetiere_id', e.target.value)
+                }
+                style={selectStyle}
+              >
+                <option value="">-- Choisir --</option>
+                {cimetieres.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.nom}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label>Marbrier</label>
+              <select
+                value={logistique.marbrier_id}
+                onChange={(e) =>
+                  updateLogistique('marbrier_id', e.target.value)
+                }
+                style={selectStyle}
+              >
+                <option value="">-- Choisir --</option>
+                {marbriers.map((m) => (
+                  <option key={m.id} value={m.id}>
+                    {m.nom}
+                  </option>
+                ))}
+              </select>
             </div>
           </div>
           {btnSuivant(() => setEtape(5), !pouvoir.nom)}
