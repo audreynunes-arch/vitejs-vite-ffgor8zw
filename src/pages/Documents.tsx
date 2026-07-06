@@ -101,7 +101,7 @@ export default function Documents({ dossierId, onRetour }: Props) {
     return age + ' ans';
   };
 
-  const onglets = [
+  const tousOnglets = [
     { key: 'pouvoir', label: '📋 Pouvoir' },
     { key: 'declaration_deces', label: '📄 Déclaration décès' },
     { key: 'apres_meb', label: '🚗 Après MEB' },
@@ -127,6 +127,13 @@ export default function Documents({ dossierId, onRetour }: Props) {
         ]
       : []),
   ];
+
+  const onglets =
+    dossier.type_dossier === 'devis_libre'
+      ? tousOnglets.filter((o) =>
+          ['pouvoir', 'bon_travaux'].includes(o.key)
+        )
+      : tousOnglets;
 
   const ongletStyle = (o: string) => ({
     padding: '0.5rem 0.75rem',
