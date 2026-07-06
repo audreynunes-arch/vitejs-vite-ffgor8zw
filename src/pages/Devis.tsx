@@ -1846,6 +1846,18 @@ async function envoyerPourSignature() {
     if (hint) hint.remove();
     document.body.appendChild(conteneur);
 
+    // Attendre le chargement des images (logo, signature) pour une mesure fiable
+    await Promise.all(
+      Array.from(conteneur.querySelectorAll('img')).map((img: any) =>
+        img.complete && img.naturalHeight !== 0
+          ? Promise.resolve()
+          : new Promise((res) => {
+              img.onload = res;
+              img.onerror = res;
+            })
+      )
+    );
+
     // 2) Mesurer le cadre de signature (dans le MÊME rendu que le PDF)
     const PT = 2.83465; // mm -> points
     const A4_W = 210; // largeur A4 (mm)
