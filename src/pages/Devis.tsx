@@ -1904,28 +1904,14 @@ async function envoyerPourSignature() {
     //     origine en haut-gauche, avec bornage de sécurité.
     let champ: any = null;
     if (mesure) {
-      // On utilise le VRAI nombre de pages du PDF pour éviter de croire
-      // que la signature est sur une page qui n'existe pas.
-      let pageIndex: number;
-      let yOnPageMM: number;
-      if (totalPages <= 1) {
-        pageIndex = 0;
-        // Correction empirique : le rendu PDF (tableau + pied de page) place
-        // la signature plus bas que la mesure DOM. Facteur calibré.
-        const FACTEUR_DESCENTE = 1.4;
-        yOnPageMM =
-          marge +
-          (mesure.yBoxPx / mesure.contentHeightPx) *
-            contentPageH *
-            FACTEUR_DESCENTE;
-      } else {
-        const yFromContentMM = mesure.yBoxPx * mesure.sc;
-        pageIndex = Math.min(
-          Math.floor(yFromContentMM / contentPageH),
-          totalPages - 1
-        );
-        yOnPageMM = marge + (yFromContentMM - pageIndex * contentPageH);
-      }
+      // Le devis tient sur la PAGE 1 (la 2e page est vierge). On force donc
+      // la page 1, et on applique une correction de descente (le rendu PDF
+      // place la signature plus bas que la mesure DOM).
+      // 👉 Si la signature est trop haute, AUGMENTE FACTEUR_DESCENTE (ex: 1.6).
+      //    Si elle est trop basse, DIMINUE-le (ex: 1.2).
+      const FACTEUR_DESCENTE = 1.45;
+      const pageIndex = 0;
+      const yOnPageMM = marge + mesure.yBoxPx * mesure.sc * FACTEUR_DESCENTE;
       const xOnPageMM = marge + mesure.xBoxPx * mesure.sc;
       const page = pageIndex + 1;
       let xPt = xOnPageMM * PT;
