@@ -37,7 +37,8 @@ export default function Documents({ dossierId, onRetour }: Props) {
   const [envoi, setEnvoi] = useState(false);
   const [afficherSalat, setAfficherSalat] = useState(true);
   const [afficherInhumation, setAfficherInhumation] = useState(true);
-  const [afficherPresentation, setAfficherPresentation] = useState(true);
+  const [afficherMeb, setAfficherMeb] = useState(true);
+  const [afficherDepart, setAfficherDepart] = useState(true);
 
   useEffect(() => {
     charger();
@@ -1060,240 +1061,107 @@ export default function Documents({ dossierId, onRetour }: Props) {
     </div>
   );
 
-  const renderPassageMosquee = () => {
-    const gold = '#B08D3C';
-    const etapes = [
-      afficherPresentation && {
-        emoji: '👨‍👩‍👧',
-        label: 'Présentation à la famille',
-        detail: [
-          dossier.heure_presentation
-            ? `À partir de ${dossier.heure_presentation}`
-            : '',
-          mosquee || '',
-        ]
-          .filter(Boolean)
-          .join(' · '),
-        pastille: couleur,
-      },
-      {
-        emoji: '⚰️',
-        label: 'Fermeture du cercueil & départ',
-        detail: [
-          `${fmt(dossier.date_fermeture_depart)}${
-            dossier.heure_fermeture_depart
-              ? ` à ${dossier.heure_fermeture_depart}`
-              : ''
-          }`,
-          etab ? `depuis ${etab}` : '',
-        ]
-          .filter(Boolean)
-          .join(' · '),
-        pastille: couleur,
-      },
-      afficherSalat && {
-        emoji: '🕌',
-        label: 'Salat Al Janāza',
-        detail: ['Après la prière du Dohr', mosquee || '']
-          .filter(Boolean)
-          .join(' · '),
-        pastille: couleur,
-      },
-      afficherInhumation && {
-        emoji: '⚱️',
-        label: 'Inhumation',
-        detail: [
-          dossier.heure_inhumation ? `à ${dossier.heure_inhumation}` : '',
-          nomCim || '',
-        ]
-          .filter(Boolean)
-          .join(' · '),
-        pastille: gold,
-      },
-    ].filter(Boolean) as any[];
-
-    const feminin = d?.sexe === 'Féminin';
-
-    return (
+  const renderPassageMosquee = () => (
+    <div style={docStyle}>
+      {entete()}
+      {titrePrincipal('DÉROULEMENT DES OBSÈQUES')}
+      <div style={{ textAlign: 'center', marginBottom: '1.5rem' }}>
+        <div style={{ fontSize: '16px', marginBottom: '0.25rem' }}>
+          السلام عليكم و رحمة الله و بركاته
+        </div>
+        <div style={{ fontSize: '13px', fontStyle: 'italic', color: '#666' }}>
+          Salam alaykum wa rahmatullahi wa barakatu
+        </div>
+        <div style={{ fontSize: '14px', margin: '0.5rem 0' }}>
+          إنا لله وإنا إليه راجعون
+        </div>
+        <div style={{ fontSize: '12px', fontStyle: 'italic', color: '#666' }}>
+          «C'est à Allah que nous appartenons et c'est à Lui que nous
+          retournerons»
+        </div>
+      </div>
+      <p style={{ textAlign: 'center', marginBottom: '1.5rem' }}>
+        Auront lieu le <strong>{fmt(dossier.date_meb)}</strong>
+      </p>
       <div
         style={{
-          ...docStyle,
-          background: 'transparent',
-          display: 'flex',
-          justifyContent: 'center',
+          borderLeft: `3px solid ${couleur}`,
+          paddingLeft: '1rem',
+          marginBottom: '1.5rem',
         }}
       >
-        <div
-          style={{
-            width: '460px',
-            maxWidth: '100%',
-            background: '#FBF7EF',
-            border: '1px solid #E7DFCC',
-            borderRadius: '16px',
-            overflow: 'hidden',
-          }}
-        >
-          <div
-            style={{
-              background: couleur,
-              color: '#fff',
-              textAlign: 'center',
-              padding: '1.4rem 1.25rem 1.5rem',
-            }}
-          >
-            <div style={{ fontSize: '15px', opacity: 0.95 }}>
-              إنا لله وإنا إليه راجعون
-            </div>
-            <div style={{ fontSize: '12px', opacity: 0.85, marginTop: '4px' }}>
-              C'est à Allah que nous appartenons et à Lui que nous retournons
-            </div>
-            <div
-              style={{
-                height: '1px',
-                background: 'rgba(255,255,255,0.35)',
-                margin: '0.9rem auto',
-                width: '60px',
-              }}
-            />
-            <div
-              style={{
-                fontSize: '24px',
-                fontWeight: 'bold',
-                lineHeight: 1.2,
-                letterSpacing: '0.3px',
-              }}
-            >
-              {d?.civilite} {d?.prenom} {d?.nom}
-            </div>
-            <div style={{ fontSize: '12.5px', opacity: 0.9, marginTop: '6px' }}>
-              {feminin ? 'رحمها الله' : 'رحمه الله'} — rappelé(e) à Allah le{' '}
-              {fmt(dossier.date_deces)}
-            </div>
+        <div style={{ marginBottom: '1rem' }}>
+          <div style={{ fontWeight: 'bold', color: couleur }}>
+            🕌 Présentation à la famille
           </div>
-
-          <div style={{ padding: '1.3rem 1.4rem 0.4rem' }}>
-            <div
-              style={{
-                textAlign: 'center',
-                fontSize: '12px',
-                color: '#9A8F76',
-                textTransform: 'uppercase',
-                letterSpacing: '1.5px',
-                marginBottom: '1.1rem',
-              }}
-            >
-              Déroulement des obsèques
-            </div>
-            <div style={{ position: 'relative', paddingLeft: '34px' }}>
-              <div
-                style={{
-                  position: 'absolute',
-                  left: '11px',
-                  top: '8px',
-                  bottom: '18px',
-                  width: '2px',
-                  background: '#D8CBAF',
-                }}
-              />
-              {etapes.map((etape, i) => (
-                <div
-                  key={i}
-                  style={{
-                    position: 'relative',
-                    marginBottom: i === etapes.length - 1 ? 0 : '1.1rem',
-                  }}
-                >
-                  <div
-                    style={{
-                      position: 'absolute',
-                      left: '-34px',
-                      top: 0,
-                      width: '24px',
-                      height: '24px',
-                      borderRadius: '50%',
-                      background: etape.pastille,
-                      color: '#fff',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      fontSize: '13px',
-                    }}
-                  >
-                    {etape.emoji}
-                  </div>
-                  <div
-                    style={{
-                      fontWeight: 'bold',
-                      color: couleur,
-                      fontSize: '14.5px',
-                    }}
-                  >
-                    {etape.label}
-                  </div>
-                  {etape.detail && (
-                    <div
-                      style={{
-                        fontSize: '13px',
-                        color: '#4A4A44',
-                        marginTop: '2px',
-                      }}
-                    >
-                      {etape.detail}
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
+          <div>
+            Au :{' '}
+            <strong>{mosquee || '.................................'}</strong>
           </div>
-
-          <div
-            style={{
-              textAlign: 'center',
-              padding: '1.3rem 1.4rem 1.5rem',
-              marginTop: '0.6rem',
-            }}
-          >
-            <div
-              style={{
-                fontStyle: 'italic',
-                color: '#6B6353',
-                fontSize: '12.5px',
-                lineHeight: 1.6,
-              }}
-            >
-              « Toute âme goûtera la mort »
-              <br />
-              Sourate Al ʿImran, verset 185
-            </div>
-            <div
-              style={{
-                color: couleur,
-                fontWeight: 500,
-                fontSize: '13px',
-                marginTop: '0.7rem',
-              }}
-            >
-              {feminin
-                ? 'Allahoumma ghfir lahâ wa rhamhâ'
-                : 'Allahoumma ghfir lahou wa rhamhou'}{' '}
-              — Âmîn
-            </div>
-            <div
-              style={{
-                height: '1px',
-                background: '#E7DFCC',
-                margin: '1rem auto 0.8rem',
-                width: '80%',
-              }}
-            />
-            <div style={{ fontSize: '11.5px', color: '#9A8F76' }}>
-              {agence?.nom}
-            </div>
+          <div>
+            À partir de :{' '}
+            <strong>{dossier.heure_presentation || '........'}</strong>
+          </div>
+        </div>
+        <div style={{ marginBottom: '1rem' }}>
+          <div style={{ fontWeight: 'bold', color: couleur }}>
+            ⚰️ Fermeture du cercueil & Départ
+          </div>
+          <div>
+            Le : <strong>{fmt(dossier.date_fermeture_depart)}</strong> à{' '}
+            <strong>{dossier.heure_fermeture_depart || '........'}</strong>
+          </div>
+          <div>Depuis : {etab || '.................................'}</div>
+        </div>
+        <div style={{ marginBottom: '1rem' }}>
+          <div style={{ fontWeight: 'bold', color: couleur }}>
+            🕌 Salat Al Janāza
+          </div>
+          <div>Après Salât du Dohr</div>
+          <div>
+            À :{' '}
+            <strong>{mosquee || '.................................'}</strong>
+          </div>
+        </div>
+        <div>
+          <div style={{ fontWeight: 'bold', color: couleur }}>
+            ⚱️ Inhumation
+          </div>
+          <div>
+            Cimetière :{' '}
+            <strong>{nomCim || '.................................'}</strong>
+          </div>
+          <div>
+            Adresse :{' '}
+            {cim
+              ? `${cim.adresse || ''} ${cim.code_postal || ''} ${
+                  cim.ville || ''
+                }`
+              : '.................................'}
+          </div>
+          <div>
+            À : <strong>{dossier.heure_inhumation || '........'}</strong>
           </div>
         </div>
       </div>
-    );
-  };
+      <div
+        style={{
+          textAlign: 'center',
+          fontSize: '12px',
+          fontStyle: 'italic',
+          color: '#666',
+          marginTop: '1rem',
+        }}
+      >
+        <div>Kullu nafsin dhaiqatu almawt</div>
+        <div>(Sourate 3: Al 'Imran; Verset 185)</div>
+        <div style={{ marginTop: '0.5rem' }}>
+          Allahumma ghfir lahum wa rhamhum Amine
+        </div>
+      </div>
+      {piedPage()}
+    </div>
+  );
 
   const renderChambreMortuaire = () => (
     <div style={docStyle}>
@@ -1660,192 +1528,258 @@ export default function Documents({ dossierId, onRetour }: Props) {
   );
 
   const renderDeroulement = () => {
+    const gold = '#B08D3C';
     const etapes = [
-      {
-        type: 'toilette',
+      dossier.afficher_toilette !== false && {
         emoji: '🕌',
         label: 'Toilette rituelle',
-        date: dossier.date_toilette,
-        heure: dossier.heure_toilette,
-        lieu: mosquee,
+        detail: [
+          `${dossier.date_toilette ? fmt(dossier.date_toilette) : ''}${
+            dossier.heure_toilette ? ` à ${dossier.heure_toilette}` : ''
+          }`,
+          mosquee || '',
+        ]
+          .filter(Boolean)
+          .join(' · '),
+        pastille: couleur,
       },
-      {
-        type: 'meb',
+      afficherMeb && {
         emoji: '⚰️',
         label: 'Mise en bière',
-        date: dossier.date_meb,
-        heure: dossier.heure_meb,
-        lieu: etab,
+        detail: [
+          `${dossier.date_meb ? fmt(dossier.date_meb) : ''}${
+            dossier.heure_meb ? ` à ${dossier.heure_meb}` : ''
+          }`,
+          etab || '',
+        ]
+          .filter(Boolean)
+          .join(' · '),
+        pastille: couleur,
       },
-      {
-        type: 'depart',
+      afficherDepart && {
         emoji: '🚗',
-        label: 'Fermeture & Départ',
-        date: dossier.date_fermeture_depart,
-        heure: dossier.heure_fermeture_depart,
-        lieu: etab,
-        adresse: dossier.convoi_effectue_par
-          ? `Convoi : ${dossier.convoi_effectue_par}`
-          : undefined,
+        label: 'Fermeture & départ',
+        detail: [
+          `${
+            dossier.date_fermeture_depart
+              ? fmt(dossier.date_fermeture_depart)
+              : ''
+          }${
+            dossier.heure_fermeture_depart
+              ? ` à ${dossier.heure_fermeture_depart}`
+              : ''
+          }`,
+          etab || '',
+        ]
+          .filter(Boolean)
+          .join(' · '),
+        pastille: couleur,
       },
-      {
-        type: 'salat',
+      afficherSalat && {
         emoji: '🕌',
-        label: 'Salat Al Janāza إن شاء الله',
-        date: dossier.date_inhumation,
-        heure: undefined,
-        lieu: mosquee || nomCim,
+        label: 'Salat Al Janāza',
+        detail: [
+          dossier.date_inhumation ? fmt(dossier.date_inhumation) : '',
+          mosquee || nomCim || '',
+        ]
+          .filter(Boolean)
+          .join(' · '),
+        pastille: couleur,
       },
-      {
-        type: 'inhumation',
+      afficherInhumation && {
         emoji: '⚱️',
         label: 'Inhumation',
-        date: dossier.date_inhumation,
-        heure: dossier.heure_inhumation,
-        lieu: nomCim,
-        adresse: adresseCim || undefined,
+        detail: [
+          `${dossier.date_inhumation ? fmt(dossier.date_inhumation) : ''}${
+            dossier.heure_inhumation ? ` à ${dossier.heure_inhumation}` : ''
+          }`,
+          nomCim || '',
+        ]
+          .filter(Boolean)
+          .join(' · '),
+        pastille: gold,
       },
-    ].filter((etape) => {
-      if (etape.type === 'toilette' && dossier.afficher_toilette === false)
-        return false;
-      if (etape.type === 'salat' && !afficherSalat) return false;
-      if (etape.type === 'inhumation' && !afficherInhumation) return false;
-      return true;
-    });
+    ].filter(Boolean) as any[];
+
+    const feminin = d?.sexe === 'Féminin';
 
     return (
-      <div style={{ ...docStyle, lineHeight: '1.4' }}>
-        {entete(true)}
-        {/* Bandeau coloré avec le nom du défunt */}
+      <div
+        style={{
+          ...docStyle,
+          background: 'transparent',
+          display: 'flex',
+          justifyContent: 'center',
+        }}
+      >
         <div
           style={{
-            background: `linear-gradient(135deg, ${couleur}, ${couleur}bb)`,
-            color: 'white',
-            borderRadius: '14px',
-            padding: '1rem 1.25rem',
-            textAlign: 'center',
-            marginBottom: '1rem',
-            boxShadow: `0 4px 14px ${couleur}33`,
+            width: '460px',
+            maxWidth: '100%',
+            background: '#FBF7EF',
+            border: '1px solid #E7DFCC',
+            borderRadius: '16px',
+            overflow: 'hidden',
           }}
         >
-          <div style={{ fontSize: '15px', marginBottom: '0.15rem' }}>
-            السلام عليكم و رحمة الله و بركاته
-          </div>
           <div
             style={{
-              fontSize: '17px',
-              fontWeight: 'bold',
-              letterSpacing: '0.5px',
-              margin: '0.25rem 0',
+              background: couleur,
+              color: '#fff',
+              textAlign: 'center',
+              padding: '1.4rem 1.25rem 1.5rem',
             }}
           >
-            {d?.civilite} {d?.prenom} {d?.nom}
-          </div>
-          <div style={{ fontSize: '12px', opacity: 0.95 }}>
-            رحمه الله — décédé(e) le {fmt(dossier.date_deces)}
-          </div>
-          <div
-            style={{
-              fontSize: '11px',
-              fontStyle: 'italic',
-              opacity: 0.9,
-              marginTop: '0.35rem',
-            }}
-          >
-            إنا لله وإنا إليه راجعون — «C'est à Allah que nous appartenons et
-            c'est à Lui que nous retournerons»
-          </div>
-        </div>
-        {/* Étapes en cartes colorées */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
-          {etapes.map((etape, i) => (
+            <div style={{ fontSize: '15px', opacity: 0.95 }}>
+              إنا لله وإنا إليه راجعون
+            </div>
+            <div style={{ fontSize: '12px', opacity: 0.85, marginTop: '4px' }}>
+              C'est à Allah que nous appartenons et à Lui que nous retournons
+            </div>
             <div
-              key={i}
               style={{
-                display: 'flex',
-                alignItems: 'flex-start',
-                gap: '0.75rem',
-                background: `${couleur}0d`,
-                border: `1px solid ${couleur}22`,
-                borderLeft: `4px solid ${couleur}`,
-                borderRadius: '10px',
-                padding: '0.7rem 0.85rem',
+                height: '1px',
+                background: 'rgba(255,255,255,0.35)',
+                margin: '0.9rem auto',
+                width: '60px',
+              }}
+            />
+            <div
+              style={{
+                fontSize: '24px',
+                fontWeight: 'bold',
+                lineHeight: 1.2,
+                letterSpacing: '0.3px',
               }}
             >
+              {d?.civilite} {d?.prenom} {d?.nom}
+            </div>
+            <div style={{ fontSize: '12.5px', opacity: 0.9, marginTop: '6px' }}>
+              {feminin ? 'رحمها الله' : 'رحمه الله'} — rappelé(e) à Allah le{' '}
+              {fmt(dossier.date_deces)}
+            </div>
+          </div>
+
+          <div style={{ padding: '1.3rem 1.4rem 0.4rem' }}>
+            <div
+              style={{
+                textAlign: 'center',
+                fontSize: '12px',
+                color: '#9A8F76',
+                textTransform: 'uppercase',
+                letterSpacing: '1.5px',
+                marginBottom: '1.1rem',
+              }}
+            >
+              Déroulement des obsèques
+            </div>
+            <div style={{ position: 'relative', paddingLeft: '34px' }}>
               <div
                 style={{
-                  flexShrink: 0,
-                  width: '34px',
-                  height: '34px',
-                  borderRadius: '50%',
-                  background: couleur,
-                  color: 'white',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontSize: '17px',
+                  position: 'absolute',
+                  left: '11px',
+                  top: '8px',
+                  bottom: '18px',
+                  width: '2px',
+                  background: '#D8CBAF',
                 }}
-              >
-                {etape.emoji}
-              </div>
-              <div style={{ flex: 1 }}>
+              />
+              {etapes.map((etape, i) => (
                 <div
+                  key={i}
                   style={{
-                    fontWeight: 'bold',
-                    color: couleur,
-                    fontSize: '14px',
-                    marginBottom: '0.1rem',
+                    position: 'relative',
+                    marginBottom: i === etapes.length - 1 ? 0 : '1.1rem',
                   }}
                 >
-                  {etape.label}
-                </div>
-                <div style={{ fontSize: '12.5px', color: '#333' }}>
-                  📅 {etape.date ? fmt(etape.date) : '...............'}{' '}
-                  {etape.heure ? `à ${etape.heure}` : ''}
-                </div>
-                {etape.lieu && (
-                  <div style={{ fontSize: '12.5px', color: '#333' }}>
-                    📍 {etape.lieu}
+                  <div
+                    style={{
+                      position: 'absolute',
+                      left: '-34px',
+                      top: 0,
+                      width: '24px',
+                      height: '24px',
+                      borderRadius: '50%',
+                      background: etape.pastille,
+                      color: '#fff',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontSize: '13px',
+                    }}
+                  >
+                    {etape.emoji}
                   </div>
-                )}
-                {(etape as any).adresse && (
-                  <div style={{ fontSize: '11px', color: '#777' }}>
-                    {(etape as any).adresse}
+                  <div
+                    style={{
+                      fontWeight: 'bold',
+                      color: couleur,
+                      fontSize: '14.5px',
+                    }}
+                  >
+                    {etape.label}
                   </div>
-                )}
-              </div>
+                  {etape.detail && (
+                    <div
+                      style={{
+                        fontSize: '13px',
+                        color: '#4A4A44',
+                        marginTop: '2px',
+                      }}
+                    >
+                      {etape.detail}
+                    </div>
+                  )}
+                </div>
+              ))}
             </div>
-          ))}
-        </div>
-        {dossier.observations && (
+          </div>
+
           <div
             style={{
-              background: '#f9f9f9',
-              borderRadius: '10px',
-              padding: '0.7rem 0.85rem',
-              marginTop: '0.7rem',
+              textAlign: 'center',
+              padding: '1.3rem 1.4rem 1.5rem',
+              marginTop: '0.6rem',
             }}
           >
-            <div style={{ fontSize: '11px', color: '#888' }}>Observations</div>
-            <div style={{ fontSize: '12.5px' }}>{dossier.observations}</div>
-          </div>
-        )}
-        <div
-          style={{
-            textAlign: 'center',
-            fontSize: '11.5px',
-            fontStyle: 'italic',
-            color: '#666',
-            marginTop: '0.9rem',
-          }}
-        >
-          <div>Kullu nafsin dhaiqatu almawt</div>
-          <div>(Sourate 3: Al 'Imran; Verset 185)</div>
-          <div style={{ marginTop: '0.3rem', color: couleur, fontWeight: 600 }}>
-            Allahumma ghfir lahum wa rhamhum Amine
+            <div
+              style={{
+                fontStyle: 'italic',
+                color: '#6B6353',
+                fontSize: '12.5px',
+                lineHeight: 1.6,
+              }}
+            >
+              « Toute âme goûtera la mort »
+              <br />
+              Sourate Al ʿImran, verset 185
+            </div>
+            <div
+              style={{
+                color: couleur,
+                fontWeight: 500,
+                fontSize: '13px',
+                marginTop: '0.7rem',
+              }}
+            >
+              {feminin
+                ? 'Allahoumma ghfir lahâ wa rhamhâ'
+                : 'Allahoumma ghfir lahou wa rhamhou'}{' '}
+              — Âmîn
+            </div>
+            <div
+              style={{
+                height: '1px',
+                background: '#E7DFCC',
+                margin: '1rem auto 0.8rem',
+                width: '80%',
+              }}
+            />
+            <div style={{ fontSize: '11.5px', color: '#9A8F76' }}>
+              {agence?.nom}
+            </div>
           </div>
         </div>
-        {piedPage()}
       </div>
     );
   };
@@ -2882,7 +2816,7 @@ export default function Documents({ dossierId, onRetour }: Props) {
           </button>
         ))}
       </div>
-      {(onglet === 'deroulement' || onglet === 'passage_mosquee') && (
+      {onglet === 'deroulement' && (
         <div
           className="no-print"
           style={{
@@ -2901,18 +2835,26 @@ export default function Documents({ dossierId, onRetour }: Props) {
           <span style={{ fontWeight: 600, color: '#555' }}>
             Afficher sur le déroulement :
           </span>
-          {onglet === 'passage_mosquee' && (
-            <label
-              style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', cursor: 'pointer' }}
-            >
-              <input
-                type="checkbox"
-                checked={afficherPresentation}
-                onChange={(e) => setAfficherPresentation(e.target.checked)}
-              />
-              👨‍👩‍👧 Présentation à la famille
-            </label>
-          )}
+          <label
+            style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', cursor: 'pointer' }}
+          >
+            <input
+              type="checkbox"
+              checked={afficherMeb}
+              onChange={(e) => setAfficherMeb(e.target.checked)}
+            />
+            ⚰️ Mise en bière
+          </label>
+          <label
+            style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', cursor: 'pointer' }}
+          >
+            <input
+              type="checkbox"
+              checked={afficherDepart}
+              onChange={(e) => setAfficherDepart(e.target.checked)}
+            />
+            🚗 Fermeture & Départ
+          </label>
           <label
             style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', cursor: 'pointer' }}
           >
