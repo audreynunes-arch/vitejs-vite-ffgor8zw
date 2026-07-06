@@ -1826,6 +1826,41 @@ export default function Documents({ dossierId, onRetour }: Props) {
       fontSize: '12.5px',
     };
     const lib: React.CSSProperties = { color: '#888', fontSize: '11px' };
+    const hw = '.....................';
+    const champ = (label: string, valeur: any, pleineLargeur = false) => (
+      <div style={pleineLargeur ? { gridColumn: '1 / -1' } : undefined}>
+        <span style={lib}>{label}</span>
+        <br />
+        <strong>{valeur ? valeur : hw}</strong>
+      </div>
+    );
+    const estRapat = dossier.type_dossier === 'rapatriement';
+    const checklist = [
+      'Certificat de décès',
+      'Avant mise en bière',
+      'Non contagion',
+      'Housse mortuaire',
+      'Acte de décès',
+      'Livret de famille ou autre',
+      'Fermeture',
+      'Carte Nationale / Passeport',
+      'Préfecture Laisser Passer Mortuaire',
+      'CI Pouvoir',
+      'Attestation de mise en bière',
+      'Contact au pays',
+      "Déclaration sur l'Honneur Maroc",
+      "Lieu d'inhumation",
+      'Réservation Vol',
+      'Ambulance',
+      'Chambre Mortuaire / Funérarium',
+      'Billet accompagnant',
+      'Autorisation de Transfert de corps',
+      'Prélèvement compte défunt(e)',
+      'Plaque',
+      'Déroulement des Obsèques',
+      'Devis / Facture',
+      'Passage Mosquée',
+    ];
     return (
       <div style={{ ...docStyle, lineHeight: '1.4' }}>
         <div
@@ -1869,215 +1904,157 @@ export default function Documents({ dossierId, onRetour }: Props) {
           }}
         >
           <div style={{ fontSize: '17px', fontWeight: 'bold' }}>
-            {dossier.type_dossier === 'inhumation_locale'
-              ? '⚰️ INHUMATION LOCALE'
-              : '✈️ RAPATRIEMENT'}
+            {estRapat ? '✈️ RAPATRIEMENT' : '⚰️ INHUMATION LOCALE'}
           </div>
           <div style={{ fontSize: '13px', marginTop: '0.25rem', opacity: 0.9 }}>
             {dossier.numero_dossier}
           </div>
         </div>
+
         <div style={carte}>
-          <h3 style={titreCarte}>👤 Défunt</h3>
+          <h3 style={titreCarte}>👤 Défunt(e)</h3>
           <div style={grille}>
-            <div>
-              <span style={lib}>Nom / Prénom :</span>
-              <br />
-              <strong>
-                {d?.civilite} {d?.prenom} {d?.nom}
-              </strong>
-            </div>
-            <div>
-              <span style={lib}>Date de naissance :</span>
-              <br />
-              <strong>
-                {d?.date_naissance
-                  ? new Date(d.date_naissance).toLocaleDateString('fr-FR')
-                  : '—'}
-              </strong>
-            </div>
-            <div>
-              <span style={lib}>Lieu de naissance :</span>
-              <br />
-              <strong>{d?.lieu_naissance || '—'}</strong>
-            </div>
-            <div>
-              <span style={lib}>Nationalité :</span>
-              <br />
-              <strong>{d?.nationalite || '—'}</strong>
-            </div>
-            <div style={{ gridColumn: '1 / -1' }}>
-              <span style={lib}>Domicile :</span>
-              <br />
-              <strong>{d?.domicile || '—'}</strong>
-            </div>
-            <div>
-              <span style={lib}>Date de décès :</span>
-              <br />
-              <strong>
-                {dossier.date_deces
-                  ? new Date(dossier.date_deces).toLocaleDateString('fr-FR')
-                  : '—'}
-              </strong>
-            </div>
-            <div>
-              <span style={lib}>Heure de décès :</span>
-              <br />
-              <strong>{dossier.heure_deces || '—'}</strong>
-            </div>
-            <div style={{ gridColumn: '1 / -1' }}>
-              <span style={lib}>Lieu de décès :</span>
-              <br />
-              <strong>{dossier.lieu_deces || '—'}</strong>
-            </div>
+            {champ(
+              'Civilité / Nom / Prénom :',
+              `${d?.civilite || ''} ${d?.prenom || ''} ${d?.nom || ''}`.trim()
+            )}
+            {champ('Nom de jeune fille :', d?.nom_jeune_fille)}
+            {champ(
+              'Né(e) le :',
+              d?.date_naissance
+                ? `${fmt(d.date_naissance)}${
+                    d?.lieu_naissance ? ` à ${d.lieu_naissance}` : ''
+                  }`
+                : null
+            )}
+            {champ(
+              'Âge :',
+              d?.date_naissance
+                ? calcAge(d.date_naissance, dossier.date_deces)
+                : null
+            )}
+            {champ('Nationalité :', d?.nationalite)}
+            {champ('Domicile :', d?.domicile, true)}
+            {champ(
+              'Décédé(e) le :',
+              dossier.date_deces ? fmt(dossier.date_deces) : null
+            )}
+            {champ('Heure du décès :', dossier.heure_deces)}
+            {champ('Lieu du décès :', dossier.lieu_deces, true)}
           </div>
         </div>
+
         <div style={carte}>
-          <h3 style={titreCarte}>📋 Mandataire</h3>
+          <h3 style={titreCarte}>📋 Pouvoir (mandataire)</h3>
           <div style={grille}>
-            <div>
-              <span style={lib}>Nom / Prénom :</span>
-              <br />
-              <strong>
-                {p ? `${p.civilite || ''} ${p.prenom} ${p.nom}` : '—'}
-              </strong>
-            </div>
-            <div>
-              <span style={lib}>Lien de parenté :</span>
-              <br />
-              <strong>{p?.lien_parente || '—'}</strong>
-            </div>
-            <div>
-              <span style={lib}>Téléphone 1 :</span>
-              <br />
-              <strong>{p?.telephone_1 || '—'}</strong>
-            </div>
-            <div>
-              <span style={lib}>Téléphone 2 :</span>
-              <br />
-              <strong>{p?.telephone_2 || '—'}</strong>
-            </div>
-            <div style={{ gridColumn: '1 / -1' }}>
-              <span style={lib}>Adresse :</span>
-              <br />
-              <strong>{p?.adresse || '—'}</strong>
-            </div>
+            {champ(
+              'Nom / Prénom :',
+              p ? `${p.civilite || ''} ${p.prenom || ''} ${p.nom || ''}`.trim() : null
+            )}
+            {champ('Lien de parenté :', p?.lien_parente)}
+            {champ('Téléphone 1 :', p?.telephone_1)}
+            {champ('Téléphone 2 :', p?.telephone_2)}
+            {champ('Email :', p?.email)}
+            {champ('Adresse :', p?.adresse, true)}
           </div>
         </div>
+
         <div style={carte}>
-          <h3 style={titreCarte}>🗓️ Logistique</h3>
+          <h3 style={titreCarte}>🏥 Chambre mortuaire & mesures</h3>
           <div style={grille}>
-            <div>
-              <span style={lib}>Chambre mortuaire :</span>
-              <br />
-              <strong>{etab || '—'}</strong>
-            </div>
-            <div>
-              <span style={lib}>Cimetière :</span>
-              <br />
-              <strong>{cim?.nom || dossier.cimetiere_pays || '—'}</strong>
-            </div>
-            <div>
-              <span style={lib}>Toilette rituelle :</span>
-              <br />
-              <strong>
-                {dossier.date_toilette
-                  ? `${new Date(dossier.date_toilette).toLocaleDateString(
-                      'fr-FR'
-                    )} ${dossier.heure_toilette || ''}`
-                  : '—'}
-              </strong>
-            </div>
-            <div>
-              <span style={lib}>Mise en bière :</span>
-              <br />
-              <strong>
-                {dossier.date_meb
-                  ? `${new Date(dossier.date_meb).toLocaleDateString(
-                      'fr-FR'
-                    )} ${dossier.heure_meb || ''}`
-                  : '—'}
-              </strong>
-            </div>
-            <div>
-              <span style={lib}>Fermeture & Départ :</span>
-              <br />
-              <strong>
-                {dossier.date_fermeture_depart
-                  ? `${new Date(
-                      dossier.date_fermeture_depart
-                    ).toLocaleDateString('fr-FR')} ${
-                      dossier.heure_fermeture_depart || ''
-                    }`
-                  : '—'}
-              </strong>
-            </div>
-            <div>
-              <span style={lib}>Inhumation :</span>
-              <br />
-              <strong>
-                {dossier.date_inhumation
-                  ? `${new Date(dossier.date_inhumation).toLocaleDateString(
-                      'fr-FR'
-                    )} ${dossier.heure_inhumation || ''}`
-                  : '—'}
-              </strong>
-            </div>
+            {champ('Chambre mortuaire :', etab, true)}
+            {champ('Adresse :', null, true)}
+            {champ('Téléphone :', null)}
+            {champ('Taille du (de la) défunt(e) :', null)}
+            {champ('Taille cercueil :', null)}
           </div>
         </div>
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: '1fr 1fr 1fr',
-            gap: '0.6rem',
-            fontSize: '12px',
-          }}
-        >
-          {dossier.numero_dossier && (
-            <div
-              style={{
-                background: `${couleur}11`,
-                padding: '0.5rem',
-                borderRadius: '8px',
-                textAlign: 'center',
-                border: `1px solid ${couleur}33`,
-              }}
-            >
-              <div style={{ color: '#888', fontSize: '10px' }}>N° dossier</div>
-              <strong style={{ color: couleur }}>
-                {dossier.numero_dossier}
-              </strong>
-            </div>
-          )}
-          {dossier.compte_client && (
-            <div
-              style={{
-                background: `${couleur}11`,
-                padding: '0.5rem',
-                borderRadius: '8px',
-                textAlign: 'center',
-                border: `1px solid ${couleur}33`,
-              }}
-            >
-              <div style={{ color: '#888', fontSize: '10px' }}>Référence</div>
-              <strong>{dossier.compte_client}</strong>
-            </div>
-          )}
-          {dossier.numero_devis && (
-            <div
-              style={{
-                background: `${couleur}11`,
-                padding: '0.5rem',
-                borderRadius: '8px',
-                textAlign: 'center',
-                border: `1px solid ${couleur}33`,
-              }}
-            >
-              <div style={{ color: '#888', fontSize: '10px' }}>N° Devis</div>
-              <strong>{dossier.numero_devis}</strong>
-            </div>
-          )}
+
+        <div style={carte}>
+          <h3 style={titreCarte}>🗓️ Déroulement & intervenants</h3>
+          <div style={grille}>
+            {champ(
+              'Toilette rituelle :',
+              dossier.date_toilette
+                ? `${fmt(dossier.date_toilette)} ${dossier.heure_toilette || ''}`
+                : null
+            )}
+            {champ('Toilette par :', null)}
+            {champ(
+              'Mise en bière :',
+              dossier.date_meb
+                ? `${fmt(dossier.date_meb)} ${dossier.heure_meb || ''}`
+                : null
+            )}
+            {champ('Convoi effectué par :', dossier.convoi_effectue_par)}
+            {champ(
+              'Fermeture & Départ :',
+              dossier.date_fermeture_depart
+                ? `${fmt(dossier.date_fermeture_depart)} ${
+                    dossier.heure_fermeture_depart || ''
+                  }`
+                : null
+            )}
+            {champ(
+              'Inhumation :',
+              dossier.date_inhumation
+                ? `${fmt(dossier.date_inhumation)} ${
+                    dossier.heure_inhumation || ''
+                  }`
+                : null
+            )}
+            {champ('Cimetière :', cim?.nom || dossier.cimetiere_pays, true)}
+            {champ('Mosquée :', mosquee, true)}
+          </div>
         </div>
+
+        {estRapat && (
+          <div style={carte}>
+            <h3 style={titreCarte}>✈️ Transport aérien</h3>
+            <div style={grille}>
+              {champ('Compagnie :', dossier.compagnie_aerienne)}
+              {champ('LTA :', dossier.lta)}
+              {champ(
+                'Date du vol :',
+                dossier.date_vol ? fmt(dossier.date_vol) : null
+              )}
+              {champ('Vol :', dossier.numero_vol)}
+              {champ('Aéroport de départ :', dossier.aeroport_depart)}
+              {champ('Heure de départ :', dossier.heure_depart_vol)}
+              {champ("Aéroport d'escale :", dossier.aeroport_escale)}
+              {champ("Heure d'arrivée escale :", dossier.heure_arrivee_escale)}
+              {champ("Aéroport d'arrivée :", dossier.aeroport_arrivee)}
+              {champ("Heure d'arrivée :", dossier.heure_arrivee_vol)}
+            </div>
+          </div>
+        )}
+
+        <div style={carte}>
+          <h3 style={titreCarte}>📝 Observations</h3>
+          <div style={{ fontSize: '12.5px', minHeight: '2.2rem' }}>
+            {dossier.observations || hw}
+          </div>
+        </div>
+
+        <div style={carte}>
+          <h3 style={titreCarte}>☑️ Documents / à faire</h3>
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: '1fr 1fr',
+              gap: '0.35rem 1rem',
+              fontSize: '12px',
+            }}
+          >
+            {checklist.map((item, i) => (
+              <div key={i} style={{ display: 'flex', gap: '0.4rem' }}>
+                <span style={{ color: couleur }}>☐</span>
+                <span>{item}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
         {piedPage()}
       </div>
     );
