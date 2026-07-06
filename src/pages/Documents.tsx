@@ -1712,7 +1712,7 @@ export default function Documents({ dossierId, onRetour }: Props) {
         }}
       >
         <style>
-          {"@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&display=swap');"}
+          {"@import url('https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=Cormorant+Garamond:wght@500;600;700&display=swap');"}
         </style>
         <div
           id="faire-part-carte"
@@ -1736,11 +1736,12 @@ export default function Documents({ dossierId, onRetour }: Props) {
             )}
             <div
               style={{
-                fontFamily: serif,
+                fontFamily: "'Amiri', 'Traditional Arabic', serif",
                 color: vert,
-                fontSize: '26px',
-                fontWeight: 600,
+                fontSize: '30px',
+                fontWeight: 700,
                 direction: 'rtl',
+                lineHeight: 1.6,
               }}
             >
               إنا لله وإنا إليه راجعون
@@ -2748,11 +2749,27 @@ export default function Documents({ dossierId, onRetour }: Props) {
       return;
     }
     try {
+      const largeur = carte.offsetWidth || 520;
+      // On clone la carte dans un conteneur à sa taille exacte
+      // (sinon l'export capture l'espace vide autour).
+      const clone = carte.cloneNode(true) as HTMLElement;
+      clone.style.margin = '0';
+      clone.style.maxWidth = 'none';
+      clone.style.width = largeur + 'px';
+      const wrap = document.createElement('div');
+      wrap.style.position = 'fixed';
+      wrap.style.top = '0';
+      wrap.style.left = '-10000px';
+      wrap.style.width = largeur + 'px';
+      wrap.style.background = 'transparent';
+      wrap.appendChild(clone);
+      document.body.appendChild(wrap);
       const canvas = await (html2pdf as any)()
         .set({ html2canvas: { scale: 3, useCORS: true, backgroundColor: null } })
-        .from(carte)
+        .from(clone)
         .toCanvas()
         .get('canvas');
+      document.body.removeChild(wrap);
       const lien = document.createElement('a');
       lien.download = `deroulement-${d?.nom || 'obseques'}.png`;
       lien.href = canvas.toDataURL('image/png');
