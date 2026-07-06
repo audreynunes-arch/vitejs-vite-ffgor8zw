@@ -1075,6 +1075,17 @@ export default function NouveauDossier({ onRetour }: Props) {
                     style={inputStyle}
                   />
                 </div>
+                <div style={{ gridColumn: '1 / -1' }}>
+                  <label>Travaux à réaliser</label>
+                  <textarea
+                    value={logistique.travaux_realiser}
+                    onChange={(e) =>
+                      updateLogistique('travaux_realiser', e.target.value)
+                    }
+                    style={{ ...inputStyle, minHeight: '70px' }}
+                    placeholder="ex: Creusement, pose semelle, dépose/repose monument…"
+                  />
+                </div>
               </>
             )}
           </div>
