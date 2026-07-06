@@ -251,6 +251,7 @@ export default function NouveauDossier({ onRetour }: Props) {
   const [cimetieres, setCimetieres] = useState<any[]>([]);
   const [partenaires, setPartenaires] = useState<any[]>([]);
   const [marbriers, setMarbriers] = useState<any[]>([]);
+  const [poseMonument, setPoseMonument] = useState(false);
   const [prestationsCreusement, setPrestationsCreusement] = useState<any[]>([]);
   const [cimetiereTarifs, setCimetiereTarifs] = useState<any>(null);
   const [tarifsRapatriement, setTarifsRapatriement] = useState<any[]>([]);
@@ -896,6 +897,28 @@ export default function NouveauDossier({ onRetour }: Props) {
             Saisissez les coordonnées du client. Vous ajouterez les prestations
             directement dans le devis.
           </p>
+          <label
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.5rem',
+              marginBottom: '1.25rem',
+              cursor: 'pointer',
+              fontWeight: 'bold',
+              color: '#185FA5',
+              background: '#E6F1FB',
+              border: '1px solid #185FA555',
+              borderRadius: '8px',
+              padding: '0.7rem 0.9rem',
+            }}
+          >
+            <input
+              type="checkbox"
+              checked={poseMonument}
+              onChange={(e) => setPoseMonument(e.target.checked)}
+            />
+            🪨 Pose de monument (affiche cimetière, marbrier, lien de parenté)
+          </label>
           <div
             style={{
               display: 'grid',
@@ -969,50 +992,56 @@ export default function NouveauDossier({ onRetour }: Props) {
                 placeholder="ex: KHEMIRI Bechir, ou objet de la prestation"
               />
             </div>
-            <div>
-              <label>Lien de parenté</label>
-              <input
-                value={pouvoir.lien_parente}
-                onChange={(e) => updatePouvoir('lien_parente', e.target.value)}
-                style={inputStyle}
-                placeholder="ex: Concessionnaire, Fils…"
-              />
-            </div>
-            <div></div>
-            <div>
-              <label>Cimetière</label>
-              <select
-                value={logistique.cimetiere_id}
-                onChange={(e) =>
-                  updateLogistique('cimetiere_id', e.target.value)
-                }
-                style={selectStyle}
-              >
-                <option value="">-- Choisir --</option>
-                {cimetieres.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.nom}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label>Marbrier</label>
-              <select
-                value={logistique.marbrier_id}
-                onChange={(e) =>
-                  updateLogistique('marbrier_id', e.target.value)
-                }
-                style={selectStyle}
-              >
-                <option value="">-- Choisir --</option>
-                {marbriers.map((m) => (
-                  <option key={m.id} value={m.id}>
-                    {m.nom}
-                  </option>
-                ))}
-              </select>
-            </div>
+            {poseMonument && (
+              <>
+                <div>
+                  <label>Lien de parenté</label>
+                  <input
+                    value={pouvoir.lien_parente}
+                    onChange={(e) =>
+                      updatePouvoir('lien_parente', e.target.value)
+                    }
+                    style={inputStyle}
+                    placeholder="ex: Concessionnaire, Fils…"
+                  />
+                </div>
+                <div></div>
+                <div>
+                  <label>Cimetière</label>
+                  <select
+                    value={logistique.cimetiere_id}
+                    onChange={(e) =>
+                      updateLogistique('cimetiere_id', e.target.value)
+                    }
+                    style={selectStyle}
+                  >
+                    <option value="">-- Choisir --</option>
+                    {cimetieres.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.nom}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label>Marbrier</label>
+                  <select
+                    value={logistique.marbrier_id}
+                    onChange={(e) =>
+                      updateLogistique('marbrier_id', e.target.value)
+                    }
+                    style={selectStyle}
+                  >
+                    <option value="">-- Choisir --</option>
+                    {marbriers.map((m) => (
+                      <option key={m.id} value={m.id}>
+                        {m.nom}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </>
+            )}
           </div>
           {btnSuivant(() => setEtape(5), !pouvoir.nom)}
         </div>
