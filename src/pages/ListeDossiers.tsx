@@ -27,7 +27,7 @@ export default function ListeDossiers({ onOuvrir, onRetour }: Props) {
       .from('dossiers')
       .select(
         `
-        id, numero_dossier, compte_client, type_dossier, statut, date_deces, created_at,
+        id, numero_dossier, compte_client, type_dossier, statut, statut_devis, statut_facture, date_deces, date_inhumation, date_vol, created_at,
         defunts (nom, prenom, civilite),
         pouvoirs (nom, prenom, telephone_1)
       `
@@ -38,8 +38,23 @@ export default function ListeDossiers({ onOuvrir, onRetour }: Props) {
     setLoading(false);
   }
   const TERMINES = ['paye', 'clos', 'annule', 'refuse'];
+  // Statut DOSSIER automatique : Annulé (manuel) > Terminé (date passée)
+  // > Validé (devis validé) > En cours
+  const statutDossier = (d: any): string => {
+    if (d.statut === 'annule') return 'annule';
+    const dateEvent = d.date_inhumation || d.date_vol;
+    if (dateEvent) {
+      const aujourdhui = new Date();
+      aujourdhui.setHours(0, 0, 0, 0);
+      if (new Date(dateEvent) < aujourdhui) return 'termine';
+    }
+    if (d.statut_devis === 'valide') return 'valide';
+    return 'en_cours';
+  };
   const filtres = dossiers.filter((d) => {
-    if (!afficherTermines && TERMINES.includes(d.statut)) return false;
+    const st = statutDossier(d);
+    if (!afficherTermines && (st === 'termine' || st === 'annule'))
+      return false;
     if (!recherche) return true;
     const q = recherche.toLowerCase();
     const nomDefunt = `${d.defunts?.prenom} ${d.defunts?.nom}`.toLowerCase();
@@ -53,20 +68,23 @@ export default function ListeDossiers({ onOuvrir, onRetour }: Props) {
         return { bg: '#EEF2FF', color: '#4F46E5', label: '🔵 En cours' };
       case 'valide':
         return { bg: '#E1F5EE', color: '#0F6E56', label: '✅ Validé' };
+      case 'termine':
+        return { bg: '#f0f0f0', color: '#666', label: '🏁 Terminé' };
       case 'annule':
         return { bg: '#FAECE7', color: '#993C1D', label: '❌ Annulé' };
-      case 'en_attente_paiement':
-        return {
-          bg: '#FAEEDA',
-          color: '#854F0B',
-          label: '⏳ En attente paiement',
-        };
-      case 'paye':
-        return { bg: '#E1F5EE', color: '#0F6E56', label: '💰 Payé' };
-      case 'clos':
-        return { bg: '#f0f0f0', color: '#666', label: '📁 Clos' };
       default:
         return { bg: '#f0f0f0', color: '#666', label: s };
+    }
+  };
+  // Badge du statut PAIEMENT (séparé)
+  const paiementColor = (s: string) => {
+    switch (s) {
+      case 'payee':
+        return { bg: '#E1F5EE', color: '#0F6E56', label: '💰 Payée' };
+      case 'partiellement_payee':
+        return { bg: '#FAEEDA', color: '#854F0B', label: '⏳ Partiel' };
+      default:
+        return { bg: '#FAECE7', color: '#993C1D', label: '💳 Non payée' };
     }
   };
   if (loading) return <p style={{ padding: '2rem' }}>Chargement...</p>;
@@ -133,7 +151,8 @@ export default function ListeDossiers({ onOuvrir, onRetour }: Props) {
       )}
       <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
         {filtres.map((d) => {
-          const statut = statutColor(d.statut);
+          const statut = statutColor(statutDossier(d));
+          const paiement = paiementColor(d.statut_facture);
           return (
             <div
               key={d.id}
@@ -224,6 +243,18 @@ export default function ListeDossiers({ onOuvrir, onRetour }: Props) {
                     }}
                   >
                     {statut.label}
+                  </span>
+                  <span
+                    style={{
+                      background: paiement.bg,
+                      color: paiement.color,
+                      padding: '0.2rem 0.6rem',
+                      borderRadius: '12px',
+                      fontSize: '12px',
+                      fontWeight: 'bold',
+                    }}
+                  >
+                    {paiement.label}
                   </span>
                   <span style={{ fontSize: '12px', color: '#bbb' }}>
                     {new Date(d.created_at).toLocaleDateString('fr-FR')}
