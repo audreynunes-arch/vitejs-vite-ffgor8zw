@@ -1909,7 +1909,7 @@ async function envoyerPourSignature() {
       // place la signature plus bas que la mesure DOM).
       // 👉 Si la signature est trop haute, AUGMENTE FACTEUR_DESCENTE (ex: 1.6).
       //    Si elle est trop basse, DIMINUE-le (ex: 1.2).
-      const FACTEUR_DESCENTE = 1.45;
+      const FACTEUR_DESCENTE = 1.55;
       const pageIndex = 0;
       const yOnPageMM = marge + mesure.yBoxPx * mesure.sc * FACTEUR_DESCENTE;
       const xOnPageMM = marge + mesure.xBoxPx * mesure.sc;
