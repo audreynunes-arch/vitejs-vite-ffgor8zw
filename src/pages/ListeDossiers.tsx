@@ -162,7 +162,7 @@ export default function ListeDossiers({ onOuvrir, onRetour }: Props) {
                     }}
                   >
                     <span style={{ fontSize: '18px' }}>
-                      {d.type_dossier === 'inhumation_locale' ? '⚰️' : '✈️'}
+                      {d.type_dossier === 'inhumation_locale' ? '⚰️' : d.type_dossier === 'devis_libre' ? '🧾' : '✈️'}
                     </span>
                     <strong style={{ fontSize: '16px' }}>
                       {d.defunts?.civilite} {d.defunts?.prenom} {d.defunts?.nom}
