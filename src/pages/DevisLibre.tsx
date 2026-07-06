@@ -29,6 +29,7 @@ export default function DevisLibre({ dossierId, onRetour }: Props) {
   const [statutFacture, setStatutFacture] = useState('non_payee');
   const [statutBonCommande, setStatutBonCommande] = useState('en_attente');
   const [acompte, setAcompte] = useState(0);
+  const [modesPaiement, setModesPaiement] = useState<string[]>([]);
   const [datePaiement, setDatePaiement] = useState('');
 
   useEffect(() => {
@@ -47,6 +48,7 @@ export default function DevisLibre({ dossierId, onRetour }: Props) {
       setStatutFacture(data.statut_facture || 'non_payee');
       setStatutBonCommande(data.statut_bon_commande || 'en_attente');
       setAcompte(data.acompte_verse || 0);
+      setModesPaiement(data.modes_paiement || []);
       setDatePaiement(data.date_paiement || '');
       if (data.objet_devis_libre) setObjet(data.objet_devis_libre);
     }
@@ -153,6 +155,7 @@ export default function DevisLibre({ dossierId, onRetour }: Props) {
           statut_bon_commande: override?.statutBonCommande ?? statutBonCommande,
           statut_facture: statutFacture,
           acompte_verse: acompte,
+          modes_paiement: modesPaiement,
           date_paiement: datePaiement || null,
           objet_devis_libre: objet,
         })
@@ -735,6 +738,53 @@ ${
               }}
             />
             <span>€</span>
+          </div>
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.75rem',
+              flexWrap: 'wrap',
+              width: '100%',
+            }}
+          >
+            <label style={{ fontWeight: 'bold', fontSize: '14px' }}>
+              Mode(s) de paiement :
+            </label>
+            {[
+              'Carte',
+              'Virement',
+              'Espèces',
+              'Chèque',
+              'Prélèvement compte défunt',
+            ].map((mode) => {
+              const coche = modesPaiement.includes(mode);
+              return (
+                <label
+                  key={mode}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.3rem',
+                    fontSize: '13px',
+                    cursor: 'pointer',
+                  }}
+                >
+                  <input
+                    type="checkbox"
+                    checked={coche}
+                    onChange={(e) =>
+                      setModesPaiement((cur) =>
+                        e.target.checked
+                          ? [...cur, mode]
+                          : cur.filter((m) => m !== mode)
+                      )
+                    }
+                  />
+                  {mode}
+                </label>
+              );
+            })}
           </div>
           {acompte > 0 && (
             <div style={{ marginLeft: 'auto', fontWeight: 'bold', fontSize: '16px', color: '#0F6E56' }}>
