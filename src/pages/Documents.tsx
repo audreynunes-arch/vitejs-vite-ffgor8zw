@@ -552,7 +552,13 @@ export default function Documents({ dossierId, onRetour }: Props) {
       {ligne('Sexe :', d?.sexe)}
       {ligne(
         'Né(e) le :',
-        d?.date_naissance ? fmt(d.date_naissance) : undefined
+        d?.date_naissance
+          ? `${fmt(d.date_naissance)}${
+              d?.lieu_naissance ? ` à ${d.lieu_naissance}` : ''
+            }`
+          : d?.lieu_naissance
+          ? `à ${d.lieu_naissance}`
+          : undefined
       )}
       {ligne('De nationalité :', d?.nationalite)}
       {ligne('Profession :', d?.profession)}
@@ -1417,6 +1423,7 @@ export default function Documents({ dossierId, onRetour }: Props) {
         <strong>{dossier.heure_inhumation || '........'}</strong>
       </p>
       {ligne('Au Cimetière :', nomCim || undefined)}
+      {ligne('Lieu de mise en bière (départ) :', etab || undefined)}
       <br />
       <p style={{ fontSize: '12px', fontStyle: 'italic' }}>
         Je vous prie d'agréer, Monsieur le Préfet, l'expression de ma haute
