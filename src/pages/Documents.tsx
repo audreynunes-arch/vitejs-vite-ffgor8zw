@@ -946,9 +946,9 @@ export default function Documents({ dossierId, onRetour }: Props) {
   const renderBonTravaux = () => (
     <div style={docStyle}>
       {entete()}
-      {titrePrincipal('BON DE TRAVAUX — Inhumation')}
+      {titrePrincipal('BON DE TRAVAUX')}
       {ligne(
-        "Date et horaire de l'inhumation :",
+        'Date et horaire des travaux :',
         dossier.date_inhumation
           ? `${fmt(dossier.date_inhumation)}${
               dossier.heure_inhumation ? ` à ${dossier.heure_inhumation}` : ''
