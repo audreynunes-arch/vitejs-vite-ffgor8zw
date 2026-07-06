@@ -623,6 +623,7 @@ export default function DossierDetail({
   const d = dossier.defunts;
   const p = dossier.pouvoirs?.[0];
   const isRapat = dossier.type_dossier === 'rapatriement';
+  const isDevisLibre = dossier.type_dossier === 'devis_libre';
 
   if (mode === 'edition') {
     return (
@@ -780,6 +781,21 @@ export default function DossierDetail({
             </div>
           </div>
 
+          {isDevisLibre ? (
+            <div style={{ marginBottom: '1rem' }}>
+              {section('👤 Référence')}
+              <label>Référence défunt / objet</label>
+              <input
+                value={defunt.nom || ''}
+                onChange={(e) =>
+                  setDefunt((p: any) => ({ ...p, nom: e.target.value }))
+                }
+                style={inputStyle}
+                placeholder="ex: KHEMIRI Bechir, ou objet de la prestation"
+              />
+            </div>
+          ) : (
+            <>
           {section('👤 Défunt')}
           <div
             style={{
@@ -1054,15 +1070,19 @@ export default function DossierDetail({
               </div>
             </div>
           </div>
+            </>
+          )}
 
-          {section('⚰️ Décès')}
-          <div
-            style={{
-              display: 'grid',
-              gridTemplateColumns: '1fr 1fr',
-              gap: '1rem',
-            }}
-          >
+          {!isDevisLibre && (
+            <>
+              {section('⚰️ Décès')}
+              <div
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: '1fr 1fr',
+                  gap: '1rem',
+                }}
+              >
             <div>
               <label>Date de décès</label>
               <input
@@ -1106,6 +1126,8 @@ export default function DossierDetail({
               />
             </div>
           </div>
+            </>
+          )}
 
           {section('📋 Mandataire')}
           <div
