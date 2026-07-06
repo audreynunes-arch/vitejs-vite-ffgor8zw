@@ -1862,13 +1862,11 @@ async function envoyerPourSignature() {
     let mesure: any = null;
     if (caseSig) {
       const bRect = caseSig.getBoundingClientRect();
-      const xFromContent = (bRect.left - cRect.left) * sc; // mm
-      const yFromContent = (bRect.top - cRect.top) * sc; // mm
-      const pageIndex = Math.floor(yFromContent / contentPageH); // 0-based
       mesure = {
-        pageIndex,
-        xOnPage: marge + xFromContent, // mm depuis le bord gauche de la page
-        yOnPage: marge + (yFromContent - pageIndex * contentPageH), // mm depuis le haut de la page
+        yBoxPx: bRect.top - cRect.top,
+        xBoxPx: bRect.left - cRect.left,
+        contentHeightPx: cRect.height,
+        sc,
         wMM: bRect.width * sc,
         hMM: bRect.height * sc,
       };
@@ -1894,9 +1892,26 @@ async function envoyerPourSignature() {
     //     origine en haut-gauche, avec bornage de sécurité.
     let champ: any = null;
     if (mesure) {
-      const page = Math.min(mesure.pageIndex + 1, totalPages);
-      let xPt = mesure.xOnPage * PT;
-      let yPt = mesure.yOnPage * PT;
+      // On utilise le VRAI nombre de pages du PDF pour éviter de croire
+      // que la signature est sur une page qui n'existe pas.
+      let pageIndex: number;
+      let yOnPageMM: number;
+      if (totalPages <= 1) {
+        pageIndex = 0;
+        yOnPageMM =
+          marge + (mesure.yBoxPx / mesure.contentHeightPx) * contentPageH;
+      } else {
+        const yFromContentMM = mesure.yBoxPx * mesure.sc;
+        pageIndex = Math.min(
+          Math.floor(yFromContentMM / contentPageH),
+          totalPages - 1
+        );
+        yOnPageMM = marge + (yFromContentMM - pageIndex * contentPageH);
+      }
+      const xOnPageMM = marge + mesure.xBoxPx * mesure.sc;
+      const page = pageIndex + 1;
+      let xPt = xOnPageMM * PT;
+      let yPt = yOnPageMM * PT;
       let wPt = mesure.wMM * PT;
       let hPt = mesure.hMM * PT;
       // petite marge intérieure + hauteur de signature raisonnable
