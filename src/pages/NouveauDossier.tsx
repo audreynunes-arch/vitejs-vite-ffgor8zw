@@ -1040,6 +1040,39 @@ export default function NouveauDossier({ onRetour }: Props) {
                     ))}
                   </select>
                 </div>
+                <div style={{ gridColumn: '1 / -1' }}>
+                  <label>N° de concession</label>
+                  <input
+                    value={logistique.numero_concession}
+                    onChange={(e) =>
+                      updateLogistique('numero_concession', e.target.value)
+                    }
+                    style={inputStyle}
+                    placeholder="ex: 123 AB"
+                  />
+                </div>
+                <div>
+                  <label>Date des travaux</label>
+                  <input
+                    type="date"
+                    value={logistique.date_inhumation}
+                    onChange={(e) =>
+                      updateLogistique('date_inhumation', e.target.value)
+                    }
+                    style={inputStyle}
+                  />
+                </div>
+                <div>
+                  <label>Heure des travaux</label>
+                  <input
+                    type="time"
+                    value={logistique.heure_inhumation}
+                    onChange={(e) =>
+                      updateLogistique('heure_inhumation', e.target.value)
+                    }
+                    style={inputStyle}
+                  />
+                </div>
               </>
             )}
           </div>
