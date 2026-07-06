@@ -149,6 +149,7 @@ export default function DossierDetail({
 
   const [defunt, setDefunt] = useState<any>({});
   const [pouvoir, setPouvoir] = useState<any>({});
+  const [poseMonument, setPoseMonument] = useState(false);
   const [infos, setInfos] = useState<any>({});
 
   const [cimetieres, setCimetieres] = useState<any[]>([]);
@@ -264,6 +265,7 @@ export default function DossierDetail({
     if (data) {
       setDefunt(data.defunts || {});
       setPouvoir(data.pouvoirs?.[0] || {});
+      setPoseMonument(!!(data.cimetiere_id || data.numero_concession));
       setInfos({
         compte_client: data.compte_client || '',
         numero_devis: data.numero_devis || '',
@@ -489,7 +491,8 @@ export default function DossierDetail({
           cimetiere_pays: infos.cimetiere_pays || null,
           partenaire_id: infos.partenaire_id || null,
           cimetiere_id:
-            dossier.type_dossier === 'inhumation_locale'
+            dossier.type_dossier === 'inhumation_locale' ||
+            dossier.type_dossier === 'devis_libre'
               ? infos.cimetiere_id || null
               : null,
           achat_concession: infos.achat_concession || null,
@@ -781,20 +784,239 @@ export default function DossierDetail({
             </div>
           </div>
 
-          {isDevisLibre ? (
-            <div style={{ marginBottom: '1rem' }}>
-              {section('👤 Référence')}
-              <label>Référence défunt / objet</label>
-              <input
-                value={defunt.nom || ''}
-                onChange={(e) =>
-                  setDefunt((p: any) => ({ ...p, nom: e.target.value }))
-                }
-                style={inputStyle}
-                placeholder="ex: KHEMIRI Bechir, ou objet de la prestation"
-              />
-            </div>
-          ) : (
+          {isDevisLibre && (
+            <>
+              {section('👤 Informations client')}
+              <div
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: '1fr 1fr',
+                  gap: '1rem',
+                }}
+              >
+                <div>
+                  <label>Civilité</label>
+                  <select
+                    value={pouvoir.civilite || ''}
+                    onChange={(e) =>
+                      setPouvoir((p: any) => ({
+                        ...p,
+                        civilite: e.target.value,
+                      }))
+                    }
+                    style={selectStyle}
+                  >
+                    <option value="">--</option>
+                    <option value="M.">M.</option>
+                    <option value="Mme">Mme</option>
+                    <option value="Société">Société</option>
+                  </select>
+                </div>
+                <div>
+                  <label>Nom / Société</label>
+                  <input
+                    value={pouvoir.nom || ''}
+                    onChange={(e) =>
+                      setPouvoir((p: any) => ({ ...p, nom: e.target.value }))
+                    }
+                    style={inputStyle}
+                  />
+                </div>
+                <div>
+                  <label>Prénom / Contact</label>
+                  <input
+                    value={pouvoir.prenom || ''}
+                    onChange={(e) =>
+                      setPouvoir((p: any) => ({ ...p, prenom: e.target.value }))
+                    }
+                    style={inputStyle}
+                  />
+                </div>
+                <div style={{ gridColumn: '1 / -1' }}>
+                  <label>Adresse</label>
+                  <AutocompleteAdresse
+                    value={pouvoir.adresse || ''}
+                    onChange={(val) =>
+                      setPouvoir((p: any) => ({ ...p, adresse: val }))
+                    }
+                    placeholder="Adresse du client"
+                    style={inputStyle}
+                  />
+                </div>
+                <div>
+                  <label>Téléphone</label>
+                  <input
+                    value={pouvoir.telephone_1 || ''}
+                    onChange={(e) =>
+                      setPouvoir((p: any) => ({
+                        ...p,
+                        telephone_1: e.target.value,
+                      }))
+                    }
+                    style={inputStyle}
+                  />
+                </div>
+                <div>
+                  <label>Email</label>
+                  <input
+                    value={pouvoir.email || ''}
+                    onChange={(e) =>
+                      setPouvoir((p: any) => ({ ...p, email: e.target.value }))
+                    }
+                    style={inputStyle}
+                  />
+                </div>
+                <div style={{ gridColumn: '1 / -1' }}>
+                  <label>Référence défunt / objet</label>
+                  <input
+                    value={defunt.nom || ''}
+                    onChange={(e) =>
+                      setDefunt((p: any) => ({ ...p, nom: e.target.value }))
+                    }
+                    style={inputStyle}
+                    placeholder="ex: KHEMIRI Bechir, ou objet de la prestation"
+                  />
+                </div>
+              </div>
+              <label
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.5rem',
+                  margin: '1rem 0',
+                  cursor: 'pointer',
+                  fontWeight: 'bold',
+                  color: '#185FA5',
+                }}
+              >
+                <input
+                  type="checkbox"
+                  checked={poseMonument}
+                  onChange={(e) => setPoseMonument(e.target.checked)}
+                />
+                🪨 Pose de monument (cimetière, marbrier, concession)
+              </label>
+              {poseMonument && (
+                <div
+                  style={{
+                    display: 'grid',
+                    gridTemplateColumns: '1fr 1fr',
+                    gap: '1rem',
+                  }}
+                >
+                  <div>
+                    <label>Lien de parenté</label>
+                    <input
+                      value={pouvoir.lien_parente || ''}
+                      onChange={(e) =>
+                        setPouvoir((p: any) => ({
+                          ...p,
+                          lien_parente: e.target.value,
+                        }))
+                      }
+                      style={inputStyle}
+                    />
+                  </div>
+                  <div>
+                    <label>Cimetière</label>
+                    <select
+                      value={infos.cimetiere_id || ''}
+                      onChange={(e) =>
+                        setInfos((p: any) => ({
+                          ...p,
+                          cimetiere_id: e.target.value,
+                        }))
+                      }
+                      style={selectStyle}
+                    >
+                      <option value="">-- Choisir --</option>
+                      {cimetieres.map((c: any) => (
+                        <option key={c.id} value={c.id}>
+                          {c.nom}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label>Marbrier</label>
+                    <select
+                      value={infos.marbrier_id || ''}
+                      onChange={(e) =>
+                        setInfos((p: any) => ({
+                          ...p,
+                          marbrier_id: e.target.value,
+                        }))
+                      }
+                      style={selectStyle}
+                    >
+                      <option value="">-- Choisir --</option>
+                      {marbriers.map((m: any) => (
+                        <option key={m.id} value={m.id}>
+                          {m.nom}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label>N° de concession</label>
+                    <input
+                      value={infos.numero_concession || ''}
+                      onChange={(e) =>
+                        setInfos((p: any) => ({
+                          ...p,
+                          numero_concession: e.target.value,
+                        }))
+                      }
+                      style={inputStyle}
+                    />
+                  </div>
+                  <div>
+                    <label>Date des travaux</label>
+                    <input
+                      type="date"
+                      value={infos.date_inhumation || ''}
+                      onChange={(e) =>
+                        setInfos((p: any) => ({
+                          ...p,
+                          date_inhumation: e.target.value,
+                        }))
+                      }
+                      style={inputStyle}
+                    />
+                  </div>
+                  <div>
+                    <label>Heure des travaux</label>
+                    <input
+                      type="time"
+                      value={infos.heure_inhumation || ''}
+                      onChange={(e) =>
+                        setInfos((p: any) => ({
+                          ...p,
+                          heure_inhumation: e.target.value,
+                        }))
+                      }
+                      style={inputStyle}
+                    />
+                  </div>
+                  <div style={{ gridColumn: '1 / -1' }}>
+                    <label>Travaux à réaliser</label>
+                    <textarea
+                      value={infos.travaux_realiser || ''}
+                      onChange={(e) =>
+                        setInfos((p: any) => ({
+                          ...p,
+                          travaux_realiser: e.target.value,
+                        }))
+                      }
+                      style={{ ...inputStyle, minHeight: '70px' }}
+                      placeholder="ex: Creusement, pose semelle, dépose/repose monument…"
+                    />
+                  </div>
+                </div>
+              )}
+            </>
+          )}
+          {!isDevisLibre && (
             <>
           {section('👤 Défunt')}
           <div
@@ -1070,19 +1292,15 @@ export default function DossierDetail({
               </div>
             </div>
           </div>
-            </>
-          )}
 
-          {!isDevisLibre && (
-            <>
-              {section('⚰️ Décès')}
-              <div
-                style={{
-                  display: 'grid',
-                  gridTemplateColumns: '1fr 1fr',
-                  gap: '1rem',
-                }}
-              >
+          {section('⚰️ Décès')}
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: '1fr 1fr',
+              gap: '1rem',
+            }}
+          >
             <div>
               <label>Date de décès</label>
               <input
@@ -1126,8 +1344,6 @@ export default function DossierDetail({
               />
             </div>
           </div>
-            </>
-          )}
 
           {section('📋 Mandataire')}
           <div
@@ -2285,6 +2501,8 @@ export default function DossierDetail({
                   />
                 </div>
               </div>
+            </>
+          )}
             </>
           )}
         </div>
