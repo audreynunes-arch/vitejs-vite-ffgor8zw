@@ -285,6 +285,7 @@ export default function DossierDetail({
         heure_fermeture_depart: data.heure_fermeture_depart || '',
         date_inhumation: data.date_inhumation || '',
         heure_inhumation: data.heure_inhumation || '',
+        heure_salat: data.heure_salat || '',
         taille_defunt: data.taille_defunt || '',
         convoi_effectue_par: data.convoi_effectue_par || '',
         observations: data.observations || '',
@@ -454,6 +455,7 @@ export default function DossierDetail({
           heure_fermeture_depart: infos.heure_fermeture_depart || null,
           date_inhumation: infos.date_inhumation || null,
           heure_inhumation: infos.heure_inhumation || null,
+          heure_salat: infos.heure_salat || null,
           taille_defunt: infos.taille_defunt || null,
           convoi_effectue_par: infos.convoi_effectue_par || null,
           observations: infos.observations || null,
@@ -1761,6 +1763,20 @@ export default function DossierDetail({
                   setInfos((p: any) => ({
                     ...p,
                     heure_fermeture_depart: e.target.value,
+                  }))
+                }
+                style={inputStyle}
+              />
+            </div>
+            <div>
+              <label>Heure Salat Al Janāza</label>
+              <input
+                type="time"
+                value={infos.heure_salat || ''}
+                onChange={(e) =>
+                  setInfos((p: any) => ({
+                    ...p,
+                    heure_salat: e.target.value,
                   }))
                 }
                 style={inputStyle}
