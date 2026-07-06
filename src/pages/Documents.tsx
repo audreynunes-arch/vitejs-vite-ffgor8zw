@@ -1647,6 +1647,7 @@ export default function Documents({ dossierId, onRetour }: Props) {
         }}
       >
         <div
+          id="faire-part-carte"
           style={{
             width: '460px',
             maxWidth: '100%',
@@ -2627,6 +2628,27 @@ export default function Documents({ dossierId, onRetour }: Props) {
     window.open(url, '_blank');
   }
 
+  async function telechargerImageDeroulement() {
+    const carte = document.getElementById('faire-part-carte');
+    if (!carte) {
+      alert("Ouvre d'abord l'onglet Déroulement.");
+      return;
+    }
+    try {
+      const canvas = await (html2pdf as any)()
+        .set({ html2canvas: { scale: 3, useCORS: true, backgroundColor: null } })
+        .from(carte)
+        .toCanvas()
+        .get('canvas');
+      const lien = document.createElement('a');
+      lien.download = `deroulement-${d?.nom || 'obseques'}.png`;
+      lien.href = canvas.toDataURL('image/png');
+      lien.click();
+    } catch (e) {
+      alert("Erreur lors de la création de l'image.");
+    }
+  }
+
   async function envoyerPouvoirSignature() {
     if (!p?.email) {
       alert("⚠️ Le mandataire n'a pas d'email renseigné dans le dossier.");
@@ -2783,6 +2805,22 @@ export default function Documents({ dossierId, onRetour }: Props) {
         >
           📥 Télécharger / PDF
         </button>
+        {onglet === 'deroulement' && (
+          <button
+            onClick={telechargerImageDeroulement}
+            style={{
+              padding: '0.5rem 1.2rem',
+              background: '#185FA5',
+              color: 'white',
+              border: 'none',
+              borderRadius: '6px',
+              cursor: 'pointer',
+              fontWeight: 'bold',
+            }}
+          >
+            📲 Télécharger en image
+          </button>
+        )}
         {onglet === 'pouvoir' && (
           <button
             onClick={envoyerPouvoirSignature}
