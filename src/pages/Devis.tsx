@@ -1932,6 +1932,27 @@ async function envoyerPourSignature() {
       champ = { page, x, y, width, height };
     }
 
+    // === DEBUG (temporaire) : affiche les coordonnées sans envoyer ===
+    alert(
+      'DEBUG signature\n\n' +
+        'champ envoyé : ' +
+        JSON.stringify(champ) +
+        '\n\n' +
+        'yBoxPx : ' +
+        (mesure ? Math.round(mesure.yBoxPx) : '?') +
+        '\nsc (mm/px) : ' +
+        (mesure ? mesure.sc.toFixed(4) : '?') +
+        '\ncontentHeightPx : ' +
+        (mesure ? Math.round(mesure.contentHeightPx) : '?') +
+        '\ntotalPages : ' +
+        totalPages +
+        '\nhauteur A4 (pt) : ' +
+        A4_H_PT
+    );
+    setSaving(false);
+    return;
+    // === FIN DEBUG ===
+
     // 4) PDF -> base64
     const base64: string = await new Promise((resolve, reject) => {
       const reader = new FileReader();
