@@ -1560,82 +1560,147 @@ export default function Documents({ dossierId, onRetour }: Props) {
   );
 
   const renderDeroulement = () => {
-    const gold = '#B08D3C';
+    const vert = couleur || '#22483B';
+    const or = '#B08D3C';
+    const creme = '#FBF8F1';
+    const serif = "'Cormorant Garamond', 'Playfair Display', Georgia, serif";
+    const sans = "'Helvetica Neue', Arial, sans-serif";
+    const feminin = d?.sexe === 'Féminin';
+
+    const icone = (type: string) => {
+      const props = {
+        width: 24,
+        height: 24,
+        viewBox: '0 0 24 24',
+        fill: 'none',
+        stroke: '#E9D9A9',
+        strokeWidth: 1.4,
+        strokeLinejoin: 'round' as const,
+        strokeLinecap: 'round' as const,
+      };
+      if (type === 'toilette')
+        return (
+          <svg {...props}>
+            <path d="M12 3c3 4 5 6 5 9a5 5 0 01-10 0c0-3 2-5 5-9z" />
+          </svg>
+        );
+      if (type === 'meb')
+        return (
+          <svg {...props}>
+            <path d="M9 2h6l2.2 7L15 22H9L6.8 9z" />
+            <line x1="12" y1="10" x2="12" y2="15" />
+          </svg>
+        );
+      if (type === 'depart')
+        return (
+          <svg {...props}>
+            <rect x="2" y="7" width="12" height="8" rx="1" />
+            <path d="M14 10h3.4l2.6 3v2H14z" />
+            <circle cx="6.5" cy="17.5" r="1.5" />
+            <circle cx="17" cy="17.5" r="1.5" />
+          </svg>
+        );
+      if (type === 'salat')
+        return (
+          <svg {...props}>
+            <path d="M12 3c2.6 2 3.6 3.6 3.6 6H8.4C8.4 6.6 9.4 5 12 3z" />
+            <path d="M6 21v-9h12v9" />
+            <path d="M3.5 21h17" />
+            <line x1="9" y1="21" x2="9" y2="16.5" />
+            <line x1="15" y1="21" x2="15" y2="16.5" />
+          </svg>
+        );
+      return (
+        <svg {...props}>
+          <path d="M7 21V10a5 5 0 0110 0v11z" />
+          <line x1="9.5" y1="21" x2="14.5" y2="21" />
+          <line x1="12" y1="12" x2="12" y2="16" />
+        </svg>
+      );
+    };
+
     const etapes = [
       dossier.afficher_toilette !== false && {
-        emoji: '🕌',
+        type: 'toilette',
         label: 'Toilette rituelle',
-        detail: [
-          `${dossier.date_toilette ? fmt(dossier.date_toilette) : ''}${
-            dossier.heure_toilette ? ` à ${dossier.heure_toilette}` : ''
-          }`,
+        lignes: [
+          [
+            dossier.date_toilette ? fmt(dossier.date_toilette) : '',
+            dossier.heure_toilette ? `à ${dossier.heure_toilette}` : '',
+          ]
+            .filter(Boolean)
+            .join(' '),
           mosquee || '',
-        ]
-          .filter(Boolean)
-          .join(' · '),
-        pastille: couleur,
+        ].filter(Boolean),
       },
       afficherMeb && {
-        emoji: '⚰️',
+        type: 'meb',
         label: 'Mise en bière',
-        detail: [
-          `${dossier.date_meb ? fmt(dossier.date_meb) : ''}${
-            dossier.heure_meb ? ` à ${dossier.heure_meb}` : ''
-          }`,
+        lignes: [
+          [
+            dossier.date_meb ? fmt(dossier.date_meb) : '',
+            dossier.heure_meb ? `à ${dossier.heure_meb}` : '',
+          ]
+            .filter(Boolean)
+            .join(' '),
           etab || '',
-        ]
-          .filter(Boolean)
-          .join(' · '),
-        pastille: couleur,
+        ].filter(Boolean),
       },
       afficherDepart && {
-        emoji: '🚗',
+        type: 'depart',
         label: 'Fermeture & départ',
-        detail: [
-          `${
+        lignes: [
+          [
             dossier.date_fermeture_depart
               ? fmt(dossier.date_fermeture_depart)
-              : ''
-          }${
+              : '',
             dossier.heure_fermeture_depart
-              ? ` à ${dossier.heure_fermeture_depart}`
-              : ''
-          }`,
+              ? `à ${dossier.heure_fermeture_depart}`
+              : '',
+          ]
+            .filter(Boolean)
+            .join(' '),
           etab || '',
-        ]
-          .filter(Boolean)
-          .join(' · '),
-        pastille: couleur,
+        ].filter(Boolean),
       },
       afficherSalat && {
-        emoji: '🕌',
+        type: 'salat',
         label: 'Salat Al Janāza',
-        detail: [
-          `${dossier.date_inhumation ? fmt(dossier.date_inhumation) : ''}${
-            dossier.heure_salat ? ` à ${dossier.heure_salat}` : ''
-          }`,
+        lignes: [
+          dossier.heure_salat ? `à ${dossier.heure_salat}` : 'Après Salât du Dohr',
           mosquee || nomCim || '',
-        ]
-          .filter(Boolean)
-          .join(' · '),
-        pastille: couleur,
+        ].filter(Boolean),
       },
       afficherInhumation && {
-        emoji: '⚱️',
+        type: 'inhumation',
         label: 'Inhumation',
-        detail: [
-          `${dossier.date_inhumation ? fmt(dossier.date_inhumation) : ''}${
-            dossier.heure_inhumation ? ` à ${dossier.heure_inhumation}` : ''
-          }`,
+        lignes: [
+          [
+            dossier.date_inhumation ? fmt(dossier.date_inhumation) : '',
+            dossier.heure_inhumation ? `à ${dossier.heure_inhumation}` : '',
+          ]
+            .filter(Boolean)
+            .join(' '),
           nomCim || '',
-        ]
-          .filter(Boolean)
-          .join(' · '),
-        pastille: gold,
+        ].filter(Boolean),
       },
     ].filter(Boolean) as any[];
 
-    const feminin = d?.sexe === 'Féminin';
+    const traitOr = (
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: '0.6rem',
+          margin: '1.1rem 0',
+        }}
+      >
+        <div style={{ height: '1px', width: '60px', background: `${or}88` }} />
+        <span style={{ color: or, fontSize: '10px' }}>❖</span>
+        <div style={{ height: '1px', width: '60px', background: `${or}88` }} />
+      </div>
+    );
 
     return (
       <div
@@ -1646,143 +1711,173 @@ export default function Documents({ dossierId, onRetour }: Props) {
           justifyContent: 'center',
         }}
       >
+        <style>
+          {"@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&display=swap');"}
+        </style>
         <div
           id="faire-part-carte"
           style={{
-            width: '460px',
+            width: '520px',
             maxWidth: '100%',
-            background: '#FBF7EF',
+            background: `radial-gradient(120% 80% at 50% 0%, #FDFCF8 0%, ${creme} 45%, #F1EADB 100%)`,
             border: '1px solid #E7DFCC',
-            borderRadius: '16px',
+            borderRadius: '18px',
             overflow: 'hidden',
+            fontFamily: sans,
           }}
         >
-          <div
-            style={{
-              background: couleur,
-              color: '#fff',
-              textAlign: 'center',
-              padding: '1.4rem 1.25rem 1.5rem',
-            }}
-          >
-            <div style={{ fontSize: '15px', opacity: 0.95 }}>
+          <div style={{ padding: '2.4rem 2.2rem 0.5rem', textAlign: 'center' }}>
+            {agence?.logo_url && (
+              <img
+                src={agence.logo_url}
+                alt="logo"
+                style={{ maxHeight: '92px', margin: '0 auto 1.1rem', display: 'block' }}
+              />
+            )}
+            <div
+              style={{
+                fontFamily: serif,
+                color: vert,
+                fontSize: '26px',
+                fontWeight: 600,
+                direction: 'rtl',
+              }}
+            >
               إنا لله وإنا إليه راجعون
             </div>
-            <div style={{ fontSize: '12px', opacity: 0.85, marginTop: '4px' }}>
-              C'est à Allah que nous appartenons et à Lui que nous retournons
+            <div
+              style={{
+                color: '#6B6353',
+                fontSize: '13.5px',
+                marginTop: '0.4rem',
+                lineHeight: 1.5,
+              }}
+            >
+              C'est à Allah que nous appartenons
+              <br />
+              et à Lui que nous retournerons.
+            </div>
+
+            {traitOr}
+
+            <div
+              style={{
+                color: or,
+                fontSize: '11px',
+                fontWeight: 600,
+                letterSpacing: '1.5px',
+                textTransform: 'uppercase',
+              }}
+            >
+              Nous avons la tristesse de vous faire part du décès de
             </div>
             <div
               style={{
-                height: '1px',
-                background: 'rgba(255,255,255,0.35)',
-                margin: '0.9rem auto',
-                width: '60px',
-              }}
-            />
-            <div
-              style={{
-                fontSize: '24px',
-                fontWeight: 'bold',
-                lineHeight: 1.2,
-                letterSpacing: '0.3px',
+                fontFamily: serif,
+                color: vert,
+                fontSize: '38px',
+                fontWeight: 600,
+                lineHeight: 1.02,
+                textTransform: 'uppercase',
+                letterSpacing: '1px',
+                margin: '0.6rem 0 0.4rem',
               }}
             >
               {d?.civilite} {d?.prenom} {d?.nom}
             </div>
-            <div style={{ fontSize: '12.5px', opacity: 0.9, marginTop: '6px' }}>
-              {feminin ? 'رحمها الله' : 'رحمه الله'} — rappelé(e) à Allah le{' '}
-              {fmt(dossier.date_deces)}
+            <div style={{ fontFamily: serif, color: '#6B6353', fontSize: '19px' }}>
+              rappelé(e) à Allah le {fmt(dossier.date_deces)}
             </div>
-          </div>
 
-          <div style={{ padding: '1.3rem 1.4rem 0.4rem' }}>
+            {traitOr}
+
             <div
               style={{
-                textAlign: 'center',
+                color: or,
                 fontSize: '12px',
-                color: '#9A8F76',
+                fontWeight: 600,
+                letterSpacing: '2px',
                 textTransform: 'uppercase',
-                letterSpacing: '1.5px',
-                marginBottom: '1.1rem',
+                marginBottom: '1.2rem',
               }}
             >
               Déroulement des obsèques
             </div>
-            <div style={{ position: 'relative', paddingLeft: '34px' }}>
+          </div>
+
+          <div style={{ padding: '0 2.2rem' }}>
+            <div style={{ position: 'relative', paddingLeft: '64px' }}>
               <div
                 style={{
                   position: 'absolute',
-                  left: '11px',
-                  top: '8px',
-                  bottom: '18px',
+                  left: '25px',
+                  top: '24px',
+                  bottom: '26px',
                   width: '2px',
-                  background: '#D8CBAF',
+                  background: `${or}55`,
                 }}
               />
-              {etapes.map((etape, i) => (
+              {etapes.map((e, i) => (
                 <div
                   key={i}
                   style={{
                     position: 'relative',
-                    marginBottom: i === etapes.length - 1 ? 0 : '1.1rem',
+                    marginBottom: i === etapes.length - 1 ? 0 : '1.3rem',
+                    textAlign: 'left',
                   }}
                 >
                   <div
                     style={{
                       position: 'absolute',
-                      left: '-34px',
+                      left: '-64px',
                       top: 0,
-                      width: '24px',
-                      height: '24px',
+                      width: '52px',
+                      height: '52px',
                       borderRadius: '50%',
-                      background: etape.pastille,
-                      color: '#fff',
+                      background: vert,
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      fontSize: '13px',
                     }}
                   >
-                    {etape.emoji}
+                    {icone(e.type)}
                   </div>
                   <div
                     style={{
-                      fontWeight: 'bold',
-                      color: couleur,
-                      fontSize: '14.5px',
+                      color: vert,
+                      fontWeight: 700,
+                      fontSize: '15px',
+                      letterSpacing: '0.8px',
+                      textTransform: 'uppercase',
+                      paddingTop: '3px',
                     }}
                   >
-                    {etape.label}
+                    {e.label}
                   </div>
-                  {etape.detail && (
+                  {e.lignes.map((l: string, j: number) => (
                     <div
-                      style={{
-                        fontSize: '13px',
-                        color: '#4A4A44',
-                        marginTop: '2px',
-                      }}
+                      key={j}
+                      style={{ color: '#4A4A44', fontSize: '14px', lineHeight: 1.4 }}
                     >
-                      {etape.detail}
+                      {l}
                     </div>
-                  )}
+                  ))}
                 </div>
               ))}
             </div>
           </div>
 
-          <div
-            style={{
-              textAlign: 'center',
-              padding: '1.3rem 1.4rem 1.5rem',
-              marginTop: '0.6rem',
-            }}
-          >
+          <div style={{ textAlign: 'center', padding: '1.4rem 2.2rem 1.6rem' }}>
+            {traitOr}
+            <div style={{ color: or, fontSize: '22px', lineHeight: 0.5 }}>“</div>
             <div
               style={{
+                fontFamily: serif,
                 fontStyle: 'italic',
-                color: '#6B6353',
-                fontSize: '12.5px',
-                lineHeight: 1.6,
+                color: '#5B5344',
+                fontSize: '16px',
+                lineHeight: 1.5,
+                marginTop: '0.3rem',
               }}
             >
               « Toute âme goûtera la mort »
@@ -1791,28 +1886,46 @@ export default function Documents({ dossierId, onRetour }: Props) {
             </div>
             <div
               style={{
-                color: couleur,
-                fontWeight: 500,
+                color: vert,
                 fontSize: '13px',
                 marginTop: '0.7rem',
+                letterSpacing: '0.3px',
               }}
             >
               {feminin
-                ? 'Allahoumma ghfir lahâ wa rhamhâ'
-                : 'Allahoumma ghfir lahou wa rhamhou'}{' '}
-              — Âmîn
+                ? 'Allahoumma ghfir lahâ wa rhamhâ — Âmîn'
+                : 'Allahoumma ghfir lahou wa rhamhou — Âmîn'}
             </div>
-            <div
-              style={{
-                height: '1px',
-                background: '#E7DFCC',
-                margin: '1rem auto 0.8rem',
-                width: '80%',
-              }}
-            />
-            <div style={{ fontSize: '11.5px', color: '#9A8F76' }}>
-              {agence?.nom}
-            </div>
+          </div>
+
+          <div
+            style={{
+              background: '#EFE8D8',
+              padding: '0.9rem 1rem',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '1.5rem',
+              fontSize: '13px',
+              color: vert,
+              fontWeight: 500,
+            }}
+          >
+            {agence?.telephone && (
+              <span style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                <span style={{ color: or }}>✆</span> {agence.telephone}
+              </span>
+            )}
+            {agence?.site_web && (
+              <>
+                <span style={{ color: `${or}99` }}>|</span>
+                <span
+                  style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}
+                >
+                  <span style={{ color: or }}>⌘</span> {agence.site_web}
+                </span>
+              </>
+            )}
           </div>
         </div>
       </div>
