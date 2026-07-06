@@ -426,6 +426,10 @@ export default function DossierDetail({
           epoux: defunt.epoux || null,
           filiation_pere: defunt.filiation_pere || null,
           filiation_mere: defunt.filiation_mere || null,
+          pere_statut: defunt.pere_statut || null,
+          pere_adresse: defunt.pere_adresse || null,
+          mere_statut: defunt.mere_statut || null,
+          mere_adresse: defunt.mere_adresse || null,
         })
         .eq('id', dossier.defunt_id);
 
@@ -980,6 +984,66 @@ export default function DossierDetail({
                       setDefunt((p: any) => ({
                         ...p,
                         filiation_mere: e.target.value,
+                      }))
+                    }
+                    style={inputStyle}
+                  />
+                </div>
+                <div>
+                  <label>Père (vivant / décédé)</label>
+                  <select
+                    value={defunt.pere_statut || ''}
+                    onChange={(e) =>
+                      setDefunt((p: any) => ({
+                        ...p,
+                        pere_statut: e.target.value,
+                      }))
+                    }
+                    style={inputStyle}
+                  >
+                    <option value="">—</option>
+                    <option value="Vivant">Vivant</option>
+                    <option value="Décédé">Décédé</option>
+                  </select>
+                </div>
+                <div>
+                  <label>Adresse du père</label>
+                  <input
+                    value={defunt.pere_adresse || ''}
+                    onChange={(e) =>
+                      setDefunt((p: any) => ({
+                        ...p,
+                        pere_adresse: e.target.value,
+                      }))
+                    }
+                    style={inputStyle}
+                  />
+                </div>
+                <div>
+                  <label>Mère (vivante / décédée)</label>
+                  <select
+                    value={defunt.mere_statut || ''}
+                    onChange={(e) =>
+                      setDefunt((p: any) => ({
+                        ...p,
+                        mere_statut: e.target.value,
+                      }))
+                    }
+                    style={inputStyle}
+                  >
+                    <option value="">—</option>
+                    <option value="Vivant">Vivante</option>
+                    <option value="Décédé">Décédée</option>
+                  </select>
+                </div>
+                <div>
+                  <label>Adresse de la mère</label>
+                  <input
+                    value={defunt.mere_adresse || ''}
+                    onChange={(e) =>
+                      setDefunt((p: any) => ({
+                        ...p,
+                        mere_adresse: e.target.value,
                       }))
                     }
                     style={inputStyle}
