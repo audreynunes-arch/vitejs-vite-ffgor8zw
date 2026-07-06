@@ -27,6 +27,7 @@ type Onglet =
   | 'prefecture_rapat'
   | 'consulat_rapat'
   | 'attestation_toilette'
+  | 'autorisation_prelevement'
   | 'ambulance_rapat';
 
 export default function Documents({ dossierId, onRetour }: Props) {
@@ -39,6 +40,7 @@ export default function Documents({ dossierId, onRetour }: Props) {
   const [afficherInhumation, setAfficherInhumation] = useState(true);
   const [afficherMeb, setAfficherMeb] = useState(true);
   const [afficherDepart, setAfficherDepart] = useState(true);
+  const [montantPrelevement, setMontantPrelevement] = useState('');
 
   useEffect(() => {
     charger();
@@ -56,6 +58,20 @@ export default function Documents({ dossierId, onRetour }: Props) {
       .eq('id', dossierId)
       .single();
     setDossier(data);
+    // Total facture (= somme des lignes incluses) pour le montant du prélèvement
+    try {
+      const { data: lignesFact } = await supabase
+        .from('lignes_dossier')
+        .select('prix_ttc, inclus')
+        .eq('dossier_id', dossierId)
+        .eq('type_document', 'devis');
+      const total = (lignesFact || [])
+        .filter((l: any) => l.inclus)
+        .reduce((s: number, l: any) => s + (Number(l.prix_ttc) || 0), 0);
+      if (total > 0) setMontantPrelevement(total.toFixed(2));
+    } catch (e) {
+      // pas de blocage si le calcul échoue
+    }
     // Charger le gérant de l'agence (employé avec poste = gérant)
     if (data?.agence_id) {
       const { data: gerants } = await supabase
@@ -108,6 +124,7 @@ export default function Documents({ dossierId, onRetour }: Props) {
     { key: 'declaration_avant_meb', label: '🚐 Avant MEB' },
     { key: 'acquisition', label: '🏛️ Acquisition' },
     { key: 'demande_inhumation', label: '⚰️ Inhumation' },
+    { key: 'autorisation_prelevement', label: '🏦 Autorisation prélèvement' },
     { key: 'bon_travaux', label: '🪨 Bon travaux' },
     { key: 'passage_mosquee', label: '🕌 Passage Mosquée' },
     { key: 'chambre_mortuaire', label: '🏥 Chambre mortuaire' },
@@ -537,6 +554,86 @@ export default function Documents({ dossierId, onRetour }: Props) {
         `Signature ${agence?.nom}`,
         true
       )}
+      {piedPage()}
+    </div>
+  );
+
+  const renderAutorisationPrelevement = () => (
+    <div style={docStyle}>
+      {entete()}
+      {titrePrincipal('AUTORISATION DE PRÉLÈVEMENT SUR LE COMPTE DU DÉFUNT')}
+      <br />
+      <p>
+        Je soussigné(e) :{' '}
+        <strong style={{ color: couleur }}>
+          {p
+            ? `${p.civilite || ''} ${p.prenom || ''} ${p.nom || ''}`.trim()
+            : '.................................'}
+        </strong>
+      </p>
+      <p>
+        Domicilié(e) :{' '}
+        <strong>{p?.adresse || '.................................'}</strong>
+      </p>
+      <p>
+        Agissant en qualité de :{' '}
+        <strong>{p?.lien_parente || '.................................'}</strong>
+      </p>
+      <br />
+      <p>
+        Autorise les <strong>{agence?.nom}</strong> à prélever sur le compte
+        bancaire ou postal
+      </p>
+      <p>
+        Au nom de :{' '}
+        <strong>
+          {d
+            ? `${d.nom || ''} ${d.prenom || ''}`.trim()
+            : '.................................'}
+        </strong>
+      </p>
+      <p>
+        Né(e) le :{' '}
+        <strong>
+          {d?.date_naissance ? fmt(d.date_naissance) : '................'}
+        </strong>
+      </p>
+      <p>
+        Décédé(e) le :{' '}
+        <strong>
+          {dossier.date_deces ? fmt(dossier.date_deces) : '................'}
+        </strong>
+      </p>
+      <p>
+        La somme de :{' '}
+        <strong style={{ color: couleur }}>
+          {montantPrelevement || '................'} euros
+        </strong>
+      </p>
+      <p>
+        Je certifie que le montant du prélèvement est destiné à régler les frais
+        d'obsèques du titulaire du compte.
+      </p>
+      <br />
+      <p>
+        Fait à {agence?.ville || '............'}
+        {'          '}le : {aujourd_hui}
+      </p>
+      <br />
+      <p>Pour servir et valoir ce que de droit.</p>
+      <br />
+      <div style={{ marginTop: '1.5rem' }}>
+        <p style={{ marginBottom: '0.3rem' }}>Signature</p>
+        <div
+          id="case-signature-mandant"
+          style={{
+            border: '1px solid #eee',
+            height: '80px',
+            width: '320px',
+            background: '#fafafa',
+          }}
+        ></div>
+      </div>
       {piedPage()}
     </div>
   );
@@ -2999,6 +3096,42 @@ export default function Documents({ dossierId, onRetour }: Props) {
           </button>
         ))}
       </div>
+      {onglet === 'autorisation_prelevement' && (
+        <div
+          className="no-print"
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            flexWrap: 'wrap',
+            gap: '0.75rem',
+            background: `${couleur}0d`,
+            border: `1px solid ${couleur}22`,
+            borderRadius: '8px',
+            padding: '0.6rem 0.9rem',
+            marginBottom: '1rem',
+            fontSize: '13px',
+          }}
+        >
+          <span style={{ fontWeight: 600, color: '#555' }}>
+            Montant du prélèvement (€) :
+          </span>
+          <input
+            type="number"
+            step="0.01"
+            value={montantPrelevement}
+            onChange={(e) => setMontantPrelevement(e.target.value)}
+            style={{
+              padding: '0.4rem 0.6rem',
+              border: '1px solid #ccc',
+              borderRadius: '6px',
+              width: '140px',
+            }}
+          />
+          <span style={{ color: '#888' }}>
+            Pré-rempli avec le total de la facture — modifiable si besoin.
+          </span>
+        </div>
+      )}
       {onglet === 'deroulement' && (
         <div
           className="no-print"
@@ -3062,6 +3195,8 @@ export default function Documents({ dossierId, onRetour }: Props) {
       )}
       <div className="document-print">
         {onglet === 'pouvoir' && renderPouvoir()}
+        {onglet === 'autorisation_prelevement' &&
+          renderAutorisationPrelevement()}
         {onglet === 'declaration_deces' && renderDeclarationDeces()}
         {onglet === 'apres_meb' && renderApresMeb()}
         {onglet === 'declaration_avant_meb' && renderDeclarationAvantMeb()}
