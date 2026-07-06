@@ -1734,18 +1734,13 @@ export default function Documents({ dossierId, onRetour }: Props) {
                 style={{ maxHeight: '92px', margin: '0 auto 1.1rem', display: 'block' }}
               />
             )}
-            <div
-              style={{
-                fontFamily: "'Amiri', 'Traditional Arabic', serif",
-                color: vert,
-                fontSize: '30px',
-                fontWeight: 700,
-                direction: 'rtl',
-                lineHeight: 1.6,
-              }}
-            >
-              إنا لله وإنا إليه راجعون
-            </div>
+            <img
+              src={`data:image/svg+xml;charset=utf-8,${encodeURIComponent(
+                `<svg xmlns='http://www.w3.org/2000/svg' width='440' height='64'><text x='220' y='46' text-anchor='middle' font-family='Amiri, "Traditional Arabic", "Geeza Pro", "Segoe UI", serif' font-size='42' font-weight='700' fill='${vert}'>إنا لله وإنا إليه راجعون</text></svg>`
+              )}`}
+              alt="إنا لله وإنا إليه راجعون"
+              style={{ display: 'block', margin: '0 auto', height: '54px' }}
+            />
             <div
               style={{
                 color: '#6B6353',
@@ -2748,34 +2743,49 @@ export default function Documents({ dossierId, onRetour }: Props) {
       alert("Ouvre d'abord l'onglet Déroulement.");
       return;
     }
+    const largeur = carte.offsetWidth || 520;
+    // Clone isolé, à la taille exacte de la carte
+    const clone = carte.cloneNode(true) as HTMLElement;
+    clone.style.margin = '0';
+    clone.style.maxWidth = 'none';
+    clone.style.width = largeur + 'px';
+    const wrap = document.createElement('div');
+    wrap.style.position = 'fixed';
+    wrap.style.top = '0';
+    wrap.style.left = '-10000px';
+    wrap.style.width = largeur + 'px';
+    wrap.style.background = 'transparent';
+    wrap.appendChild(clone);
+    document.body.appendChild(wrap);
     try {
-      const largeur = carte.offsetWidth || 520;
-      // On clone la carte dans un conteneur à sa taille exacte
-      // (sinon l'export capture l'espace vide autour).
-      const clone = carte.cloneNode(true) as HTMLElement;
-      clone.style.margin = '0';
-      clone.style.maxWidth = 'none';
-      clone.style.width = largeur + 'px';
-      const wrap = document.createElement('div');
-      wrap.style.position = 'fixed';
-      wrap.style.top = '0';
-      wrap.style.left = '-10000px';
-      wrap.style.width = largeur + 'px';
-      wrap.style.background = 'transparent';
-      wrap.appendChild(clone);
-      document.body.appendChild(wrap);
+      const hauteur = clone.offsetHeight;
       const canvas = await (html2pdf as any)()
-        .set({ html2canvas: { scale: 3, useCORS: true, backgroundColor: null } })
+        .set({
+          html2canvas: {
+            scale: 3,
+            useCORS: true,
+            backgroundColor: null,
+            width: largeur,
+            height: hauteur,
+            windowWidth: largeur,
+            windowHeight: hauteur,
+            x: 0,
+            y: 0,
+            scrollX: 0,
+            scrollY: 0,
+          },
+        })
         .from(clone)
         .toCanvas()
         .get('canvas');
-      document.body.removeChild(wrap);
       const lien = document.createElement('a');
       lien.download = `deroulement-${d?.nom || 'obseques'}.png`;
       lien.href = canvas.toDataURL('image/png');
       lien.click();
     } catch (e) {
       alert("Erreur lors de la création de l'image.");
+    } finally {
+      document.body.removeChild(wrap);
     }
   }
 
