@@ -1,24 +1,19 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../supabase';
-
 interface Props {
   onOuvrir: (id: string) => void;
   onRetour: () => void;
 }
-
 export default function ListeDossiers({ onOuvrir, onRetour }: Props) {
-
   const [dossiers, setDossiers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [recherche, setRecherche] = useState('');
-
+  const [afficherTermines, setAfficherTermines] = useState(false);
   useEffect(() => {
     charger();
   }, []);
-
   async function charger() {
     setLoading(true);
-
     // Récupérer l'agence de l'utilisateur connecté
     const { data: session } = await supabase.auth.getSession();
     const userId = session.session?.user.id;
@@ -28,7 +23,6 @@ export default function ListeDossiers({ onOuvrir, onRetour }: Props) {
       .eq('id', userId)
       .single();
     const agenceId = user?.agence_id || '';
-
     const { data } = await supabase
       .from('dossiers')
       .select(
@@ -43,8 +37,9 @@ export default function ListeDossiers({ onOuvrir, onRetour }: Props) {
     setDossiers(data || []);
     setLoading(false);
   }
-
+  const TERMINES = ['paye', 'clos', 'annule', 'refuse'];
   const filtres = dossiers.filter((d) => {
+    if (!afficherTermines && TERMINES.includes(d.statut)) return false;
     if (!recherche) return true;
     const q = recherche.toLowerCase();
     const nomDefunt = `${d.defunts?.prenom} ${d.defunts?.nom}`.toLowerCase();
@@ -52,7 +47,6 @@ export default function ListeDossiers({ onOuvrir, onRetour }: Props) {
     const num = (d.numero_dossier || '').toLowerCase();
     return nomDefunt.includes(q) || ref.includes(q) || num.includes(q);
   });
-
   const statutColor = (s: string) => {
     switch (s) {
       case 'en_cours':
@@ -75,9 +69,7 @@ export default function ListeDossiers({ onOuvrir, onRetour }: Props) {
         return { bg: '#f0f0f0', color: '#666', label: s };
     }
   };
-
   if (loading) return <p style={{ padding: '2rem' }}>Chargement...</p>;
-
   return (
     <div style={{ padding: '2rem', maxWidth: '900px', margin: '0 auto' }}>
       <div
@@ -101,7 +93,6 @@ export default function ListeDossiers({ onOuvrir, onRetour }: Props) {
           🔄 Actualiser
         </button>
       </div>
-
       <input
         placeholder="🔍 Rechercher par nom, référence, numéro..."
         value={recherche}
@@ -116,14 +107,30 @@ export default function ListeDossiers({ onOuvrir, onRetour }: Props) {
           boxSizing: 'border-box',
         }}
       />
-
+      <label
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '0.5rem',
+          marginBottom: '1.5rem',
+          fontSize: '14px',
+          color: '#555',
+          cursor: 'pointer',
+        }}
+      >
+        <input
+          type="checkbox"
+          checked={afficherTermines}
+          onChange={(e) => setAfficherTermines(e.target.checked)}
+        />
+        Afficher les dossiers terminés (payés, clos, annulés)
+      </label>
       {filtres.length === 0 && (
         <div style={{ textAlign: 'center', padding: '3rem', color: '#999' }}>
           <div style={{ fontSize: '3rem' }}>📭</div>
           <p>Aucun dossier trouvé</p>
         </div>
       )}
-
       <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
         {filtres.map((d) => {
           const statut = statutColor(d.statut);
@@ -162,7 +169,7 @@ export default function ListeDossiers({ onOuvrir, onRetour }: Props) {
                     }}
                   >
                     <span style={{ fontSize: '18px' }}>
-                      {d.type_dossier === 'inhumation_locale' ? '⚰️' : d.type_dossier === 'devis_libre' ? '🧾' : '✈️'}
+                      {d.type_dossier === 'inhumation_locale' ? '⚰️' : '✈️'}
                     </span>
                     <strong style={{ fontSize: '16px' }}>
                       {d.defunts?.civilite} {d.defunts?.prenom} {d.defunts?.nom}
