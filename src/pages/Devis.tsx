@@ -405,6 +405,7 @@ export default function Devis({ dossierId, onRetour }: Props) {
   const [statutFacture, setStatutFacture] = useState('non_payee');
   const [statutBonCommande, setStatutBonCommande] = useState('en_attente');
   const [acompte, setAcompte] = useState(0);
+  const [modesPaiement, setModesPaiement] = useState<string[]>([]);
   const [datePaiement, setDatePaiement] = useState('');
   const [remise] = useState(0);
   const [tarifsRapatriement, setTarifsRapatriement] = useState<any[]>([]);
@@ -495,6 +496,7 @@ export default function Devis({ dossierId, onRetour }: Props) {
       setStatutFacture(data.statut_facture || 'non_payee');
       setStatutBonCommande(data.statut_bon_commande || 'en_attente');
       setAcompte(data.acompte_verse || 0);
+      setModesPaiement(data.modes_paiement || []);
       setDatePaiement(data.date_paiement || '');
       if (data.type_dossier === 'rapatriement') {
         const { data: tarifs } = await supabase
@@ -1170,6 +1172,7 @@ if (data?.type_dossier === 'rapatriement') {
             override?.statutBonCommande ?? statutBonCommande,
           statut_facture: statutFacture,
           acompte_verse: acompte,
+          modes_paiement: modesPaiement,
           date_paiement: datePaiement || null,
         })
         .eq('id', dossierId);
@@ -1712,6 +1715,17 @@ ${servicesHTML}
     <td style="padding:0.3rem 0.5rem; text-align:right; font-size:11px; color:${
       resteAPayer <= 0 ? '#0F6E56' : '#993C1D'
     };">${resteAPayer.toFixed(2)} €</td>
+  </tr>`
+      : ''
+  }
+  ${
+    onglet === 'facture' && modesPaiement.length > 0
+      ? `
+  <tr><td colspan="3"></td><td></td>
+    <td style="padding:0.3rem 0.5rem; font-size:11px;">Mode(s) de paiement</td>
+    <td style="padding:0.3rem 0.5rem; text-align:right; font-size:11px;">${modesPaiement.join(
+      ', '
+    )}</td>
   </tr>`
       : ''
   }
@@ -2459,6 +2473,53 @@ async function envoyerPourSignature() {
                 borderRadius: '6px',
               }}
             />
+          </div>
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.75rem',
+              flexWrap: 'wrap',
+              width: '100%',
+            }}
+          >
+            <label style={{ fontWeight: 'bold', fontSize: '14px' }}>
+              Mode(s) de paiement :
+            </label>
+            {[
+              'Carte',
+              'Virement',
+              'Espèces',
+              'Chèque',
+              'Prélèvement compte défunt',
+            ].map((mode) => {
+              const coche = modesPaiement.includes(mode);
+              return (
+                <label
+                  key={mode}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.3rem',
+                    fontSize: '13px',
+                    cursor: 'pointer',
+                  }}
+                >
+                  <input
+                    type="checkbox"
+                    checked={coche}
+                    onChange={(e) =>
+                      setModesPaiement((cur) =>
+                        e.target.checked
+                          ? [...cur, mode]
+                          : cur.filter((m) => m !== mode)
+                      )
+                    }
+                  />
+                  {mode}
+                </label>
+              );
+            })}
           </div>
           {acompte > 0 && (
             <div
