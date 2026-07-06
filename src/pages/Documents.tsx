@@ -2942,7 +2942,7 @@ export default function Documents({ dossierId, onRetour }: Props) {
           margin: marge,
           pagebreak: { mode: ['css', 'legacy'] },
           image: { type: 'jpeg', quality: 0.95 },
-          html2canvas: { scale: 2, useCORS: true },
+          html2canvas: { scale: 2, useCORS: true, windowWidth: 756 },
           jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
         })
         .from(conteneur)
