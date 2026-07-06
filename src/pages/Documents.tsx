@@ -1808,29 +1808,28 @@ export default function Documents({ dossierId, onRetour }: Props) {
   const renderPageDeGarde = () => {
     const carte: React.CSSProperties = {
       background: '#f9f9f9',
-      borderRadius: '10px',
-      padding: '0.85rem 1rem',
-      marginBottom: '0.8rem',
+      borderRadius: '8px',
+      padding: '0.45rem 0.65rem',
+      marginBottom: '0.4rem',
     };
     const titreCarte: React.CSSProperties = {
       color: couleur,
-      margin: '0 0 0.6rem',
-      fontSize: '15px',
+      margin: '0 0 0.3rem',
+      fontSize: '12.5px',
       borderBottom: `1px solid ${couleur}22`,
-      paddingBottom: '0.35rem',
+      paddingBottom: '0.15rem',
     };
     const grille: React.CSSProperties = {
       display: 'grid',
       gridTemplateColumns: '1fr 1fr',
-      gap: '0.5rem 0.75rem',
-      fontSize: '12.5px',
+      gap: '0.12rem 0.6rem',
+      fontSize: '11px',
     };
-    const lib: React.CSSProperties = { color: '#888', fontSize: '11px' };
+    const lib: React.CSSProperties = { color: '#888', fontSize: '10px' };
     const hw = '.....................';
     const champ = (label: string, valeur: any, pleineLargeur = false) => (
       <div style={pleineLargeur ? { gridColumn: '1 / -1' } : undefined}>
-        <span style={lib}>{label}</span>
-        <br />
+        <span style={lib}>{label} </span>
         <strong>{valeur ? valeur : hw}</strong>
       </div>
     );
@@ -1862,13 +1861,13 @@ export default function Documents({ dossierId, onRetour }: Props) {
       'Passage Mosquée',
     ];
     return (
-      <div style={{ ...docStyle, lineHeight: '1.4' }}>
+      <div style={{ ...docStyle, lineHeight: '1.25' }}>
         <div
           style={{
             textAlign: 'center',
-            marginBottom: '1rem',
+            marginBottom: '0.5rem',
             borderBottom: `3px solid ${couleur}`,
-            paddingBottom: '0.6rem',
+            paddingBottom: '0.35rem',
           }}
         >
           {agence?.logo_url && (
@@ -1876,38 +1875,32 @@ export default function Documents({ dossierId, onRetour }: Props) {
               src={agence.logo_url}
               alt="logo"
               style={{
-                maxHeight: '55px',
-                marginBottom: '0.5rem',
+                maxHeight: '38px',
                 display: 'block',
-                margin: '0 auto 0.5rem',
+                margin: '0 auto 0.25rem',
               }}
             />
           )}
-          <div style={{ fontWeight: 'bold', fontSize: '18px', color: couleur }}>
+          <div style={{ fontWeight: 'bold', fontSize: '15px', color: couleur }}>
             {agence?.nom}
           </div>
-          <div style={{ fontSize: '12px', color: '#666' }}>
-            {agence?.adresse_complete}
-          </div>
-          <div style={{ fontSize: '12px', color: '#666' }}>
-            Tél : {agence?.telephone} — {agence?.email}
+          <div style={{ fontSize: '10.5px', color: '#666' }}>
+            {agence?.adresse_complete} — Tél : {agence?.telephone}
           </div>
         </div>
         <div
           style={{
             background: couleur,
             color: 'white',
-            padding: '0.7rem',
+            padding: '0.4rem',
             borderRadius: '8px',
             textAlign: 'center',
-            marginBottom: '1rem',
+            marginBottom: '0.5rem',
           }}
         >
-          <div style={{ fontSize: '17px', fontWeight: 'bold' }}>
+          <div style={{ fontSize: '14px', fontWeight: 'bold' }}>
             {estRapat ? '✈️ RAPATRIEMENT' : '⚰️ INHUMATION LOCALE'}
-          </div>
-          <div style={{ fontSize: '13px', marginTop: '0.25rem', opacity: 0.9 }}>
-            {dossier.numero_dossier}
+            {dossier.numero_dossier ? ` — ${dossier.numero_dossier}` : ''}
           </div>
         </div>
 
@@ -2031,7 +2024,7 @@ export default function Documents({ dossierId, onRetour }: Props) {
 
         <div style={carte}>
           <h3 style={titreCarte}>📝 Observations</h3>
-          <div style={{ fontSize: '12.5px', minHeight: '2.2rem' }}>
+          <div style={{ fontSize: '11px', minHeight: '1.3rem' }}>
             {dossier.observations || hw}
           </div>
         </div>
@@ -2041,13 +2034,13 @@ export default function Documents({ dossierId, onRetour }: Props) {
           <div
             style={{
               display: 'grid',
-              gridTemplateColumns: '1fr 1fr',
-              gap: '0.35rem 1rem',
-              fontSize: '12px',
+              gridTemplateColumns: '1fr 1fr 1fr',
+              gap: '0.1rem 0.7rem',
+              fontSize: '10px',
             }}
           >
             {checklist.map((item, i) => (
-              <div key={i} style={{ display: 'flex', gap: '0.4rem' }}>
+              <div key={i} style={{ display: 'flex', gap: '0.3rem' }}>
                 <span style={{ color: couleur }}>☐</span>
                 <span>{item}</span>
               </div>
