@@ -1144,7 +1144,11 @@ export default function Documents({ dossierId, onRetour }: Props) {
           <div style={{ fontWeight: 'bold', color: couleur }}>
             🕌 Salat Al Janāza
           </div>
-          <div>Après Salât du Dohr</div>
+          <div>
+            {dossier.heure_salat
+              ? `À ${dossier.heure_salat}`
+              : 'Après Salât du Dohr'}
+          </div>
           <div>
             À :{' '}
             <strong>{mosquee || '.................................'}</strong>
@@ -1607,7 +1611,9 @@ export default function Documents({ dossierId, onRetour }: Props) {
         emoji: '🕌',
         label: 'Salat Al Janāza',
         detail: [
-          dossier.date_inhumation ? fmt(dossier.date_inhumation) : '',
+          `${dossier.date_inhumation ? fmt(dossier.date_inhumation) : ''}${
+            dossier.heure_salat ? ` à ${dossier.heure_salat}` : ''
+          }`,
           mosquee || nomCim || '',
         ]
           .filter(Boolean)
