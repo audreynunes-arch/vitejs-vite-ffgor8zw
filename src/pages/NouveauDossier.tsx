@@ -203,6 +203,7 @@ export default function NouveauDossier({ onRetour }: Props) {
     heure_fermeture_depart: '',
     date_inhumation: '',
     heure_inhumation: '',
+    heure_salat: '',
     taille_defunt: '',
     cercueil_id: '',
     plaque_identite: '',
@@ -498,6 +499,7 @@ export default function NouveauDossier({ onRetour }: Props) {
           heure_fermeture_depart: logistique.heure_fermeture_depart || null,
           date_inhumation: logistique.date_inhumation || null,
           heure_inhumation: logistique.heure_inhumation || null,
+          heure_salat: logistique.heure_salat || null,
           observations: logistique.observations || null,
           achat_concession: logistique.achat_concession || null,
           montant_concession: logistique.montant_concession
@@ -1981,6 +1983,16 @@ export default function NouveauDossier({ onRetour }: Props) {
               onChange={(e) =>
                 updateLogistique('heure_fermeture_depart', e.target.value)
               }
+              style={inputStyle}
+            />
+          </div>
+
+          <div>
+            <label>Heure Salat Al Janāza</label>
+            <input
+              type="time"
+              value={logistique.heure_salat}
+              onChange={(e) => updateLogistique('heure_salat', e.target.value)}
               style={inputStyle}
             />
           </div>
