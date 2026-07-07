@@ -91,6 +91,16 @@ const totalAcompte = filtres.reduce(
 0
 );
 const resteAPayer = totalFacture - totalAcompte;
+// Suivi paiement
+const payees = filtres.filter((d) => d.statut_facture === 'payee').length;
+const partiels = filtres.filter(
+(d) => d.statut_facture === 'partiellement_payee'
+).length;
+const nonPayees = filtres.filter(
+(d) =>
+d.statut_facture !== 'payee' &&
+d.statut_facture !== 'partiellement_payee'
+).length;
 // Top 5 villes inhumation
 const villesCount: { [k: string]: number } = {};
 filtres
@@ -392,6 +402,18 @@ gap: '1rem',
 `${resteAPayer.toFixed(0)} €`,
 resteAPayer > 0 ? '#993C1D' : '#0F6E56'
 )}
+</div>
+{sectionTitre('💳Suivi des paiements')}
+<div
+style={{
+display: 'grid',
+gridTemplateColumns: 'repeat(3, 1fr)',
+gap: '1rem',
+}}
+>
+{card('Payées', payees, '#0F6E56')}
+{card('Partiellement payées', partiels, '#854F0B')}
+{card('Non payées', nonPayees, '#993C1D')}
 </div>
 {/* ÉVOLUTION MENSUELLE */}
 {sectionTitre('📈Évolution mensuelle (12 mois)')}
