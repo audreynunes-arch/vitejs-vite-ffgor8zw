@@ -481,7 +481,7 @@ export default function Devis({ dossierId, onRetour }: Props) {
       ? dossier?.numero_bon_commande
       : dossier?.numero_facture) || '';
 
-  async function chargerDossier() {
+  async function chargerDossier(forceRebuild = false) {
     const { data } = await supabase
       .from('dossiers')
       .select(
@@ -540,7 +540,7 @@ export default function Devis({ dossierId, onRetour }: Props) {
       .eq('dossier_id', dossierId)
       .eq('type_document', 'devis')
       .order('ordre');
-    if (lignesSaved && lignesSaved.length > 0) {
+    if (!forceRebuild && lignesSaved && lignesSaved.length > 0) {
       setLignes(
         lignesSaved.map((l) => ({
           libelle: l.libelle,
@@ -2267,6 +2267,31 @@ async function envoyerPourSignature() {
         </div>
       )}
       {/* SÉLECTEUR CERCUEIL CATALOGUE */}
+      {onglet === 'devis' && (
+        <button
+          onClick={() => {
+            if (
+              confirm(
+                'Recalculer le devis depuis le référentiel (prix adulte/bébé selon la civilité) ?\n\n⚠️ Cela réinitialise les prix et les prestations incluses — tes ajouts/retraits manuels seront perdus.'
+              )
+            ) {
+              chargerDossier(true);
+            }
+          }}
+          style={{
+            background: '#185FA5',
+            color: 'white',
+            border: 'none',
+            borderRadius: '8px',
+            padding: '0.6rem 1rem',
+            cursor: 'pointer',
+            fontWeight: 'bold',
+            marginBottom: '1rem',
+          }}
+        >
+          🔄 Recalculer le devis (adulte / bébé)
+        </button>
+      )}
       {catalogueCercueils.length > 0 && (
         <div
           style={{
