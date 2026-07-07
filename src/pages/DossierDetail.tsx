@@ -1247,32 +1247,6 @@ export default function DossierDetail({
                   </select>
                 </div>
                 <div>
-                  <label>Adresse du père</label>
-                  <input
-                    value={defunt.pere_adresse || ''}
-                    onChange={(e) =>
-                      setDefunt((p: any) => ({
-                        ...p,
-                        pere_adresse: e.target.value,
-                      }))
-                    }
-                    style={inputStyle}
-                  />
-                </div>
-                <div>
-                  <label>Profession du père</label>
-                  <input
-                    value={defunt.pere_profession || ''}
-                    onChange={(e) =>
-                      setDefunt((p: any) => ({
-                        ...p,
-                        pere_profession: e.target.value,
-                      }))
-                    }
-                    style={inputStyle}
-                  />
-                </div>
-                <div>
                   <label>Mère (vivante / décédée)</label>
                   <select
                     value={defunt.mere_statut || ''}
@@ -1290,6 +1264,19 @@ export default function DossierDetail({
                   </select>
                 </div>
                 <div>
+                  <label>Adresse du père</label>
+                  <input
+                    value={defunt.pere_adresse || ''}
+                    onChange={(e) =>
+                      setDefunt((p: any) => ({
+                        ...p,
+                        pere_adresse: e.target.value,
+                      }))
+                    }
+                    style={inputStyle}
+                  />
+                </div>
+                <div>
                   <label>Adresse de la mère</label>
                   <input
                     value={defunt.mere_adresse || ''}
@@ -1297,6 +1284,19 @@ export default function DossierDetail({
                       setDefunt((p: any) => ({
                         ...p,
                         mere_adresse: e.target.value,
+                      }))
+                    }
+                    style={inputStyle}
+                  />
+                </div>
+                <div>
+                  <label>Profession du père</label>
+                  <input
+                    value={defunt.pere_profession || ''}
+                    onChange={(e) =>
+                      setDefunt((p: any) => ({
+                        ...p,
+                        pere_profession: e.target.value,
                       }))
                     }
                     style={inputStyle}
