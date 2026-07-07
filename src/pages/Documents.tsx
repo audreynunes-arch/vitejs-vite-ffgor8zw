@@ -107,6 +107,16 @@ export default function Documents({ dossierId, onRetour }: Props) {
   const fmt = (date: string) =>
     date ? new Date(date).toLocaleDateString('fr-FR') : '...............';
 
+  // Format long et chaleureux pour le faire-part famille : « mardi 7 avril »
+  const fmtLong = (date: string) =>
+    date
+      ? new Date(date).toLocaleDateString('fr-FR', {
+          weekday: 'long',
+          day: 'numeric',
+          month: 'long',
+        })
+      : '...............';
+
   const calcAge = (dateNaissance: string, dateDeces?: string) => {
     if (!dateNaissance) return '...';
     const n = new Date(dateNaissance);
@@ -1723,7 +1733,7 @@ export default function Documents({ dossierId, onRetour }: Props) {
         label: 'Toilette rituelle',
         lignes: [
           [
-            dossier.date_toilette ? fmt(dossier.date_toilette) : '',
+            dossier.date_toilette ? fmtLong(dossier.date_toilette) : '',
             dossier.heure_toilette ? `à ${dossier.heure_toilette}` : '',
           ]
             .filter(Boolean)
@@ -1736,7 +1746,7 @@ export default function Documents({ dossierId, onRetour }: Props) {
         label: 'Mise en bière',
         lignes: [
           [
-            dossier.date_meb ? fmt(dossier.date_meb) : '',
+            dossier.date_meb ? fmtLong(dossier.date_meb) : '',
             dossier.heure_meb ? `à ${dossier.heure_meb}` : '',
           ]
             .filter(Boolean)
@@ -1750,7 +1760,7 @@ export default function Documents({ dossierId, onRetour }: Props) {
         lignes: [
           [
             dossier.date_fermeture_depart
-              ? fmt(dossier.date_fermeture_depart)
+              ? fmtLong(dossier.date_fermeture_depart)
               : '',
             dossier.heure_fermeture_depart
               ? `à ${dossier.heure_fermeture_depart}`
@@ -1774,7 +1784,7 @@ export default function Documents({ dossierId, onRetour }: Props) {
         label: 'Inhumation',
         lignes: [
           [
-            dossier.date_inhumation ? fmt(dossier.date_inhumation) : '',
+            dossier.date_inhumation ? fmtLong(dossier.date_inhumation) : '',
             dossier.heure_inhumation ? `à ${dossier.heure_inhumation}` : '',
           ]
             .filter(Boolean)
