@@ -1174,7 +1174,7 @@ if (data?.type_dossier === 'rapatriement') {
           ordre: l.ordre,
         }))
       );
-      await supabase
+      const { error: errMaj } = await supabase
         .from('dossiers')
         .update({
           statut_devis: override?.statutDevis ?? statutDevis,
@@ -1186,6 +1186,15 @@ if (data?.type_dossier === 'rapatriement') {
           date_paiement: datePaiement || null,
         })
         .eq('id', dossierId);
+      if (errMaj) {
+        alert(
+          '❌ Erreur enregistrement statut : ' +
+            errMaj.message +
+            '\n\n(Souvent une colonne manquante — vérifie que le SQL a bien été passé.)'
+        );
+        setSaving(false);
+        return;
+      }
       setSaved(true);
       setTimeout(() => setSaved(false), 3000);
     } catch (e: any) {
