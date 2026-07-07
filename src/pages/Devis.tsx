@@ -665,7 +665,7 @@ if (data?.type_dossier === 'rapatriement') {
 
       // Pré-remplir cercueil depuis le catalogue (uniquement la ligne cercueil, pas la plaque)
       if (data?.cercueil_id) {
-        const cercueil = cercueils?.find(
+        const cercueil = catalogueCercueils?.find(
           (c: any) => c.id === data.cercueil_id
         );
         if (cercueil) {
