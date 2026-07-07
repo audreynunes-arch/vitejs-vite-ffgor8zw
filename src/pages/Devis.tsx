@@ -2277,31 +2277,6 @@ async function envoyerPourSignature() {
         </div>
       )}
       {/* SÉLECTEUR CERCUEIL CATALOGUE */}
-      {onglet === 'devis' && (
-        <button
-          onClick={() => {
-            if (
-              confirm(
-                'Recalculer le devis depuis le référentiel (prix adulte/bébé selon la civilité) ?\n\n⚠️ Cela réinitialise les prix et les prestations incluses — tes ajouts/retraits manuels seront perdus.'
-              )
-            ) {
-              chargerDossier(true);
-            }
-          }}
-          style={{
-            background: '#185FA5',
-            color: 'white',
-            border: 'none',
-            borderRadius: '8px',
-            padding: '0.6rem 1rem',
-            cursor: 'pointer',
-            fontWeight: 'bold',
-            marginBottom: '1rem',
-          }}
-        >
-          🔄 Recalculer le devis (adulte / bébé)
-        </button>
-      )}
       {catalogueCercueils.length > 0 && (
         <div
           style={{
