@@ -770,6 +770,7 @@ function GestionPrestations({
       libelle: '',
       section: filtreSection || SECTIONS[0],
       prix: '',
+      prix_enfant: '',
       tva: 'tva_20',
       ordre: '',
       agence_id: agenceId,
@@ -785,6 +786,7 @@ function GestionPrestations({
         libelle: form.libelle,
         section: form.section,
         prix: form.prix === '' ? null : form.prix,
+        prix_enfant: form.prix_enfant === '' ? null : form.prix_enfant,
         tva: form.tva,
         ordre: form.ordre === '' ? null : form.ordre,
         agence_id: agenceId,
@@ -915,6 +917,20 @@ function GestionPrestations({
                   setForm((p: any) => ({ ...p, prix: e.target.value }))
                 }
                 style={inputStyle}
+              />
+            </div>
+            <div>
+              <label style={{ fontSize: '13px', fontWeight: '500' }}>
+                Prix enfant / bébé (€)
+              </label>
+              <input
+                type="number"
+                value={form.prix_enfant ?? ''}
+                onChange={(e) =>
+                  setForm((p: any) => ({ ...p, prix_enfant: e.target.value }))
+                }
+                style={inputStyle}
+                placeholder="Si vide → prix adulte"
               />
             </div>
             <div>
@@ -2082,21 +2098,6 @@ function GestionTarifsRapatriement({
     { key: 'billet_adulte', label: 'Billet adulte (€)', type: 'number' },
     { key: 'billet_enfant', label: 'Billet enfant (€)', type: 'number' },
     {
-      key: 'billet_adulte_anubis',
-      label: 'Billet adulte Anubis (€)',
-      type: 'number',
-    },
-    {
-      key: 'billet_adulte_skymaster',
-      label: 'Billet adulte Skymaster (€)',
-      type: 'number',
-    },
-    {
-      key: 'billet_enfant_skymaster',
-      label: 'Billet enfant Skymaster (€)',
-      type: 'number',
-    },
-    {
       key: 'transport_avant_meb_adulte',
       label: 'Transport avant MEB adulte (€)',
       type: 'number',
@@ -2324,32 +2325,6 @@ function GestionTarifsRapatriement({
                         }}
                       >
                         Enfant : {t.billet_enfant} €
-                      </span>
-                    )}
-                    {t.billet_adulte_anubis > 0 && (
-                      <span
-                        style={{
-                          fontSize: '12px',
-                          background: '#FAEEDA',
-                          padding: '0.2rem 0.5rem',
-                          borderRadius: '4px',
-                          color: '#854F0B',
-                        }}
-                      >
-                        Anubis : {t.billet_adulte_anubis} €
-                      </span>
-                    )}
-                    {t.billet_adulte_skymaster > 0 && (
-                      <span
-                        style={{
-                          fontSize: '12px',
-                          background: '#FAECE7',
-                          padding: '0.2rem 0.5rem',
-                          borderRadius: '4px',
-                          color: '#993C1D',
-                        }}
-                      >
-                        Skymaster : {t.billet_adulte_skymaster} €
                       </span>
                     )}
                     <span
