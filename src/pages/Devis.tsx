@@ -1142,6 +1142,7 @@ if (data?.type_dossier === 'rapatriement') {
   async function sauvegarder(override?: {
     statutDevis?: string;
     statutBonCommande?: string;
+    statutFacture?: string;
   }) {
     setSaving(true);
     if (dossier?.facture_verrouillee && onglet === 'facture') {
@@ -1180,7 +1181,7 @@ if (data?.type_dossier === 'rapatriement') {
           statut_devis: override?.statutDevis ?? statutDevis,
           statut_bon_commande:
             override?.statutBonCommande ?? statutBonCommande,
-          statut_facture: statutFacture,
+          statut_facture: override?.statutFacture ?? statutFacture,
           acompte_verse: acompte,
           modes_paiement: modesPaiement,
           date_paiement: datePaiement || null,
@@ -2401,7 +2402,11 @@ async function envoyerPourSignature() {
           </label>
           <select
             value={statutDevis}
-            onChange={(e) => setStatutDevis(e.target.value)}
+            onChange={async (e) => {
+              const v = e.target.value;
+              setStatutDevis(v);
+              await sauvegarder({ statutDevis: v });
+            }}
             style={{
               padding: '0.4rem 0.8rem',
               borderRadius: '6px',
@@ -2472,7 +2477,11 @@ async function envoyerPourSignature() {
             </label>
             <select
               value={statutFacture}
-              onChange={(e) => setStatutFacture(e.target.value)}
+              onChange={async (e) => {
+                const v = e.target.value;
+                setStatutFacture(v);
+                await sauvegarder({ statutFacture: v });
+              }}
               style={{
                 padding: '0.4rem 0.8rem',
                 borderRadius: '6px',
