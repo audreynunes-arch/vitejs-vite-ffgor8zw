@@ -166,6 +166,7 @@ export default function NouveauDossier({ onRetour }: Props) {
     filiation_mere: '',
     pere_statut: '',
     pere_adresse: '',
+    pere_profession: '',
     mere_statut: '',
     mere_adresse: '',
     date_deces: '',
@@ -454,8 +455,10 @@ export default function NouveauDossier({ onRetour }: Props) {
           filiation_mere: defunt.filiation_mere || null,
           pere_statut: defunt.pere_statut || null,
           pere_adresse: defunt.pere_adresse || null,
+          pere_profession: defunt.pere_profession || null,
           mere_statut: defunt.mere_statut || null,
           mere_adresse: defunt.mere_adresse || null,
+          mere_profession: defunt.mere_profession || null,
         })
         .select()
         .single();
@@ -1298,6 +1301,16 @@ export default function NouveauDossier({ onRetour }: Props) {
                 />
               </div>
               <div>
+                <label>Profession du père</label>
+                <input
+                  value={defunt.pere_profession}
+                  onChange={(e) =>
+                    updateDefunt('pere_profession', e.target.value)
+                  }
+                  style={inputStyle}
+                />
+              </div>
+              <div>
                 <label>Mère (vivante / décédée)</label>
                 <select
                   value={defunt.mere_statut}
@@ -1314,6 +1327,16 @@ export default function NouveauDossier({ onRetour }: Props) {
                 <input
                   value={defunt.mere_adresse}
                   onChange={(e) => updateDefunt('mere_adresse', e.target.value)}
+                  style={inputStyle}
+                />
+              </div>
+              <div>
+                <label>Profession de la mère</label>
+                <input
+                  value={defunt.mere_profession}
+                  onChange={(e) =>
+                    updateDefunt('mere_profession', e.target.value)
+                  }
                   style={inputStyle}
                 />
               </div>
