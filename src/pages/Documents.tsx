@@ -691,7 +691,7 @@ export default function Documents({ dossierId, onRetour }: Props) {
         d?.filiation_pere
           ? `${d.filiation_pere}${d?.pere_statut ? ` (${d.pere_statut})` : ''}${
               d?.pere_adresse ? ` — ${d.pere_adresse}` : ''
-            }`
+            }${d?.pere_profession ? ` — ${d.pere_profession}` : ''}`
           : undefined
       )}
       {ligne(
@@ -699,7 +699,7 @@ export default function Documents({ dossierId, onRetour }: Props) {
         d?.filiation_mere
           ? `${d.filiation_mere}${d?.mere_statut ? ` (${d.mere_statut})` : ''}${
               d?.mere_adresse ? ` — ${d.mere_adresse}` : ''
-            }`
+            }${d?.mere_profession ? ` — ${d.mere_profession}` : ''}`
           : undefined
       )}
       {ligne('Époux(se) :', d?.epoux)}
