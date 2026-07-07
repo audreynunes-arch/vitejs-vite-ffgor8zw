@@ -338,7 +338,7 @@ border: '1px solid #ddd',
 <div
 style={{
 display: 'grid',
-gridTemplateColumns: 'repeat(3, 1fr)',
+gridTemplateColumns: 'repeat(4, 1fr)',
 gap: '1rem',
 marginBottom: '1rem',
 }}
