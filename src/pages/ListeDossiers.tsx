@@ -8,7 +8,9 @@ export default function ListeDossiers({ onOuvrir, onRetour }: Props) {
   const [dossiers, setDossiers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [recherche, setRecherche] = useState('');
-  const [afficherTermines, setAfficherTermines] = useState(false);
+  const [filtreStatut, setFiltreStatut] = useState('a_suivre');
+  const [termPayes, setTermPayes] = useState(true);
+  const [termNonPayes, setTermNonPayes] = useState(true);
   useEffect(() => {
     charger();
   }, []);
@@ -53,11 +55,24 @@ export default function ListeDossiers({ onOuvrir, onRetour }: Props) {
   };
   const filtres = dossiers.filter((d) => {
     const st = statutDossier(d);
-    // On ne cache QUE les dossiers vraiment finis : Terminé + Payé, Annulé, Refusé.
-    // Un Terminé NON payé reste affiché (pour ne pas oublier le paiement).
-    const finiEtPaye = st === 'termine' && d.statut_facture === 'payee';
-    if (!afficherTermines && (finiEtPaye || st === 'annule' || st === 'refuse'))
-      return false;
+    const paye = d.statut_facture === 'payee';
+    if (filtreStatut === 'a_suivre') {
+      if ((st === 'termine' && paye) || st === 'refuse' || st === 'annule')
+        return false;
+    } else if (filtreStatut === 'en_cours') {
+      if (st !== 'en_cours') return false;
+    } else if (filtreStatut === 'valide') {
+      if (st !== 'valide') return false;
+    } else if (filtreStatut === 'termine') {
+      if (st !== 'termine') return false;
+      if (paye && !termPayes) return false;
+      if (!paye && !termNonPayes) return false;
+    } else if (filtreStatut === 'refuse') {
+      if (st !== 'refuse') return false;
+    } else if (filtreStatut === 'annule') {
+      if (st !== 'annule') return false;
+    }
+    // 'tous' → aucun filtre de statut
     if (!recherche) return true;
     const q = recherche.toLowerCase();
     const nomDefunt = `${d.defunts?.prenom} ${d.defunts?.nom}`.toLowerCase();
@@ -130,24 +145,86 @@ export default function ListeDossiers({ onOuvrir, onRetour }: Props) {
           boxSizing: 'border-box',
         }}
       />
-      <label
+      <div
         style={{
           display: 'flex',
-          alignItems: 'center',
+          flexWrap: 'wrap',
           gap: '0.5rem',
-          marginBottom: '1.5rem',
-          fontSize: '14px',
-          color: '#555',
-          cursor: 'pointer',
+          marginBottom: '1rem',
         }}
       >
-        <input
-          type="checkbox"
-          checked={afficherTermines}
-          onChange={(e) => setAfficherTermines(e.target.checked)}
-        />
-        Afficher aussi les dossiers clôturés (terminés &amp; payés, annulés)
-      </label>
+        {[
+          { key: 'a_suivre', label: '🔔 À suivre' },
+          { key: 'en_cours', label: '🔵 En cours' },
+          { key: 'valide', label: '✅ Validés' },
+          { key: 'termine', label: '🏁 Terminés' },
+          { key: 'refuse', label: '🚫 Refusés' },
+          { key: 'annule', label: '❌ Annulés' },
+          { key: 'tous', label: '📋 Tous' },
+        ].map((o) => {
+          const actif = filtreStatut === o.key;
+          return (
+            <button
+              key={o.key}
+              onClick={() => setFiltreStatut(o.key)}
+              style={{
+                padding: '0.45rem 0.9rem',
+                borderRadius: '20px',
+                border: '1px solid ' + (actif ? '#0F6E56' : '#ddd'),
+                background: actif ? '#0F6E56' : 'white',
+                color: actif ? 'white' : '#555',
+                fontSize: '13px',
+                fontWeight: actif ? 'bold' : 'normal',
+                cursor: 'pointer',
+              }}
+            >
+              {o.label}
+            </button>
+          );
+        })}
+      </div>
+      {filtreStatut === 'termine' && (
+        <div
+          style={{
+            display: 'flex',
+            gap: '1.25rem',
+            marginBottom: '1.25rem',
+            fontSize: '13px',
+            color: '#555',
+          }}
+        >
+          <label
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.4rem',
+              cursor: 'pointer',
+            }}
+          >
+            <input
+              type="checkbox"
+              checked={termPayes}
+              onChange={(e) => setTermPayes(e.target.checked)}
+            />
+            💰 Payés
+          </label>
+          <label
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.4rem',
+              cursor: 'pointer',
+            }}
+          >
+            <input
+              type="checkbox"
+              checked={termNonPayes}
+              onChange={(e) => setTermNonPayes(e.target.checked)}
+            />
+            💳 Non payés
+          </label>
+        </div>
+      )}
       {filtres.length === 0 && (
         <div style={{ textAlign: 'center', padding: '3rem', color: '#999' }}>
           <div style={{ fontSize: '3rem' }}>📭</div>
