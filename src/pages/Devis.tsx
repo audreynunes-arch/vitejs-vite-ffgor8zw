@@ -611,16 +611,26 @@ if (data?.type_dossier === 'rapatriement') {
         const obligatoires = LIGNES_DEFAUT.filter(
           (l) => l.categorie === 'prestations_obligatoires'
         );
-        // Lignes NON-OBLIGATOIRES depuis le référentiel
-        const nonObligatoires: Ligne[] = prestasInit.map((p, idx) => ({
-          libelle: p.libelle,
-          tva: (p.tva as Ligne['tva']) || 'tva_20',
-          categorie: 'prestations_non_obligatoires' as const,
-          section: p.section || '',
-          prix_ttc: parseFloat(p.prix) || 0,
-          inclus: (parseFloat(p.prix) || 0) > 0,
-          ordre: p.ordre || idx + 1,
-        }));
+        // Lignes NON-OBLIGATOIRES depuis le référentiel (prix enfant si bébé/enfant)
+        const estEnfant =
+          data?.defunts?.civilite === 'Enfant' ||
+          data?.defunts?.civilite === 'Bébé';
+        const nonObligatoires: Ligne[] = prestasInit.map((p, idx) => {
+          const prixEnfantOk =
+            estEnfant && p.prix_enfant != null && p.prix_enfant !== '';
+          const prix = prixEnfantOk
+            ? parseFloat(p.prix_enfant)
+            : parseFloat(p.prix);
+          return {
+            libelle: p.libelle,
+            tva: (p.tva as Ligne['tva']) || 'tva_20',
+            categorie: 'prestations_non_obligatoires' as const,
+            section: p.section || '',
+            prix_ttc: prix || 0,
+            inclus: (prix || 0) > 0,
+            ordre: p.ordre || idx + 1,
+          };
+        });
         lignesInit = [...obligatoires, ...nonObligatoires];
       } else {
         // Sécurité : si pas de prestations au référentiel, ou rapatriement, on garde le défaut
@@ -655,7 +665,7 @@ if (data?.type_dossier === 'rapatriement') {
 
       // Pré-remplir cercueil depuis le catalogue (uniquement la ligne cercueil, pas la plaque)
       if (data?.cercueil_id) {
-        const cercueil = catalogueCercueils?.find(
+        const cercueil = cercueils?.find(
           (c: any) => c.id === data.cercueil_id
         );
         if (cercueil) {
@@ -2314,7 +2324,7 @@ async function envoyerPourSignature() {
               borderRadius: '6px',
               border: '1px solid #0F6E56',
             }}
-            defaultValue=""
+            value={dossier?.cercueil_id || ''}
           >
             <option value="">-- Sélectionner un cercueil --</option>
             {catalogueCercueils
