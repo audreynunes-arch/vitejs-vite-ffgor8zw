@@ -760,13 +760,29 @@ if (data?.type_dossier === 'rapatriement') {
     }
   }
 
+  // Verrou : un document validé/verrouillé ne peut plus être modifié
+  function estVerrouille() {
+    return (
+      (onglet === 'devis' && statutDevis === 'accepte') ||
+      (onglet === 'bon_commande' && statutBonCommande === 'valide') ||
+      (onglet === 'facture' && dossier?.facture_verrouillee)
+    );
+  }
+  function alerteVerrou() {
+    alert(
+      '🔒 Ce document est validé et ne peut plus être modifié (obligation légale d\'inaltérabilité).\n\nEn cas d\'erreur : annulez le dossier et créez-en un nouveau.'
+    );
+  }
+
   function updateLigne(index: number, champ: keyof Ligne, valeur: any) {
+    if (estVerrouille()) return alerteVerrou();
     setLignes((prev) =>
       prev.map((l, i) => (i === index ? { ...l, [champ]: valeur } : l))
     );
   }
 
   function ajouterLigne(categorie: Ligne['categorie'], section: string) {
+    if (estVerrouille()) return alerteVerrou();
     setLignes((prev) => [
       ...prev,
       {
@@ -782,6 +798,7 @@ if (data?.type_dossier === 'rapatriement') {
   }
 
   function supprimerLigne(index: number) {
+    if (estVerrouille()) return alerteVerrou();
     setLignes((prev) => prev.filter((_, i) => i !== index));
   }
 
@@ -2296,6 +2313,7 @@ async function envoyerPourSignature() {
             onChange={async (e) => {
               const id = e.target.value;
               if (!id) return;
+              if (estVerrouille()) return alerteVerrou();
               const c = catalogueCercueils.find((c) => c.id === id);
               if (!c) return;
               // Mémoriser le cercueil choisi dans le dossier (pour le stock)
@@ -2377,8 +2395,17 @@ async function envoyerPourSignature() {
           </label>
           <select
             value={statutDevis}
+            disabled={statutDevis === 'accepte'}
             onChange={async (e) => {
               const v = e.target.value;
+              if (statutDevis === 'accepte') return;
+              if (
+                v === 'accepte' &&
+                !confirm(
+                  '⚠️ Valider le devis le rend DÉFINITIF : il ne pourra plus être modifié ni dévalidé (obligation légale). Continuer ?'
+                )
+              )
+                return;
               setStatutDevis(v);
               await sauvegarder({ statutDevis: v });
             }}
@@ -2386,6 +2413,8 @@ async function envoyerPourSignature() {
               padding: '0.4rem 0.8rem',
               borderRadius: '6px',
               border: '1px solid #ddd',
+              background: statutDevis === 'accepte' ? '#f0f0f0' : 'white',
+              cursor: statutDevis === 'accepte' ? 'not-allowed' : 'pointer',
             }}
           >
             <option value="en_attente">En attente</option>
@@ -2396,6 +2425,12 @@ async function envoyerPourSignature() {
           {!devisValide ? (
             <button
               onClick={async () => {
+                if (
+                  !confirm(
+                    '⚠️ Valider le devis le rend DÉFINITIF : il ne pourra plus être modifié ni dévalidé (obligation légale). Continuer ?'
+                  )
+                )
+                  return;
                 setStatutDevis('accepte');
                 await sauvegarder({ statutDevis: 'accepte' });
                 setOnglet('bon_commande');
@@ -2723,19 +2758,6 @@ async function envoyerPourSignature() {
                 }}
               >
                 Aller à la facture →
-              </button>
-              <button
-                onClick={() => setStatutBonCommande('en_attente')}
-                style={{
-                  padding: '0.5rem 1rem',
-                  background: 'none',
-                  color: '#993C1D',
-                  border: '1px solid #993C1D',
-                  borderRadius: '6px',
-                  cursor: 'pointer',
-                }}
-              >
-                Dévalider
               </button>
             </div>
           )}
