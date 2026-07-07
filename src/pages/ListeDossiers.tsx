@@ -43,6 +43,7 @@ export default function ListeDossiers({ onOuvrir, onRetour }: Props) {
   // > sinon En cours
   const statutDossier = (d: any): string => {
     if (d.statut === 'annule') return 'annule';
+    if (d.statut_devis === 'refuse') return 'refuse';
     const dateEvent = d.date_inhumation || d.date_vol;
     const aujourdhui = new Date();
     aujourdhui.setHours(0, 0, 0, 0);
@@ -52,10 +53,11 @@ export default function ListeDossiers({ onOuvrir, onRetour }: Props) {
   };
   const filtres = dossiers.filter((d) => {
     const st = statutDossier(d);
-    // On ne cache QUE les dossiers vraiment finis : Terminé + Payé (ou Annulé).
+    // On ne cache QUE les dossiers vraiment finis : Terminé + Payé, Annulé, Refusé.
     // Un Terminé NON payé reste affiché (pour ne pas oublier le paiement).
     const finiEtPaye = st === 'termine' && d.statut_facture === 'payee';
-    if (!afficherTermines && (finiEtPaye || st === 'annule')) return false;
+    if (!afficherTermines && (finiEtPaye || st === 'annule' || st === 'refuse'))
+      return false;
     if (!recherche) return true;
     const q = recherche.toLowerCase();
     const nomDefunt = `${d.defunts?.prenom} ${d.defunts?.nom}`.toLowerCase();
@@ -73,6 +75,8 @@ export default function ListeDossiers({ onOuvrir, onRetour }: Props) {
         return { bg: '#f0f0f0', color: '#666', label: '🏁 Terminé' };
       case 'annule':
         return { bg: '#FAECE7', color: '#993C1D', label: '❌ Annulé' };
+      case 'refuse':
+        return { bg: '#FAECE7', color: '#993C1D', label: '🚫 Refusé' };
       default:
         return { bg: '#f0f0f0', color: '#666', label: s };
     }
@@ -189,7 +193,11 @@ export default function ListeDossiers({ onOuvrir, onRetour }: Props) {
                     }}
                   >
                     <span style={{ fontSize: '18px' }}>
-                      {d.type_dossier === 'inhumation_locale' ? '⚰️' : d.type_dossier === 'devis_libre' ? '🧾' : '✈️'}
+                      {d.type_dossier === 'inhumation_locale'
+                        ? '⚰️'
+                        : d.type_dossier === 'devis_libre'
+                        ? '🧾'
+                        : '✈️'}
                     </span>
                     <strong style={{ fontSize: '16px' }}>
                       {d.defunts?.civilite} {d.defunts?.prenom} {d.defunts?.nom}
