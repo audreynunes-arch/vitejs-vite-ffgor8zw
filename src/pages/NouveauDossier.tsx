@@ -1293,24 +1293,6 @@ export default function NouveauDossier({ onRetour }: Props) {
                 </select>
               </div>
               <div>
-                <label>Adresse du père</label>
-                <input
-                  value={defunt.pere_adresse}
-                  onChange={(e) => updateDefunt('pere_adresse', e.target.value)}
-                  style={inputStyle}
-                />
-              </div>
-              <div>
-                <label>Profession du père</label>
-                <input
-                  value={defunt.pere_profession}
-                  onChange={(e) =>
-                    updateDefunt('pere_profession', e.target.value)
-                  }
-                  style={inputStyle}
-                />
-              </div>
-              <div>
                 <label>Mère (vivante / décédée)</label>
                 <select
                   value={defunt.mere_statut}
@@ -1323,10 +1305,28 @@ export default function NouveauDossier({ onRetour }: Props) {
                 </select>
               </div>
               <div>
+                <label>Adresse du père</label>
+                <input
+                  value={defunt.pere_adresse}
+                  onChange={(e) => updateDefunt('pere_adresse', e.target.value)}
+                  style={inputStyle}
+                />
+              </div>
+              <div>
                 <label>Adresse de la mère</label>
                 <input
                   value={defunt.mere_adresse}
                   onChange={(e) => updateDefunt('mere_adresse', e.target.value)}
+                  style={inputStyle}
+                />
+              </div>
+              <div>
+                <label>Profession du père</label>
+                <input
+                  value={defunt.pere_profession}
+                  onChange={(e) =>
+                    updateDefunt('pere_profession', e.target.value)
+                  }
                   style={inputStyle}
                 />
               </div>
