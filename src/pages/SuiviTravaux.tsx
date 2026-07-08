@@ -47,13 +47,17 @@ export default function SuiviTravaux({ agenceId, onRetour }: Props) {
     realises: boolean,
     date: string | null
   ) {
-    await supabase
+    const { error } = await supabase
       .from('dossiers')
       .update({
         travaux_realises: realises,
         date_travaux_realises: date,
       })
       .eq('id', dossierId);
+    if (error) {
+      alert('❌ Erreur enregistrement : ' + error.message);
+      return;
+    }
     charger();
   }
 
