@@ -265,7 +265,15 @@ export default function DossierDetail({
     if (data) {
       setDefunt(data.defunts || {});
       setPouvoir(data.pouvoirs?.[0] || {});
-      setPoseMonument(!!(data.cimetiere_id || data.numero_concession));
+      setPoseMonument(
+        !!(
+          data.cimetiere_id ||
+          data.numero_concession ||
+          data.marbrier_id ||
+          data.date_inhumation ||
+          data.travaux_realiser
+        )
+      );
       setInfos({
         compte_client: data.compte_client || '',
         numero_devis: data.numero_devis || '',
