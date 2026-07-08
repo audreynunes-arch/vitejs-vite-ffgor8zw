@@ -50,7 +50,13 @@ export default function ListeDossiers({ onOuvrir, onRetour }: Props) {
     const aujourdhui = new Date();
     aujourdhui.setHours(0, 0, 0, 0);
     const datePassee = dateEvent && new Date(dateEvent) < aujourdhui;
-    if (d.statut_devis === 'accepte') return datePassee ? 'termine' : 'valide';
+    // Validé si le devis est accepté, OU (compatibilité anciens dossiers)
+    // si l'ancien statut le disait, OU si un paiement a été enregistré.
+    const estValide =
+      d.statut_devis === 'accepte' ||
+      ['valide', 'en_attente_paiement', 'paye', 'clos'].includes(d.statut) ||
+      ['payee', 'partiellement_payee'].includes(d.statut_facture);
+    if (estValide) return datePassee ? 'termine' : 'valide';
     return 'en_cours';
   };
   const filtres = dossiers.filter((d) => {
