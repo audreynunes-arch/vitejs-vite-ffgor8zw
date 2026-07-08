@@ -255,21 +255,6 @@ export default function Documents({ dossierId, onRetour }: Props) {
             <div style={{ fontWeight: 'bold', color: couleur }}>
               {agence?.ville || ''} le {aujourd_hui}
             </div>
-            {dossier.numero_dossier && (
-              <div>
-                N° dossier : <strong>{dossier.numero_dossier}</strong>
-              </div>
-            )}
-            {dossier.compte_client && (
-              <div>
-                Réf : <strong>{dossier.compte_client}</strong>
-              </div>
-            )}
-            {dossier.numero_devis && (
-              <div>
-                Devis : <strong>{dossier.numero_devis}</strong>
-              </div>
-            )}
           </div>
         )}
       </div>
