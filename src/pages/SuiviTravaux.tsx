@@ -23,7 +23,7 @@ export default function SuiviTravaux({ agenceId, onRetour }: Props) {
       .from('dossiers')
       .select('*, defunts(*), marbriers(nom, ville)')
       .eq('agence_id', agenceId)
-      .eq('type_dossier', 'inhumation_locale')
+      .in('type_dossier', ['inhumation_locale', 'devis_libre'])
       .not('date_inhumation', 'is', null)
       .order('date_inhumation', { ascending: false });
     setDossiers(data || []);
@@ -55,6 +55,35 @@ export default function SuiviTravaux({ agenceId, onRetour }: Props) {
     if (d.travaux_realises) return null;
     const date_inhumation = d.date_inhumation;
     if (!date_inhumation) return null;
+    // Devis libre : travaux programmés à une date précise (pas de délai de 4 mois)
+    if (d.type_dossier === 'devis_libre') {
+      const dt = new Date(date_inhumation);
+      const now = new Date();
+      now.setHours(0, 0, 0, 0);
+      const jours = Math.round(
+        (dt.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)
+      );
+      if (jours > 7)
+        return {
+          label: '🧾 Programmé',
+          couleur: '#185FA5',
+          bg: '#EEF2FF',
+          mois: 0,
+        };
+      if (jours >= 0)
+        return {
+          label: '🟢 Cette semaine',
+          couleur: '#0F6E56',
+          bg: '#E1F5EE',
+          mois: 0,
+        };
+      return {
+        label: '🔴 Date passée',
+        couleur: '#993C1D',
+        bg: '#FAECE7',
+        mois: 0,
+      };
+    }
     const inhumation = new Date(date_inhumation);
     const now = new Date();
     const moisEcoules =
@@ -97,6 +126,14 @@ export default function SuiviTravaux({ agenceId, onRetour }: Props) {
   }
 
   const filtres = dossiers.filter((d) => {
+    // Devis libre : uniquement ceux avec une pose de monument
+    if (
+      d.type_dossier === 'devis_libre' &&
+      !d.marbrier_id &&
+      !d.cimetiere_id &&
+      !d.numero_concession
+    )
+      return false;
     if (filtreMarbrier && d.marbrier_id !== filtreMarbrier) return false;
     if (filtreStatut === 'non_realises' && d.travaux_realises) return false;
     if (filtreStatut === 'realises' && !d.travaux_realises) return false;
