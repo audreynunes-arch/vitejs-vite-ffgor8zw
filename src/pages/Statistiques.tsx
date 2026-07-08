@@ -73,7 +73,11 @@ const dateEvent = d.date_inhumation || d.date_vol;
 const auj = new Date();
 auj.setHours(0, 0, 0, 0);
 const datePassee = dateEvent && new Date(dateEvent) < auj;
-if (d.statut_devis === 'accepte') return datePassee ? 'termine' : 'valide';
+const estValide =
+d.statut_devis === 'accepte' ||
+['valide', 'en_attente_paiement', 'paye', 'clos'].includes(d.statut) ||
+['payee', 'partiellement_payee'].includes(d.statut_facture);
+if (estValide) return datePassee ? 'termine' : 'valide';
 return 'en_cours';
 };
 const enCours = filtres.filter((d) => statutDossier(d) === 'en_cours').length;
