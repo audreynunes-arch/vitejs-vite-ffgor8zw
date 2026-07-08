@@ -954,7 +954,7 @@ export default function Documents({ dossierId, onRetour }: Props) {
       </p>
       {ligne('Téléphone :', p?.telephone_1)}
       <br />
-      {ligne("Lieu d'inhumation :", nomCim || undefined)}
+      {ligne("Lieu d'inhumation :", [nomCim, adresseCim].filter(Boolean).join(" — ") || undefined)}
       {ligne(
         'Adresse :',
         cim
@@ -1155,7 +1155,7 @@ export default function Documents({ dossierId, onRetour }: Props) {
           </div>
         </div>
       </div>
-      {ligne("Lieu d'inhumation :", nomCim || undefined)}
+      {ligne("Lieu d'inhumation :", [nomCim, adresseCim].filter(Boolean).join(" — ") || undefined)}
       {ligne(
         'Adresse :',
         cim
@@ -1457,7 +1457,7 @@ export default function Documents({ dossierId, onRetour }: Props) {
             </span>
           </span>
         </div>
-        {ligne("Lieu d'inhumation :", nomCim || undefined)}
+        {ligne("Lieu d'inhumation :", [nomCim, adresseCim].filter(Boolean).join(" — ") || undefined)}
       </div>
       {ligne(
         'Mise en bière prévue le :',
@@ -1775,6 +1775,7 @@ export default function Documents({ dossierId, onRetour }: Props) {
             .filter(Boolean)
             .join(' '),
           nomCim || '',
+          adresseCim || '',
         ].filter(Boolean),
       },
     ].filter(Boolean) as any[];
