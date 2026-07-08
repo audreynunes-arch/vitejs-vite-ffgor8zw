@@ -888,6 +888,7 @@ export default function Documents({ dossierId, onRetour }: Props) {
           border: `1px solid ${couleur}22`,
         }}
       >
+        {ligne('Nom :', d?.nom)}
         {ligne('Prénom :', d?.prenom)}
         {ligne(
           'Né(e) le :',
