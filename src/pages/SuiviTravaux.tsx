@@ -24,9 +24,15 @@ export default function SuiviTravaux({ agenceId, onRetour }: Props) {
       .select('*, defunts(*), marbriers(nom, ville)')
       .eq('agence_id', agenceId)
       .in('type_dossier', ['inhumation_locale', 'devis_libre'])
-      .not('date_inhumation', 'is', null)
       .order('date_inhumation', { ascending: false });
-    setDossiers(data || []);
+    // Inhumation : besoin d'une date. Devis libre : besoin d'une pose de monument.
+    const filtresBase = (data || []).filter((d: any) => {
+      if (d.type_dossier === 'devis_libre') {
+        return !!(d.marbrier_id || d.cimetiere_id || d.numero_concession);
+      }
+      return !!d.date_inhumation;
+    });
+    setDossiers(filtresBase);
 
     const { data: marb } = await supabase
       .from('marbriers')
@@ -53,11 +59,16 @@ export default function SuiviTravaux({ agenceId, onRetour }: Props) {
 
   function statutTravaux(d: any) {
     if (d.travaux_realises) return null;
-    const date_inhumation = d.date_inhumation;
-    if (!date_inhumation) return null;
     // Devis libre : travaux programmés à une date précise (pas de délai de 4 mois)
     if (d.type_dossier === 'devis_libre') {
-      const dt = new Date(date_inhumation);
+      if (!d.date_inhumation)
+        return {
+          label: '📋 À programmer',
+          couleur: '#854F0B',
+          bg: '#FAEEDA',
+          mois: 0,
+        };
+      const dt = new Date(d.date_inhumation);
       const now = new Date();
       now.setHours(0, 0, 0, 0);
       const jours = Math.round(
@@ -84,6 +95,8 @@ export default function SuiviTravaux({ agenceId, onRetour }: Props) {
         mois: 0,
       };
     }
+    const date_inhumation = d.date_inhumation;
+    if (!date_inhumation) return null;
     const inhumation = new Date(date_inhumation);
     const now = new Date();
     const moisEcoules =
