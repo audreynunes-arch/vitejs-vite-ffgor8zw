@@ -1162,12 +1162,30 @@ if (data?.type_dossier === 'rapatriement') {
     statutFacture?: string;
   }) {
     setSaving(true);
-    if (dossier?.facture_verrouillee && onglet === 'facture') {
-      alert('🔒 Cette facture est verrouillée et ne peut plus être modifiée.');
-      setSaving(false);
-      return;
-    }
+    const factureVerr = dossier?.facture_verrouillee;
     try {
+      // Facture verrouillée : le CONTENU est figé (obligation légale),
+      // mais on peut TOUJOURS enregistrer le PAIEMENT (statut, acompte, date, modes).
+      if (factureVerr) {
+        const { error } = await supabase
+          .from('dossiers')
+          .update({
+            statut_facture: override?.statutFacture ?? statutFacture,
+            acompte_verse: acompte,
+            modes_paiement: modesPaiement,
+            date_paiement: datePaiement || null,
+          })
+          .eq('id', dossierId);
+        if (error) {
+          alert('❌ Erreur enregistrement paiement : ' + error.message);
+          setSaving(false);
+          return;
+        }
+        setSaved(true);
+        setTimeout(() => setSaved(false), 3000);
+        setSaving(false);
+        return;
+      }
       await supabase
         .from('lignes_dossier')
         .delete()
