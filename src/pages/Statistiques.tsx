@@ -86,21 +86,36 @@ const termines = filtres.filter((d) => statutDossier(d) === 'termine').length;
 const refuses = filtres.filter((d) => statutDossier(d) === 'refuse').length;
 const annules = filtres.filter((d) => statutDossier(d) === 'annule').length;
 // Stats financières
-const totalFacture = filtres.reduce((sum, d) => {
-const lignes = d.lignes_dossier || [];
-return sum + lignes.reduce((s: number, l: any) => s + (l.prix_ttc || 0), 0);
-}, 0);
-const totalAcompte = filtres.reduce(
+// Montant d'un dossier = uniquement les lignes du DEVIS réellement INCLUSES
+const montantDossier = (d: any) =>
+(d.lignes_dossier || [])
+.filter((l: any) => l.inclus && l.type_document === 'devis')
+.reduce((s: number, l: any) => s + (l.prix_ttc || 0), 0);
+// On ne facture que les dossiers engagés : validés + terminés
+const dossiersFactures = filtres.filter((d) =>
+['valide', 'termine'].includes(statutDossier(d))
+);
+const totalFacture = dossiersFactures.reduce(
+(sum, d) => sum + montantDossier(d),
+0
+);
+const totalAcompte = dossiersFactures.reduce(
 (sum, d) => sum + (d.acompte_verse || 0),
 0
 );
-const resteAPayer = totalFacture - totalAcompte;
-// Suivi paiement
-const payees = filtres.filter((d) => d.statut_facture === 'payee').length;
-const partiels = filtres.filter(
+// Une facture payée ne reste pas à percevoir
+const resteAPayer = dossiersFactures.reduce((sum, d) => {
+if (d.statut_facture === 'payee') return sum;
+return sum + Math.max(0, montantDossier(d) - (d.acompte_verse || 0));
+}, 0);
+// Suivi paiement (uniquement sur les dossiers facturables : validés + terminés)
+const payees = dossiersFactures.filter(
+(d) => d.statut_facture === 'payee'
+).length;
+const partiels = dossiersFactures.filter(
 (d) => d.statut_facture === 'partiellement_payee'
 ).length;
-const nonPayees = filtres.filter(
+const nonPayees = dossiersFactures.filter(
 (d) =>
 d.statut_facture !== 'payee' &&
 d.statut_facture !== 'partiellement_payee'
@@ -380,7 +395,7 @@ devisLibres,
 <div
 style={{
 display: 'grid',
-gridTemplateColumns: 'repeat(3, 1fr)',
+gridTemplateColumns: 'repeat(5, 1fr)',
 gap: '1rem',
 }}
 >
@@ -389,6 +404,7 @@ gap: '1rem',
 {card('Terminés', termines, '#666')}
 {card('Refusés', refuses, '#993C1D')}
 {card('Annulés', annules, '#888')}
+{/* 5 statuts */}
 </div>
 {/* FINANCIER */}
 {sectionTitre('💰Suivi financier')}
@@ -399,12 +415,18 @@ gridTemplateColumns: 'repeat(3, 1fr)',
 gap: '1rem',
 }}
 >
-{card('Total facturé', `${totalFacture.toFixed(0)} €`, '#4F46E5')}
+{card(
+'Total facturé',
+`${totalFacture.toFixed(0)} €`,
+'#4F46E5',
+`${dossiersFactures.length} dossier(s) validés + terminés`
+)}
 {card('Acomptes versés', `${totalAcompte.toFixed(0)} €`, '#0F6E56')}
 {card(
 'Reste à percevoir',
 `${resteAPayer.toFixed(0)} €`,
-resteAPayer > 0 ? '#993C1D' : '#0F6E56'
+resteAPayer > 0 ? '#993C1D' : '#0F6E56',
+'hors factures payées'
 )}
 </div>
 {sectionTitre('💳Suivi des paiements')}
