@@ -20,7 +20,6 @@ type Section =
   | 'mairies'
   | 'prefectures'
   | 'consulats'
-  | 'chambres_funeraires'
   | 'etablissements_sante'
   | 'lieux_culte';
 
@@ -35,6 +34,7 @@ function TableauGenerique({
   onRetour,
   filtreColonne,
   filtreValeurs,
+  filtreUI,
   agenceScope,
 }: {
   titre: string;
@@ -49,11 +49,13 @@ function TableauGenerique({
   onRetour: () => void;
   filtreColonne?: string;
   filtreValeurs?: string[];
+  filtreUI?: { key: string; label: string };
   agenceScope?: string;
 }) {
   const [lignes, setLignes] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [recherche, setRecherche] = useState('');
+  const [filtreUIValeur, setFiltreUIValeur] = useState('');
   const [editItem, setEditItem] = useState<any>(null);
   const [isNew, setIsNew] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -123,7 +125,18 @@ function TableauGenerique({
     await charger();
   }
 
+  // Valeurs distinctes pour le menu déroulant de filtre (avec comptage)
+  const optionsFiltreUI = filtreUI
+    ? Array.from(
+        new Set(lignes.map((l) => l[filtreUI.key]).filter(Boolean))
+      ).sort()
+    : [];
+  const compteFiltreUI = (v: string) =>
+    filtreUI ? lignes.filter((l) => l[filtreUI.key] === v).length : 0;
+
   const filtres = lignes.filter((l) => {
+    if (filtreUI && filtreUIValeur && l[filtreUI.key] !== filtreUIValeur)
+      return false;
     if (!recherche) return true;
     return colonnes.some((c) =>
       String(l[c.key] || '')
@@ -294,19 +307,42 @@ function TableauGenerique({
           ➕ Ajouter
         </button>
       </div>
-      <input
-        placeholder="🔍 Rechercher..."
-        value={recherche}
-        onChange={(e) => setRecherche(e.target.value)}
-        style={{
-          width: '100%',
-          padding: '0.75rem',
-          marginBottom: '1rem',
-          borderRadius: '8px',
-          border: '1px solid #ddd',
-          boxSizing: 'border-box' as const,
-        }}
-      />
+      <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '1rem' }}>
+        {filtreUI && (
+          <select
+            value={filtreUIValeur}
+            onChange={(e) => setFiltreUIValeur(e.target.value)}
+            style={{
+              flex: '0 0 240px',
+              padding: '0.75rem',
+              borderRadius: '8px',
+              border: '1px solid #ddd',
+              boxSizing: 'border-box' as const,
+            }}
+          >
+            <option value="">
+              📂 {filtreUI.label} ({lignes.length})
+            </option>
+            {optionsFiltreUI.map((o) => (
+              <option key={String(o)} value={String(o)}>
+                {String(o)} ({compteFiltreUI(String(o))})
+              </option>
+            ))}
+          </select>
+        )}
+        <input
+          placeholder="🔍 Rechercher..."
+          value={recherche}
+          onChange={(e) => setRecherche(e.target.value)}
+          style={{
+            flex: 1,
+            padding: '0.75rem',
+            borderRadius: '8px',
+            border: '1px solid #ddd',
+            boxSizing: 'border-box' as const,
+          }}
+        />
+      </div>
       {loading ? (
         <p>Chargement...</p>
       ) : (
@@ -864,47 +900,6 @@ function GestionConsulats({
   );
 }
 
-function GestionChambresFuneraires({
-  onRetour,
-  agenceId,
-}: {
-  onRetour: () => void;
-  agenceId: string;
-}) {
-  return (
-    <TableauGenerique
-      titre="⚱️ Chambres funéraires"
-      table="chambres_funeraires"
-      onRetour={onRetour}
-      agenceScope={agenceId}
-      colonnes={[
-        { key: 'nom', label: 'Nom', width: '30%' },
-        { key: 'ville', label: 'Ville', width: '20%' },
-        { key: 'telephone', label: 'Téléphone', width: '22%' },
-        { key: 'email', label: 'Email', width: '28%' },
-      ]}
-      champsForm={[
-        { key: 'nom', label: 'Nom' },
-        { key: 'adresse', label: 'Adresse' },
-        { key: 'code_postal', label: 'Code postal' },
-        { key: 'ville', label: 'Ville' },
-        { key: 'telephone', label: 'Téléphone' },
-        { key: 'fax', label: 'Fax' },
-        { key: 'email', label: 'Email' },
-        { key: 'horaires', label: 'Horaires', type: 'textarea' },
-        { key: 'contact_nom', label: 'Contact nom' },
-        { key: 'contact_telephone', label: 'Contact téléphone' },
-        {
-          key: 'infos_complementaires',
-          label: 'Infos complémentaires',
-          type: 'textarea',
-        },
-        { key: 'notes', label: 'Notes', type: 'textarea' },
-      ]}
-    />
-  );
-}
-
 function GestionEtablissementsSante({
   onRetour,
   agenceId,
@@ -918,6 +913,7 @@ function GestionEtablissementsSante({
       table="etablissements_sante"
       onRetour={onRetour}
       agenceScope={agenceId}
+      filtreUI={{ key: 'type_etablissement', label: 'Tous les types' }}
       colonnes={[
         { key: 'nom', label: 'Nom', width: '30%' },
         { key: 'type_etablissement', label: 'Type', width: '15%' },
@@ -978,6 +974,7 @@ function GestionLieuxCulte({
       table="lieux_culte"
       onRetour={onRetour}
       agenceScope={agenceId}
+      filtreUI={{ key: 'type_culte', label: 'Tous les cultes' }}
       colonnes={[
         { key: 'nom', label: 'Nom', width: '30%' },
         { key: 'type_culte', label: 'Type', width: '15%' },
@@ -2757,14 +2754,6 @@ export default function Referentiels({ onRetour, agenceId }: Props) {
       />
     );
 
-  if (section === 'chambres_funeraires')
-    return (
-      <GestionChambresFuneraires
-        onRetour={() => setSection('menu')}
-        agenceId={agenceId}
-      />
-    );
-
   if (section === 'etablissements_sante')
     return (
       <GestionEtablissementsSante
@@ -2872,12 +2861,6 @@ export default function Referentiels({ onRetour, agenceId }: Props) {
             emoji: '🌍',
             label: 'Consulats',
             desc: 'Annuaire : pays, plateformes, contacts',
-          },
-          {
-            key: 'chambres_funeraires',
-            emoji: '⚱️',
-            label: 'Chambres funéraires',
-            desc: 'Annuaire : adresses, horaires',
           },
           {
             key: 'etablissements_sante',
