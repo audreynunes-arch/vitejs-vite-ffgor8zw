@@ -17,7 +17,9 @@ async function charger() {
 setLoading(true);
 const { data } = await supabase
 .from('dossiers')
-.select('*, defunts(*), lignes_dossier(*)')
+.select(
+'*, defunts(*), lignes_dossier(*), cimetieres!dossiers_cimetiere_id_fkey(nom, ville)'
+)
 .eq('agence_id', agenceId)
 .order('created_at', { ascending: false });
 setDossiers(data || []);
@@ -120,12 +122,24 @@ const nonPayees = dossiersFactures.filter(
 d.statut_facture !== 'payee' &&
 d.statut_facture !== 'partiellement_payee'
 ).length;
-// Top 5 villes inhumation
+// Top 5 villes inhumation (ville du CIMETIÈRE, sinon lieu de décès nettoyé)
+const nettoyerVille = (txt: string) => {
+if (!txt) return '';
+// on enlève le pays final et on prend ce qui suit le code postal
+let s = txt.replace(/,?\s*(France|FRANCE)\s*$/, '').trim();
+const m = s.match(/\b\d{5}\b\s+(.+)$/);
+if (m) return m[1].replace(/,.*$/, '').trim();
+return s.split(',').pop()!.trim();
+};
 const villesCount: { [k: string]: number } = {};
 filtres
 .filter((d) => d.type_dossier === 'inhumation_locale')
 .forEach((d) => {
-const ville = d.lieu_deces?.split(' ').pop() || 'Inconnue';
+const ville =
+d.cimetieres?.ville ||
+d.cimetieres?.nom ||
+nettoyerVille(d.lieu_deces) ||
+'Inconnue';
 villesCount[ville] = (villesCount[ville] || 0) + 1;
 });
 const top5Villes = Object.entries(villesCount)
@@ -142,10 +156,10 @@ destCount[dest] = (destCount[dest] || 0) + 1;
 const topDest = Object.entries(destCount)
 .sort((a, b) => b[1] - a[1])
 .slice(0, 5);
-// Top compagnies
+// Top compagnies (rapatriements uniquement)
 const compCount: { [k: string]: number } = {};
 filtres
-.filter((d) => d.compagnie_aerienne)
+.filter((d) => d.type_dossier === 'rapatriement' && d.compagnie_aerienne)
 .forEach((d) => {
 compCount[d.compagnie_aerienne] =
 (compCount[d.compagnie_aerienne] || 0) + 1;
@@ -153,9 +167,11 @@ compCount[d.compagnie_aerienne] =
 const topComp = Object.entries(compCount)
 .sort((a, b) => b[1] - a[1])
 .slice(0, 5);
-// Évolution mensuelle (12 derniers mois)
+// Évolution mensuelle (12 derniers mois) : en cours vs validés/terminés
 const moisLabels: string[] = [];
-const moisData = [];
+const moisData: number[] = [];
+const moisEnCours: number[] = [];
+const moisValides: number[] = [];
 for (let i = 11; i >= 0; i--) {
 const d = new Date();
 d.setMonth(d.getMonth() - i);
@@ -172,13 +188,21 @@ d.getMonth() + 1,
 59,
 59
 ).toISOString();
-const count = dossiers.filter(
+const duMois = dossiers.filter(
 (dos) => dos.created_at >= debut_m && dos.created_at <= fin_m
+);
+const nbEnCours = duMois.filter(
+(dos) => statutDossier(dos) === 'en_cours'
+).length;
+const nbValides = duMois.filter((dos) =>
+['valide', 'termine'].includes(statutDossier(dos))
 ).length;
 moisLabels.push(label);
-moisData.push(count);
+moisData.push(duMois.length);
+moisEnCours.push(nbEnCours);
+moisValides.push(nbValides);
 }
-const maxMois = Math.max(...moisData, 1);
+const maxMois = Math.max(...moisEnCours, ...moisValides, 1);
 const card = (
 titre: string,
 valeur: any,
@@ -459,7 +483,9 @@ gap: '0.5rem',
 height: '120px',
 }}
 >
-{moisData.map((count, i) => (
+{moisEnCours.map((nbEC, i) => {
+const nbV = moisValides[i];
+return (
 <div
 key={i}
 style={{
@@ -471,17 +497,40 @@ gap: '0.25rem',
 }}
 >
 <div style={{ fontSize: '10px', color: '#888' }}>
-{count > 0 ? count : ''}
+{nbEC + nbV > 0 ? nbEC + nbV : ''}
 </div>
 <div
 style={{
+display: 'flex',
+alignItems: 'flex-end',
+gap: '2px',
 width: '100%',
-background: count > 0 ? '#4F46E5' : '#f0f0f0',
-height: `${(count / maxMois) * 80}px`,
-minHeight: count > 0 ? '4px' : '2px',
+height: '80px',
+}}
+>
+<div
+title={`${nbEC} en cours`}
+style={{
+flex: 1,
+background: nbEC > 0 ? '#4F46E5' : '#f0f0f0',
+height: `${(nbEC / maxMois) * 80}px`,
+minHeight: nbEC > 0 ? '4px' : '2px',
 borderRadius: '3px 3px 0 0',
+alignSelf: 'flex-end',
 }}
 />
+<div
+title={`${nbV} validés/terminés`}
+style={{
+flex: 1,
+background: nbV > 0 ? '#0F6E56' : '#f0f0f0',
+height: `${(nbV / maxMois) * 80}px`,
+minHeight: nbV > 0 ? '4px' : '2px',
+borderRadius: '3px 3px 0 0',
+alignSelf: 'flex-end',
+}}
+/>
+</div>
 <div
 style={{
 fontSize: '9px',
@@ -494,11 +543,45 @@ whiteSpace: 'nowrap',
 {moisLabels[i]}
 </div>
 </div>
-))}
+);
+})}
+</div>
+<div
+style={{
+display: 'flex',
+justifyContent: 'center',
+gap: '1.5rem',
+marginTop: '1.75rem',
+fontSize: '12px',
+color: '#555',
+}}
+>
+<span style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+<span
+style={{
+width: '12px',
+height: '12px',
+borderRadius: '3px',
+background: '#4F46E5',
+}}
+/>
+Devis en cours
+</span>
+<span style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+<span
+style={{
+width: '12px',
+height: '12px',
+borderRadius: '3px',
+background: '#0F6E56',
+}}
+/>
+Validés / Terminés
+</span>
 </div>
 </div>
 {/* TOP VILLES */}
-{sectionTitre('📍Top 5 villes (inhumations locales)')}
+{sectionTitre('📍Top 5 villes de cimetière (inhumations locales)')}
 <div
 style={{
 background: 'white',
