@@ -2690,8 +2690,23 @@ async function envoyerPourSignature() {
                         notes: 'Sortie automatique — facture verrouillée',
                       });
                     } else {
+                      // Aucune ligne de stock : on la crée à -1 pour ne pas perdre la sortie
+                      await supabase.from('stocks_cercueils').insert({
+                        cercueil_id: cercueilId,
+                        agence_id: agenceId,
+                        quantite: -1,
+                        seuil_alerte: 2,
+                      });
+                      await supabase.from('mouvements_stock').insert({
+                        cercueil_id: cercueilId,
+                        agence_id: agenceId,
+                        type_mouvement: 'sortie',
+                        quantite: 1,
+                        dossier_id: dossierId,
+                        notes: 'Sortie automatique — facture verrouillée',
+                      });
                       alert(
-                        '⚠️ Ce cercueil n\'a pas de stock enregistré pour cette agence. Aucune déduction effectuée.'
+                        '⚠️ Ce cercueil n\'avait pas de stock enregistré. La sortie a été comptabilisée : le stock passe à -1. Pensez à saisir le stock réel.'
                       );
                     }
                   }
