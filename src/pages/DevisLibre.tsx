@@ -21,7 +21,7 @@ export default function DevisLibre({ dossierId, onRetour }: Props) {
   const [lignes, setLignes] = useState<Ligne[]>([
     { libelle: '', tva: 'tva_10', prix_ttc: 0, inclus: true, ordre: 1 },
   ]);
-  const [objet, setObjet] = useState('Sous-traitance - Transport');
+  const [objet, setObjet] = useState('');
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [dossier, setDossier] = useState<any>(null);
@@ -70,6 +70,65 @@ export default function DevisLibre({ dossierId, onRetour }: Props) {
       );
     }
   }
+
+  // Génère un numéro dédié (DEV / BC / FAC) la 1re fois qu'on ouvre chaque onglet
+  useEffect(() => {
+    if (!dossier) return;
+    const col =
+      onglet === 'devis'
+        ? 'numero_devis'
+        : onglet === 'bon_commande'
+        ? 'numero_bon_commande'
+        : 'numero_facture';
+    if (!(dossier as any)[col]) genererNumero(onglet);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [onglet, dossier]);
+
+  async function genererNumero(type: Onglet) {
+    if (!dossier) return;
+    const config: Record<Onglet, { col: string; pfx: string }> = {
+      devis: { col: 'numero_devis', pfx: 'DEV' },
+      bon_commande: { col: 'numero_bon_commande', pfx: 'BC' },
+      facture: { col: 'numero_facture', pfx: 'FAC' },
+    };
+    const { col, pfx } = config[type];
+    if ((dossier as any)[col]) return; // déjà un numéro
+    try {
+      const annee = new Date().getFullYear();
+      const prefixe = `${pfx}-${annee}-`;
+      const { data: derniers } = await supabase
+        .from('dossiers')
+        .select(col)
+        .eq('agence_id', dossier.agence_id)
+        .like(col, `${prefixe}%`)
+        .order(col, { ascending: false })
+        .limit(1);
+      let seq = 1;
+      if (derniers && derniers.length > 0 && (derniers[0] as any)[col]) {
+        const n = parseInt(
+          String((derniers[0] as any)[col]).split('-').pop() || '0',
+          10
+        );
+        if (!isNaN(n)) seq = n + 1;
+      }
+      const nouveau = `${prefixe}${String(seq).padStart(4, '0')}`;
+      await supabase
+        .from('dossiers')
+        .update({ [col]: nouveau })
+        .eq('id', dossierId);
+      setDossier((d: any) => (d ? { ...d, [col]: nouveau } : d));
+    } catch (e) {
+      // En cas d'échec, on n'empêche pas l'ouverture du document
+    }
+  }
+
+  // Numéro du document actuellement affiché
+  const numeroDocument = () =>
+    (onglet === 'devis'
+      ? dossier?.numero_devis
+      : onglet === 'bon_commande'
+      ? dossier?.numero_bon_commande
+      : dossier?.numero_facture) || '';
 
   function updateLigne(index: number, champ: keyof Ligne, valeur: any) {
     setLignes((prev) =>
@@ -234,7 +293,7 @@ export default function DevisLibre({ dossierId, onRetour }: Props) {
       : '';
     const refDefunt = d ? `${d.prenom || ''} ${d.nom || ''}`.trim() : '';
 
-    const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${titreDoc} — ${objet}</title>
+    const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${titreDoc}${objet ? ' — ' + objet : ''}</title>
 <style>
   * { box-sizing: border-box; }
   body { font-family: Arial, sans-serif; font-size: 11px; color: #333; margin: 0; padding: 0; }
@@ -261,9 +320,7 @@ export default function DevisLibre({ dossierId, onRetour }: Props) {
   </td>
   <td style="width:30%; vertical-align:top; text-align:right;">
     <div style="border:1px solid ${couleur}; padding:0.4rem; display:inline-block;">
-      <strong style="color:${couleur};">${titreDoc} n° ${
-      dossier?.numero_devis || dossier?.numero_facture || ''
-    }</strong>
+      <strong style="color:${couleur};">${titreDoc} n° ${numeroDocument()}</strong>
     </div>
     <div style="margin-top:0.5rem; font-size:10px;">${
       agence?.nom || ''
@@ -291,12 +348,17 @@ export default function DevisLibre({ dossierId, onRetour }: Props) {
 <table style="border:1px solid #333; margin-bottom:1rem;">
   <thead>
     <tr>
-      <th style="background:${couleur}; color:white; padding:0.4rem 0.5rem; text-align:left; font-size:11px; width:60%;">${objet}</th>
+      <th style="background:${couleur}; color:white; padding:0.4rem 0.5rem; text-align:left; font-size:11px; width:60%;">Désignation</th>
       <th style="background:${couleur}; color:white; padding:0.4rem 0.5rem; text-align:right; font-size:11px;">HT</th>
       <th style="background:${couleur}; color:white; padding:0.4rem 0.5rem; text-align:right; font-size:11px;">TTC</th>
     </tr>
   </thead>
   <tbody>
+    ${
+      objet
+        ? `<tr><td colspan="3" style="background:${couleur}; color:white; padding:0.3rem 0.5rem; font-size:11px; font-weight:bold;">${objet}</td></tr>`
+        : ''
+    }
     ${lignesHTML}
     <tr style="font-weight:bold; background:#f0f0f0;">
       <td style="padding:0.4rem 0.5rem; font-size:11px;">TOTAL ${titreDoc.toUpperCase()} T.T.C. :</td>
