@@ -25,22 +25,23 @@ export default function GestionStocks({ agenceId, onRetour }: Props) {
     setCercueils(cats || [])
 
     // Charger stocks
-    const { data: s } = await supabase.from('stocks_cercueils')
+    let { data: s } = await supabase.from('stocks_cercueils')
       .select('*, catalogue_cercueils(nom, type)')
       .eq('agence_id', agenceId)
-    
-    // Si pas de stock initialisé, créer les entrées
-    if (s && s.length === 0 && cats && cats.length > 0) {
+
+    // Créer les lignes de stock MANQUANTES (nouveaux cercueils du catalogue)
+    const idsAvecStock = new Set((s || []).map((x: any) => x.cercueil_id))
+    const manquants = (cats || []).filter(c => !idsAvecStock.has(c.id))
+    if (manquants.length > 0) {
       await supabase.from('stocks_cercueils').insert(
-        cats.map(c => ({ cercueil_id: c.id, agence_id: agenceId, quantite: 0, seuil_alerte: 2 }))
+        manquants.map(c => ({ cercueil_id: c.id, agence_id: agenceId, quantite: 0, seuil_alerte: 2 }))
       )
       const { data: s2 } = await supabase.from('stocks_cercueils')
         .select('*, catalogue_cercueils(nom, type)')
         .eq('agence_id', agenceId)
-      setStocks(s2 || [])
-    } else {
-      setStocks(s || [])
+      s = s2 || []
     }
+    setStocks(s || [])
 
     // Charger mouvements
     const { data: m } = await supabase.from('mouvements_stock')
@@ -64,15 +65,24 @@ export default function GestionStocks({ agenceId, onRetour }: Props) {
       notes: form.notes || null,
     })
 
-    // Mettre à jour le stock
+    // Mettre à jour le stock (le négatif est autorisé : il signale un manque réel)
     const stock = stocks.find(s => s.cercueil_id === form.cercueil_id)
     if (stock) {
       const newQty = form.type_mouvement === 'entree'
         ? stock.quantite + form.quantite
         : stock.quantite - form.quantite
       await supabase.from('stocks_cercueils')
-        .update({ quantite: Math.max(0, newQty) })
+        .update({ quantite: newQty })
         .eq('id', stock.id)
+    } else {
+      // Pas encore de ligne de stock pour ce cercueil : on la crée
+      const newQty = form.type_mouvement === 'entree' ? form.quantite : -form.quantite
+      await supabase.from('stocks_cercueils').insert({
+        cercueil_id: form.cercueil_id,
+        agence_id: agenceId,
+        quantite: newQty,
+        seuil_alerte: 2,
+      })
     }
 
     setForm({ cercueil_id: '', quantite: 1, type_mouvement: 'entree', notes: '' })
@@ -95,7 +105,7 @@ export default function GestionStocks({ agenceId, onRetour }: Props) {
         ? stock.quantite - m.quantite
         : stock.quantite + m.quantite
       await supabase.from('stocks_cercueils')
-        .update({ quantite: Math.max(0, newQty) })
+        .update({ quantite: newQty })
         .eq('id', stock.id)
     }
     await supabase.from('mouvements_stock').delete().eq('id', m.id)
@@ -206,7 +216,9 @@ export default function GestionStocks({ agenceId, onRetour }: Props) {
                       style={{ width: '60px', padding: '0.25rem', textAlign: 'center', border: '1px solid #ddd', borderRadius: '4px' }} />
                   </td>
                   <td style={{ padding: '0.75rem 1rem', textAlign: 'center' }}>
-                    {s.quantite === 0
+                    {s.quantite < 0
+                      ? <span style={{ background: '#993C1D', color: 'white', padding: '0.2rem 0.6rem', borderRadius: '12px', fontSize: '11px', fontWeight: 'bold' }}>❗ Manquant ({s.quantite})</span>
+                      : s.quantite === 0
                       ? <span style={{ background: '#FAECE7', color: '#993C1D', padding: '0.2rem 0.6rem', borderRadius: '12px', fontSize: '11px', fontWeight: 'bold' }}>🔴 Rupture</span>
                       : s.quantite <= s.seuil_alerte
                       ? <span style={{ background: '#FAEEDA', color: '#854F0B', padding: '0.2rem 0.6rem', borderRadius: '12px', fontSize: '11px', fontWeight: 'bold' }}>🟡 Stock bas</span>
