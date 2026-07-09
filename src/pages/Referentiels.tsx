@@ -16,7 +16,13 @@ type Section =
   | 'cercueils'
   | 'creusement'
   | 'prestations'
-  | 'partenaires';
+  | 'partenaires'
+  | 'mairies'
+  | 'prefectures'
+  | 'consulats'
+  | 'chambres_funeraires'
+  | 'etablissements_sante'
+  | 'lieux_culte';
 
 // ============================================
 // COMPOSANT GÉNÉRIQUE
@@ -725,6 +731,284 @@ function GestionCreusement({
   );
 }
 
+// ============================================
+// ANNUAIRES (bases d'infos, sans lien avec les dossiers)
+// ============================================
+function GestionMairies({
+  onRetour,
+  agenceId,
+}: {
+  onRetour: () => void;
+  agenceId: string;
+}) {
+  return (
+    <TableauGenerique
+      titre="🏛️ Mairies"
+      table="mairies"
+      onRetour={onRetour}
+      agenceScope={agenceId}
+      colonnes={[
+        { key: 'commune', label: 'Commune', width: '25%' },
+        { key: 'code_postal', label: 'CP', width: '10%' },
+        { key: 'ville', label: 'Ville', width: '20%' },
+        { key: 'telephone', label: 'Téléphone', width: '18%' },
+        { key: 'email', label: 'Email', width: '27%' },
+      ]}
+      champsForm={[
+        { key: 'commune', label: 'Commune' },
+        { key: 'adresse', label: 'Adresse' },
+        { key: 'code_postal', label: 'Code postal' },
+        { key: 'ville', label: 'Ville' },
+        { key: 'telephone', label: 'Téléphone' },
+        { key: 'fax', label: 'Fax' },
+        { key: 'email', label: 'Email' },
+        { key: 'horaires_ouverture', label: 'Horaires ouverture' },
+        { key: 'horaires_fermeture', label: 'Horaires fermeture' },
+        { key: 'contact_nom', label: 'Contact nom' },
+        { key: 'contact_telephone', label: 'Contact téléphone' },
+        {
+          key: 'infos_complementaires',
+          label: 'Infos complémentaires',
+          type: 'textarea',
+        },
+        { key: 'notes', label: 'Notes', type: 'textarea' },
+      ]}
+    />
+  );
+}
+
+function GestionPrefectures({
+  onRetour,
+  agenceId,
+}: {
+  onRetour: () => void;
+  agenceId: string;
+}) {
+  return (
+    <TableauGenerique
+      titre="🏢 Préfectures"
+      table="prefectures"
+      onRetour={onRetour}
+      agenceScope={agenceId}
+      colonnes={[
+        { key: 'nom', label: 'Nom', width: '28%' },
+        { key: 'departement', label: 'Département', width: '20%' },
+        { key: 'numero_dept', label: 'N° dept', width: '10%' },
+        { key: 'ville', label: 'Ville', width: '20%' },
+        { key: 'telephone', label: 'Téléphone', width: '22%' },
+      ]}
+      champsForm={[
+        { key: 'nom', label: 'Nom' },
+        { key: 'departement', label: 'Département' },
+        { key: 'numero_dept', label: 'Numéro de département' },
+        { key: 'adresse', label: 'Adresse' },
+        { key: 'code_postal', label: 'Code postal' },
+        { key: 'ville', label: 'Ville' },
+        { key: 'telephone', label: 'Téléphone' },
+        { key: 'fax', label: 'Fax' },
+        { key: 'email', label: 'Email' },
+        { key: 'horaires', label: 'Horaires', type: 'textarea' },
+        { key: 'contact_nom', label: 'Contact nom' },
+        { key: 'contact_telephone', label: 'Contact téléphone' },
+        {
+          key: 'infos_complementaires',
+          label: 'Infos complémentaires',
+          type: 'textarea',
+        },
+        { key: 'notes', label: 'Notes', type: 'textarea' },
+      ]}
+    />
+  );
+}
+
+function GestionConsulats({
+  onRetour,
+  agenceId,
+}: {
+  onRetour: () => void;
+  agenceId: string;
+}) {
+  return (
+    <TableauGenerique
+      titre="🌍 Consulats"
+      table="consulats"
+      onRetour={onRetour}
+      agenceScope={agenceId}
+      colonnes={[
+        { key: 'nom', label: 'Nom', width: '28%' },
+        { key: 'pays', label: 'Pays', width: '17%' },
+        { key: 'ville', label: 'Ville', width: '15%' },
+        { key: 'telephone', label: 'Téléphone', width: '18%' },
+        { key: 'email', label: 'Email', width: '22%' },
+      ]}
+      champsForm={[
+        { key: 'nom', label: 'Nom' },
+        { key: 'pays', label: 'Pays' },
+        { key: 'adresse', label: 'Adresse' },
+        { key: 'code_postal', label: 'Code postal' },
+        { key: 'ville', label: 'Ville' },
+        { key: 'telephone', label: 'Téléphone' },
+        { key: 'fax', label: 'Fax' },
+        { key: 'email', label: 'Email' },
+        { key: 'numero_plateforme', label: 'Numéro de plateforme' },
+        { key: 'contact_nom', label: 'Contact nom' },
+        { key: 'contact_telephone', label: 'Contact téléphone' },
+        {
+          key: 'infos_complementaires',
+          label: 'Infos complémentaires',
+          type: 'textarea',
+        },
+        { key: 'notes', label: 'Notes', type: 'textarea' },
+      ]}
+    />
+  );
+}
+
+function GestionChambresFuneraires({
+  onRetour,
+  agenceId,
+}: {
+  onRetour: () => void;
+  agenceId: string;
+}) {
+  return (
+    <TableauGenerique
+      titre="⚱️ Chambres funéraires"
+      table="chambres_funeraires"
+      onRetour={onRetour}
+      agenceScope={agenceId}
+      colonnes={[
+        { key: 'nom', label: 'Nom', width: '30%' },
+        { key: 'ville', label: 'Ville', width: '20%' },
+        { key: 'telephone', label: 'Téléphone', width: '22%' },
+        { key: 'email', label: 'Email', width: '28%' },
+      ]}
+      champsForm={[
+        { key: 'nom', label: 'Nom' },
+        { key: 'adresse', label: 'Adresse' },
+        { key: 'code_postal', label: 'Code postal' },
+        { key: 'ville', label: 'Ville' },
+        { key: 'telephone', label: 'Téléphone' },
+        { key: 'fax', label: 'Fax' },
+        { key: 'email', label: 'Email' },
+        { key: 'horaires', label: 'Horaires', type: 'textarea' },
+        { key: 'contact_nom', label: 'Contact nom' },
+        { key: 'contact_telephone', label: 'Contact téléphone' },
+        {
+          key: 'infos_complementaires',
+          label: 'Infos complémentaires',
+          type: 'textarea',
+        },
+        { key: 'notes', label: 'Notes', type: 'textarea' },
+      ]}
+    />
+  );
+}
+
+function GestionEtablissementsSante({
+  onRetour,
+  agenceId,
+}: {
+  onRetour: () => void;
+  agenceId: string;
+}) {
+  return (
+    <TableauGenerique
+      titre="🏥 Établissements de santé"
+      table="etablissements_sante"
+      onRetour={onRetour}
+      agenceScope={agenceId}
+      colonnes={[
+        { key: 'nom', label: 'Nom', width: '30%' },
+        { key: 'type_etablissement', label: 'Type', width: '15%' },
+        { key: 'ville', label: 'Ville', width: '18%' },
+        { key: 'telephone', label: 'Téléphone', width: '20%' },
+        { key: 'a_chambre_mortuaire', label: 'Ch. mortuaire', width: '12%' },
+      ]}
+      champsForm={[
+        { key: 'nom', label: 'Nom' },
+        {
+          key: 'type_etablissement',
+          label: 'Type',
+          type: 'select',
+          options: [
+            'hopital',
+            'funerarium',
+            'iml',
+            'clinique',
+            'ehpad',
+            'autre',
+          ],
+        },
+        { key: 'adresse', label: 'Adresse' },
+        { key: 'code_postal', label: 'Code postal' },
+        { key: 'ville', label: 'Ville' },
+        { key: 'telephone', label: 'Téléphone' },
+        { key: 'fax', label: 'Fax' },
+        { key: 'email', label: 'Email' },
+        { key: 'horaires', label: 'Horaires', type: 'textarea' },
+        { key: 'contact_nom', label: 'Contact nom' },
+        { key: 'contact_telephone', label: 'Contact téléphone' },
+        {
+          key: 'a_chambre_mortuaire',
+          label: 'Chambre mortuaire sur place',
+          type: 'checkbox',
+        },
+        {
+          key: 'infos_complementaires',
+          label: 'Infos complémentaires',
+          type: 'textarea',
+        },
+        { key: 'notes', label: 'Notes', type: 'textarea' },
+      ]}
+    />
+  );
+}
+
+function GestionLieuxCulte({
+  onRetour,
+  agenceId,
+}: {
+  onRetour: () => void;
+  agenceId: string;
+}) {
+  return (
+    <TableauGenerique
+      titre="🕌 Lieux de culte"
+      table="lieux_culte"
+      onRetour={onRetour}
+      agenceScope={agenceId}
+      colonnes={[
+        { key: 'nom', label: 'Nom', width: '30%' },
+        { key: 'type_culte', label: 'Type', width: '15%' },
+        { key: 'ville', label: 'Ville', width: '18%' },
+        { key: 'telephone', label: 'Téléphone', width: '18%' },
+        { key: 'email', label: 'Email', width: '19%' },
+      ]}
+      champsForm={[
+        { key: 'nom', label: 'Nom' },
+        { key: 'type_culte', label: 'Type de culte' },
+        { key: 'adresse', label: 'Adresse' },
+        { key: 'code_postal', label: 'Code postal' },
+        { key: 'ville', label: 'Ville' },
+        { key: 'telephone', label: 'Téléphone' },
+        { key: 'telephone_2', label: 'Téléphone 2' },
+        { key: 'fax', label: 'Fax' },
+        { key: 'email', label: 'Email' },
+        { key: 'horaires', label: 'Horaires', type: 'textarea' },
+        { key: 'contact_nom', label: 'Contact nom' },
+        { key: 'contact_telephone', label: 'Contact téléphone' },
+        {
+          key: 'infos_complementaires',
+          label: 'Infos complémentaires',
+          type: 'textarea',
+        },
+        { key: 'notes', label: 'Notes', type: 'textarea' },
+      ]}
+    />
+  );
+}
+
 function GestionPrestations({
   onRetour,
   agenceId,
@@ -821,11 +1105,7 @@ function GestionPrestations({
   }
 
   const tvaLabel = (tva: string) =>
-    tva === 'tva_20'
-      ? 'TVA 20%'
-      : tva === 'tva_10'
-      ? 'TVA 10%'
-      : 'Exonéré';
+    tva === 'tva_20' ? 'TVA 20%' : tva === 'tva_10' ? 'TVA 10%' : 'Exonéré';
 
   // Filtrage (section + recherche)
   const lignesFiltrees = lignes.filter((l) => {
@@ -1446,9 +1726,7 @@ function GestionPartenaires({
         }}
       >
         <button onClick={onRetour}>← Retour</button>
-        <h2 style={{ margin: 0 }}>
-          🤝 Partenaires ({partenaires.length})
-        </h2>
+        <h2 style={{ margin: 0 }}>🤝 Partenaires ({partenaires.length})</h2>
         <button
           onClick={nouveau}
           style={{
@@ -1996,9 +2274,7 @@ function TarifsPartenaire({
                   color: '#999',
                 }}
               >
-                {prixNormalTarif(t) !== null
-                  ? `${prixNormalTarif(t)} €`
-                  : '—'}
+                {prixNormalTarif(t) !== null ? `${prixNormalTarif(t)} €` : '—'}
               </div>
               <div
                 style={{
@@ -2460,6 +2736,51 @@ export default function Referentiels({ onRetour, agenceId }: Props) {
       />
     );
 
+  if (section === 'mairies')
+    return (
+      <GestionMairies onRetour={() => setSection('menu')} agenceId={agenceId} />
+    );
+
+  if (section === 'prefectures')
+    return (
+      <GestionPrefectures
+        onRetour={() => setSection('menu')}
+        agenceId={agenceId}
+      />
+    );
+
+  if (section === 'consulats')
+    return (
+      <GestionConsulats
+        onRetour={() => setSection('menu')}
+        agenceId={agenceId}
+      />
+    );
+
+  if (section === 'chambres_funeraires')
+    return (
+      <GestionChambresFuneraires
+        onRetour={() => setSection('menu')}
+        agenceId={agenceId}
+      />
+    );
+
+  if (section === 'etablissements_sante')
+    return (
+      <GestionEtablissementsSante
+        onRetour={() => setSection('menu')}
+        agenceId={agenceId}
+      />
+    );
+
+  if (section === 'lieux_culte')
+    return (
+      <GestionLieuxCulte
+        onRetour={() => setSection('menu')}
+        agenceId={agenceId}
+      />
+    );
+
   return (
     <div style={{ padding: '2rem', maxWidth: '700px', margin: '0 auto' }}>
       <div
@@ -2533,6 +2854,42 @@ export default function Referentiels({ onRetour, agenceId }: Props) {
             emoji: '🤝',
             label: 'Partenaires',
             desc: 'Assurances, associations & tarifs négociés',
+          },
+          {
+            key: 'mairies',
+            emoji: '🏛️',
+            label: 'Mairies',
+            desc: 'Annuaire : adresses, téléphones, horaires',
+          },
+          {
+            key: 'prefectures',
+            emoji: '🏢',
+            label: 'Préfectures',
+            desc: 'Annuaire : départements, contacts',
+          },
+          {
+            key: 'consulats',
+            emoji: '🌍',
+            label: 'Consulats',
+            desc: 'Annuaire : pays, plateformes, contacts',
+          },
+          {
+            key: 'chambres_funeraires',
+            emoji: '⚱️',
+            label: 'Chambres funéraires',
+            desc: 'Annuaire : adresses, horaires',
+          },
+          {
+            key: 'etablissements_sante',
+            emoji: '🏥',
+            label: 'Établissements de santé',
+            desc: 'Hôpitaux, funérariums, IML',
+          },
+          {
+            key: 'lieux_culte',
+            emoji: '🕌',
+            label: 'Lieux de culte',
+            desc: 'Annuaire : mosquées, salles de prière',
           },
         ].map((s) => (
           <div
