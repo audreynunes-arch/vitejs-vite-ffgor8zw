@@ -3009,7 +3009,9 @@ export default function Documents({ dossierId, onRetour }: Props) {
         body: {
           pdf_base64: base64,
           champ,
-          nom_document: `Pouvoir — ${d?.prenom || ''} ${d?.nom || ''}`,
+          nom_document: `Pouvoir — ${agence?.nom || ''} — ${
+            d?.prenom || ''
+          } ${d?.nom || ''}`,
           signataire: { prenom: p.prenom, nom: p.nom, email: p.email },
         },
       });
