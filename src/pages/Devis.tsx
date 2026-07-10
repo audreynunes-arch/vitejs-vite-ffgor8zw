@@ -1918,6 +1918,12 @@ async function telechargerPDF() {
 }
 
 async function envoyerPourSignature() {
+  if (onglet === 'facture') {
+    alert(
+      "🧾 Une facture ne se signe pas : elle est émise, pas acceptée.\n\nSeuls le Devis, le Bon de commande et le Pouvoir se signent."
+    );
+    return;
+  }
   const pouvoir = dossier?.pouvoirs?.[0];
   if (!pouvoir?.email) {
     alert(
@@ -2039,7 +2045,9 @@ async function envoyerPourSignature() {
             : onglet === 'bon_commande'
             ? 'Bon de commande'
             : 'Facture'
-        } — ${dossier?.defunts?.prenom || ''} ${dossier?.defunts?.nom || ''}`,
+        } — ${dossier?.agences?.nom || ''} — ${
+          dossier?.defunts?.prenom || ''
+        } ${dossier?.defunts?.nom || ''}`,
         signataire: {
           prenom: pouvoir.prenom,
           nom: pouvoir.nom,
@@ -2144,21 +2152,23 @@ async function envoyerPourSignature() {
           >
             📄 PDF
           </button>
-          <button
-            onClick={envoyerPourSignature}
-            disabled={saving}
-            style={{
-              padding: '0.6rem 1.2rem',
-              background: saving ? '#ccc' : '#0F6E56',
-              color: 'white',
-              border: 'none',
-              borderRadius: '6px',
-              cursor: saving ? 'not-allowed' : 'pointer',
-              fontWeight: 'bold',
-            }}
-          >
-            📤 Envoyer pour signature
-          </button>
+          {onglet !== 'facture' && (
+            <button
+              onClick={envoyerPourSignature}
+              disabled={saving}
+              style={{
+                padding: '0.6rem 1.2rem',
+                background: saving ? '#ccc' : '#0F6E56',
+                color: 'white',
+                border: 'none',
+                borderRadius: '6px',
+                cursor: saving ? 'not-allowed' : 'pointer',
+                fontWeight: 'bold',
+              }}
+            >
+              📤 Envoyer pour signature
+            </button>
+          )}
         </div>
       </div>
 
