@@ -49,7 +49,25 @@ export default function SuiviSignatures({ agenceId, onRetour, onOuvrir }: Props)
         };
         // SignWell renvoie le lien du PDF signé une fois le document complété
         if (data.pdf_url) maj.pdf_url = data.pdf_url;
-        await supabase.from('signatures').update(maj).eq('id', ligne.id);
+        const { error: errMaj } = await supabase
+          .from('signatures')
+          .update(maj)
+          .eq('id', ligne.id);
+        if (errMaj) {
+          alert(
+            '❌ Erreur enregistrement : ' +
+              errMaj.message +
+              "\n\n(Souvent la colonne pdf_url qui manque dans la table signatures.)"
+          );
+        }
+        if (!data.pdf_url) {
+          alert(
+            'ℹ️ SignWell n\'a pas renvoyé de lien PDF.\n\nStatut : ' +
+              data.statut +
+              '\nChamps disponibles : ' +
+              JSON.stringify(data.debug_cles || 'non fourni')
+          );
+        }
         await charger();
       } else {
         alert('Impossible de vérifier le statut pour le moment.');
