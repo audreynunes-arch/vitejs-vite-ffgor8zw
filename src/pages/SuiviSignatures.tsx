@@ -1,36 +1,30 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../supabase';
-
 interface Props {
   agenceId: string;
   onRetour: () => void;
   onOuvrir: (id: string) => void;
 }
-
 const LABELS: { [k: string]: string } = {
   devis: 'Devis',
   bon_commande: 'Bon de commande',
   facture: 'Facture',
   pouvoir: 'Pouvoir',
 };
-
 function mapStatut(yousign: string): string {
   if (yousign === 'done') return 'signe';
   if (yousign === 'expired') return 'expire';
   if (yousign === 'declined' || yousign === 'canceled') return 'refuse';
   return 'en_attente';
 }
-
 export default function SuiviSignatures({ agenceId, onRetour, onOuvrir }: Props) {
   const [lignes, setLignes] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [verifId, setVerifId] = useState<string | null>(null);
   const [filtre, setFiltre] = useState<'tous' | 'attente' | 'signe'>('tous');
-
   useEffect(() => {
     charger();
   }, [agenceId]);
-
   async function charger() {
     setLoading(true);
     const { data } = await supabase
@@ -41,7 +35,6 @@ export default function SuiviSignatures({ agenceId, onRetour, onOuvrir }: Props)
     setLignes(data || []);
     setLoading(false);
   }
-
   async function verifier(ligne: any) {
     setVerifId(ligne.id);
     try {
@@ -50,10 +43,13 @@ export default function SuiviSignatures({ agenceId, onRetour, onOuvrir }: Props)
       });
       if (!error && data && data.ok) {
         const nouveau = mapStatut(data.statut);
-        await supabase
-          .from('signatures')
-          .update({ statut: nouveau, updated_at: new Date().toISOString() })
-          .eq('id', ligne.id);
+        const maj: any = {
+          statut: nouveau,
+          updated_at: new Date().toISOString(),
+        };
+        // SignWell renvoie le lien du PDF signé une fois le document complété
+        if (data.pdf_url) maj.pdf_url = data.pdf_url;
+        await supabase.from('signatures').update(maj).eq('id', ligne.id);
         await charger();
       } else {
         alert('Impossible de vérifier le statut pour le moment.');
@@ -63,7 +59,6 @@ export default function SuiviSignatures({ agenceId, onRetour, onOuvrir }: Props)
     }
     setVerifId(null);
   }
-
   const badge = (statut: string) => {
     const map: { [k: string]: { bg: string; col: string; txt: string } } = {
       signe: { bg: '#E1F5EE', col: '#0F6E56', txt: '✍️ Signé' },
@@ -87,7 +82,6 @@ export default function SuiviSignatures({ agenceId, onRetour, onOuvrir }: Props)
       </span>
     );
   };
-
   const filtrees = lignes.filter((l) =>
     filtre === 'tous'
       ? true
@@ -95,9 +89,7 @@ export default function SuiviSignatures({ agenceId, onRetour, onOuvrir }: Props)
       ? l.statut === 'en_attente'
       : l.statut === 'signe'
   );
-
   const compteAttente = lignes.filter((l) => l.statut === 'en_attente').length;
-
   return (
     <div style={{ padding: '2rem', maxWidth: '1000px', margin: '0 auto' }}>
       <div
@@ -125,7 +117,6 @@ export default function SuiviSignatures({ agenceId, onRetour, onOuvrir }: Props)
           ↻ Rafraîchir
         </button>
       </div>
-
       {compteAttente > 0 && (
         <div
           style={{
@@ -141,7 +132,6 @@ export default function SuiviSignatures({ agenceId, onRetour, onOuvrir }: Props)
           ⏳ {compteAttente} document(s) en attente de signature
         </div>
       )}
-
       <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem' }}>
         {[
           { k: 'tous', label: 'Tous' },
@@ -166,7 +156,6 @@ export default function SuiviSignatures({ agenceId, onRetour, onOuvrir }: Props)
           </button>
         ))}
       </div>
-
       {loading ? (
         <p>Chargement...</p>
       ) : filtrees.length === 0 ? (
@@ -233,6 +222,39 @@ export default function SuiviSignatures({ agenceId, onRetour, onOuvrir }: Props)
                       >
                         {verifId === l.id ? '...' : 'Vérifier'}
                       </button>
+                      {l.statut === 'signe' && l.pdf_url && (
+                        <a
+                          href={l.pdf_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          style={{
+                            fontSize: '12px',
+                            padding: '0.25rem 0.6rem',
+                            border: '1px solid #185FA5',
+                            color: '#185FA5',
+                            borderRadius: '6px',
+                            background: 'white',
+                            cursor: 'pointer',
+                            marginRight: '0.4rem',
+                            textDecoration: 'none',
+                            display: 'inline-block',
+                          }}
+                        >
+                          📥 PDF signé
+                        </a>
+                      )}
+                      {l.statut === 'signe' && !l.pdf_url && (
+                        <span
+                          title="Cliquez sur Vérifier pour récupérer le document signé"
+                          style={{
+                            fontSize: '11px',
+                            color: '#888',
+                            marginRight: '0.4rem',
+                          }}
+                        >
+                          (Vérifier pour le PDF)
+                        </span>
+                      )}
                       {l.dossiers?.id && (
                         <button
                           onClick={() => onOuvrir(l.dossiers.id)}
