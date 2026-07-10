@@ -62,9 +62,11 @@ export default function SuiviSignatures({ agenceId, onRetour, onOuvrir }: Props)
         }
         if (!data.pdf_url) {
           alert(
-            'ℹ️ SignWell n\'a pas renvoyé de lien PDF.\n\nStatut : ' +
+            "ℹ️ Pas de lien PDF récupéré.\n\nStatut : " +
               data.statut +
-              '\nChamps disponibles : ' +
+              '\n\nRéponse PDF : ' +
+              JSON.stringify(data.debug_pdf || 'aucune') +
+              '\n\nChamps du document : ' +
               JSON.stringify(data.debug_cles || 'non fourni')
           );
         }
