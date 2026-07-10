@@ -1725,7 +1725,7 @@ export default function Documents({ dossierId, onRetour }: Props) {
           ]
             .filter(Boolean)
             .join(' '),
-          mosquee || '',
+          etab || '',
         ].filter(Boolean),
       },
       afficherMeb && {
