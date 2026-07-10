@@ -407,7 +407,7 @@ export default function Devis({ dossierId, onRetour }: Props) {
   const [acompte, setAcompte] = useState(0);
   const [modesPaiement, setModesPaiement] = useState<string[]>([]);
   const [datePaiement, setDatePaiement] = useState('');
-  const [remise] = useState(0);
+  const [remise, setRemise] = useState(0);
   const [tarifsRapatriement, setTarifsRapatriement] = useState<any[]>([]);
   const [destinationChoisie, setDestinationChoisie] = useState('');
   const [typeRapatrie, setTypeRapatrie] = useState<'adulte' | 'enfant'>(
@@ -496,6 +496,7 @@ export default function Devis({ dossierId, onRetour }: Props) {
       setStatutFacture(data.statut_facture || 'non_payee');
       setStatutBonCommande(data.statut_bon_commande || 'en_attente');
       setAcompte(data.acompte_verse || 0);
+      setRemise(data.remise || 0);
       setModesPaiement(data.modes_paiement || []);
       setDatePaiement(data.date_paiement || '');
       if (data.type_dossier === 'rapatriement') {
@@ -1138,22 +1139,31 @@ if (data?.type_dossier === 'rapatriement') {
     .filter((l) => l.inclus)
     .reduce((s, l) => s + l.prix_ttc, 0);
   const lignesIncluses = lignes.filter((l) => l.inclus && l.prix_ttc > 0);
-  const tva0 = lignesIncluses
+  // --- Totaux BRUTS par taux de TVA (avant remise) ---
+  const tva0Brut = lignesIncluses
     .filter((l) => l.tva === 'exonere')
     .reduce((s, l) => s + l.prix_ttc, 0);
-  const tva10ttc = lignesIncluses
+  const tva10Brut = lignesIncluses
     .filter((l) => l.tva === 'tva_10')
     .reduce((s, l) => s + l.prix_ttc, 0);
-  const tva10ht = tva10ttc / 1.1;
-  const tva10montant = tva10ttc - tva10ht;
-  const tva20ttc = lignesIncluses
+  const tva20Brut = lignesIncluses
     .filter((l) => l.tva === 'tva_20')
     .reduce((s, l) => s + l.prix_ttc, 0);
+  const ttcBrut = tva0Brut + tva10Brut + tva20Brut;
+  // --- Remise globale : ventilée AU PRORATA de chaque taux de TVA ---
+  // (chaque bloc baisse du même pourcentage → chaque TVA reste juste)
+  const remiseAppliquee = Math.max(0, Math.min(remise, ttcBrut));
+  const k = ttcBrut > 0 ? (ttcBrut - remiseAppliquee) / ttcBrut : 1;
+  const tva0 = tva0Brut * k;
+  const tva10ttc = tva10Brut * k;
+  const tva10ht = tva10ttc / 1.1;
+  const tva10montant = tva10ttc - tva10ht;
+  const tva20ttc = tva20Brut * k;
   const tva20ht = tva20ttc / 1.2;
   const tva20montant = tva20ttc - tva20ht;
   const totalHT = tva10ht + tva20ht + tva0;
   const totalTVA = tva10montant + tva20montant;
-  const totalTTC = totalHT + totalTVA - remise;
+  const totalTTC = ttcBrut - remiseAppliquee;
   const resteAPayer = totalTTC - acompte;
 
   async function sauvegarder(override?: {
@@ -1218,6 +1228,7 @@ if (data?.type_dossier === 'rapatriement') {
             override?.statutBonCommande ?? statutBonCommande,
           statut_facture: override?.statutFacture ?? statutFacture,
           acompte_verse: acompte,
+          remise: remise,
           modes_paiement: modesPaiement,
           date_paiement: datePaiement || null,
         })
@@ -1756,6 +1767,23 @@ ${servicesHTML}
       2
     )} €</td><td></td><td></td><td></td>
   </tr>
+  ${
+    remiseAppliquee > 0
+      ? `
+  <tr><td colspan="3"></td><td></td>
+    <td style="padding:0.3rem 0.5rem; font-size:11px;">Total TTC avant remise</td>
+    <td style="padding:0.3rem 0.5rem; text-align:right; font-size:11px;">${ttcBrut.toFixed(
+      2
+    )} €</td>
+  </tr>
+  <tr><td colspan="3"></td><td></td>
+    <td style="padding:0.3rem 0.5rem; font-size:11px;">Remise accordée</td>
+    <td style="padding:0.3rem 0.5rem; text-align:right; font-size:11px; color:#993C1D;">-${remiseAppliquee.toFixed(
+      2
+    )} €</td>
+  </tr>`
+      : ''
+  }
   ${
     onglet === 'facture' && acompte > 0
       ? `
@@ -2908,6 +2936,45 @@ async function envoyerPourSignature() {
           >
             {totalTTC.toFixed(2)} €
           </div>
+        </div>
+        <div
+          style={{
+            marginTop: '1rem',
+            borderTop: '1px solid #eee',
+            paddingTop: '1rem',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.75rem',
+            flexWrap: 'wrap',
+          }}
+        >
+          <label style={{ fontWeight: 'bold', fontSize: '14px' }}>
+            Remise globale (€) :
+          </label>
+          <input
+            type="number"
+            min="0"
+            step="0.01"
+            value={remise}
+            disabled={estVerrouille()}
+            onChange={(e) => setRemise(parseFloat(e.target.value) || 0)}
+            style={{
+              padding: '0.4rem 0.6rem',
+              border: '1px solid #ddd',
+              borderRadius: '6px',
+              width: '130px',
+              background: estVerrouille() ? '#f0f0f0' : 'white',
+            }}
+          />
+          {remiseAppliquee > 0 && (
+            <span style={{ fontSize: '13px', color: '#555' }}>
+              Total avant remise : <strong>{ttcBrut.toFixed(2)} €</strong> →
+              après remise : <strong>{totalTTC.toFixed(2)} €</strong>{' '}
+              <span style={{ color: '#888' }}>
+                (répartie proportionnellement sur chaque taux de TVA)
+              </span>
+            </span>
+          )}
         </div>
         {onglet === 'facture' && acompte > 0 && (
           <div
