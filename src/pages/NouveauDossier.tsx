@@ -155,6 +155,7 @@ export default function NouveauDossier({ onRetour }: Props) {
     nom_jeune_fille: '',
     sexe: '',
     date_naissance: '',
+    precision_naissance: 'complete',
     lieu_naissance: '',
     nationalite: '',
     profession: '',
@@ -162,6 +163,7 @@ export default function NouveauDossier({ onRetour }: Props) {
     situation_familiale: '',
     nombre_enfants: '',
     epoux: '',
+    lien_conjoint: '',
     filiation_pere: '',
     filiation_mere: '',
     pere_statut: '',
@@ -445,12 +447,14 @@ export default function NouveauDossier({ onRetour }: Props) {
           nom_jeune_fille: defunt.nom_jeune_fille || null,
           sexe: defunt.sexe || null,
           date_naissance: defunt.date_naissance || null,
+          precision_naissance: defunt.precision_naissance || 'complete',
           lieu_naissance: defunt.lieu_naissance || null,
           nationalite: defunt.nationalite || null,
           profession: defunt.profession || null,
           domicile: defunt.domicile || null,
           situation_familiale: defunt.situation_familiale || null,
           epoux: defunt.epoux || null,
+          lien_conjoint: defunt.lien_conjoint || null,
           filiation_pere: defunt.filiation_pere || null,
           filiation_mere: defunt.filiation_mere || null,
           pere_statut: defunt.pere_statut || null,
@@ -1167,13 +1171,56 @@ export default function NouveauDossier({ onRetour }: Props) {
             />
           </div>
           <div>
-            <label>Date de naissance</label>
-            <input
-              type="date"
-              value={defunt.date_naissance}
-              onChange={(e) => updateDefunt('date_naissance', e.target.value)}
+            <label>Précision de la naissance</label>
+            <select
+              value={defunt.precision_naissance || 'complete'}
+              onChange={(e) =>
+                updateDefunt('precision_naissance', e.target.value)
+              }
               style={inputStyle}
-            />
+            >
+              <option value="complete">Date complète</option>
+              <option value="mois_annee">Mois et année seulement</option>
+              <option value="annee">Année seulement</option>
+            </select>
+          </div>
+          <div>
+            <label>Date de naissance</label>
+            {(defunt.precision_naissance || 'complete') === 'complete' ? (
+              <input
+                type="date"
+                value={defunt.date_naissance}
+                onChange={(e) => updateDefunt('date_naissance', e.target.value)}
+                style={inputStyle}
+              />
+            ) : defunt.precision_naissance === 'mois_annee' ? (
+              <input
+                type="month"
+                value={(defunt.date_naissance || '').slice(0, 7)}
+                onChange={(e) =>
+                  updateDefunt(
+                    'date_naissance',
+                    e.target.value ? e.target.value + '-01' : ''
+                  )
+                }
+                style={inputStyle}
+              />
+            ) : (
+              <input
+                type="number"
+                min="1900"
+                max="2100"
+                placeholder="ex : 1948"
+                value={(defunt.date_naissance || '').slice(0, 4)}
+                onChange={(e) =>
+                  updateDefunt(
+                    'date_naissance',
+                    e.target.value.length === 4 ? e.target.value + '-01-01' : ''
+                  )
+                }
+                style={inputStyle}
+              />
+            )}
           </div>
           <div>
             <label>Âge</label>
@@ -1226,7 +1273,19 @@ export default function NouveauDossier({ onRetour }: Props) {
             </select>
           </div>
           <div>
-            <label>Époux / Épouse</label>
+            <label>Situation vis-à-vis du conjoint</label>
+            <select
+              value={defunt.lien_conjoint || ''}
+              onChange={(e) => updateDefunt('lien_conjoint', e.target.value)}
+              style={inputStyle}
+            >
+              <option value="">Époux(se) de</option>
+              <option value="Veuf(ve)">Veuf(ve) de</option>
+              <option value="Divorcé(e)">Divorcé(e) de</option>
+            </select>
+          </div>
+          <div>
+            <label>Nom de l'époux / épouse</label>
             <input
               value={defunt.epoux}
               onChange={(e) => updateDefunt('epoux', e.target.value)}
