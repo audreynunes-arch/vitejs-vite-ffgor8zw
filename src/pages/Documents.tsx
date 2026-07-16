@@ -37,6 +37,7 @@ export default function Documents({ dossierId, onRetour }: Props) {
   const [loading, setLoading] = useState(true);
   const [envoi, setEnvoi] = useState(false);
   const [afficherSalat, setAfficherSalat] = useState(true);
+  const [lieuSalat, setLieuSalat] = useState<'mosquee' | 'chambre' | 'cimetiere'>('mosquee');
   const [afficherInhumation, setAfficherInhumation] = useState(true);
   const [afficherMeb, setAfficherMeb] = useState(true);
   const [afficherDepart, setAfficherDepart] = useState(true);
@@ -117,6 +118,17 @@ export default function Documents({ dossierId, onRetour }: Props) {
         })
       : '...............';
 
+  // Date de NAISSANCE : parfois incomplète (état civil ancien / certains pays).
+  // On affiche selon la précision enregistrée.
+  const fmtNaissance = () => {
+    if (!d?.date_naissance) return '...............';
+    const dt = new Date(d.date_naissance);
+    if (d.precision_naissance === 'annee') return String(dt.getFullYear());
+    if (d.precision_naissance === 'mois_annee')
+      return dt.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' });
+    return dt.toLocaleDateString('fr-FR');
+  };
+
   const calcAge = (dateNaissance: string, dateDeces?: string) => {
     if (!dateNaissance) return '...';
     const n = new Date(dateNaissance);
@@ -124,7 +136,11 @@ export default function Documents({ dossierId, onRetour }: Props) {
     let age = ref.getFullYear() - n.getFullYear();
     const m = ref.getMonth() - n.getMonth();
     if (m < 0 || (m === 0 && ref.getDate() < n.getDate())) age--;
-    return age + ' ans';
+    const approx =
+      d?.precision_naissance && d.precision_naissance !== 'complete'
+        ? 'environ '
+        : '';
+    return approx + age + ' ans';
   };
 
   const tousOnglets = [
@@ -373,7 +389,7 @@ export default function Documents({ dossierId, onRetour }: Props) {
       {ligne(
         'Né(e) le :',
         d?.date_naissance
-          ? `${fmt(d.date_naissance)}${
+          ? `${fmtNaissance()}${
               d?.lieu_naissance ? ` à ${d.lieu_naissance}` : ''
             }`
           : undefined
@@ -590,7 +606,7 @@ export default function Documents({ dossierId, onRetour }: Props) {
       <p>
         Né(e) le :{' '}
         <strong>
-          {d?.date_naissance ? fmt(d.date_naissance) : '................'}
+          {d?.date_naissance ? fmtNaissance() : '................'}
         </strong>
       </p>
       <p>
@@ -653,7 +669,7 @@ export default function Documents({ dossierId, onRetour }: Props) {
       {ligne(
         'Né(e) le :',
         d?.date_naissance
-          ? `${fmt(d.date_naissance)}${
+          ? `${fmtNaissance()}${
               d?.lieu_naissance ? ` à ${d.lieu_naissance}` : ''
             }`
           : d?.lieu_naissance
@@ -687,7 +703,14 @@ export default function Documents({ dossierId, onRetour }: Props) {
             }${d?.mere_profession ? ` — ${d.mere_profession}` : ''}`
           : undefined
       )}
-      {ligne('Époux(se) :', d?.epoux)}
+      {ligne(
+        d?.lien_conjoint === 'Veuf(ve)'
+          ? 'Veuf(ve) de :'
+          : d?.lien_conjoint === 'Divorcé(e)'
+          ? 'Divorcé(e) de :'
+          : 'Époux(se) :',
+        d?.epoux
+      )}
       {sectionTitre('DÉCLARATION')}
       <p>
         Déclarant(e) :{' '}
@@ -893,7 +916,7 @@ export default function Documents({ dossierId, onRetour }: Props) {
         {ligne(
           'Né(e) le :',
           d?.date_naissance
-            ? `${fmt(d.date_naissance)}${
+            ? `${fmtNaissance()}${
                 d?.lieu_naissance ? ` à ${d.lieu_naissance}` : ''
               }`
             : undefined
@@ -993,7 +1016,7 @@ export default function Documents({ dossierId, onRetour }: Props) {
         {ligne(
           'Né(e) le :',
           d?.date_naissance
-            ? `${fmt(d.date_naissance)}${
+            ? `${fmtNaissance()}${
                 d?.lieu_naissance ? ` à ${d.lieu_naissance}` : ''
               }`
             : undefined
@@ -1308,7 +1331,7 @@ export default function Documents({ dossierId, onRetour }: Props) {
         {ligne(
           'Né(e) le :',
           d?.date_naissance
-            ? `${fmt(d.date_naissance)}${
+            ? `${fmtNaissance()}${
                 d?.lieu_naissance ? ` à ${d.lieu_naissance}` : ''
               }`
             : undefined
@@ -1403,7 +1426,7 @@ export default function Documents({ dossierId, onRetour }: Props) {
         {ligne(
           'Né(e) le :',
           d?.date_naissance
-            ? `${fmt(d.date_naissance)}${
+            ? `${fmtNaissance()}${
                 d?.lieu_naissance ? ` à ${d.lieu_naissance}` : ''
               }`
             : undefined
@@ -1516,7 +1539,7 @@ export default function Documents({ dossierId, onRetour }: Props) {
         {ligne(
           'Né(e) le :',
           d?.date_naissance
-            ? `${fmt(d.date_naissance)}${
+            ? `${fmtNaissance()}${
                 d?.lieu_naissance ? ` à ${d.lieu_naissance}` : ''
               }`
             : undefined
@@ -1609,7 +1632,7 @@ export default function Documents({ dossierId, onRetour }: Props) {
         {ligne(
           'Né(e) le :',
           d?.date_naissance
-            ? `${fmt(d.date_naissance)}${
+            ? `${fmtNaissance()}${
                 d?.lieu_naissance ? ` à ${d.lieu_naissance}` : ''
               }`
             : undefined
@@ -1763,7 +1786,11 @@ export default function Documents({ dossierId, onRetour }: Props) {
         label: 'Salat Al Janāza',
         lignes: [
           dossier.heure_salat ? `à ${dossier.heure_salat}` : 'Après Salât du Dohr',
-          mosquee || nomCim || '',
+          lieuSalat === 'chambre'
+            ? etab || ''
+            : lieuSalat === 'cimetiere'
+            ? [nomCim, adresseCim].filter(Boolean).join(' — ')
+            : mosquee || nomCim || '',
         ].filter(Boolean),
       },
       afficherInhumation && {
@@ -2134,7 +2161,7 @@ export default function Documents({ dossierId, onRetour }: Props) {
             {champ(
               'Né(e) le :',
               d?.date_naissance
-                ? `${fmt(d.date_naissance)}${
+                ? `${fmtNaissance()}${
                     d?.lieu_naissance ? ` à ${d.lieu_naissance}` : ''
                   }`
                 : null
@@ -3207,6 +3234,27 @@ export default function Documents({ dossierId, onRetour }: Props) {
             />
             🕌 Salat Al Janāza
           </label>
+          {afficherSalat && (
+            <label
+              style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}
+            >
+              <span style={{ color: '#555' }}>Lieu :</span>
+              <select
+                value={lieuSalat}
+                onChange={(e) => setLieuSalat(e.target.value as any)}
+                style={{
+                  padding: '0.25rem 0.4rem',
+                  border: '1px solid #ddd',
+                  borderRadius: '6px',
+                  fontSize: '13px',
+                }}
+              >
+                <option value="mosquee">Mosquée</option>
+                <option value="chambre">Chambre funéraire</option>
+                <option value="cimetiere">Cimetière</option>
+              </select>
+            </label>
+          )}
           <label
             style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', cursor: 'pointer' }}
           >
