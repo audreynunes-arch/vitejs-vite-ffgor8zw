@@ -1893,12 +1893,26 @@ function imprimer() {
 async function telechargerPDF() {
   const html = construireHTMLDocument();
   const conteneur = document.createElement('div');
+  // Largeur A4 fixe : sinon le PDF se rend à la largeur de l'écran
+  // et la mise en page (1 page) change d'un poste à l'autre.
+  conteneur.style.width = '756px';
   conteneur.innerHTML = html;
   // Retirer le bandeau d'aide "Ctrl+P" qui ne doit pas apparaître dans le PDF
   const hint = conteneur.querySelector('.print-hint');
   if (hint) hint.remove();
   document.body.appendChild(conteneur);
   try {
+    // Attendre les images (logo, signature) pour un rendu complet
+    await Promise.all(
+      Array.from(conteneur.querySelectorAll('img')).map((img: any) =>
+        img.complete && img.naturalHeight !== 0
+          ? Promise.resolve()
+          : new Promise((res) => {
+              img.onload = res;
+              img.onerror = res;
+            })
+      )
+    );
     await (html2pdf as any)()
       .set({
         margin: 4,
@@ -1907,7 +1921,7 @@ async function telechargerPDF() {
           numeroDocument() || dossier?.numero_dossier || 'document'
         }.pdf`,
         image: { type: 'jpeg', quality: 0.95 },
-        html2canvas: { scale: 2, useCORS: true },
+        html2canvas: { scale: 2, useCORS: true, windowWidth: 756 },
         jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
       })
       .from(conteneur)
