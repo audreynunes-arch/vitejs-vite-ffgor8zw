@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../supabase';
+import html2pdf from 'html2pdf.js';
 
 interface Props {
   dossierId: string;
@@ -254,7 +255,7 @@ export default function DevisLibre({ dossierId, onRetour }: Props) {
     );
   };
 
-  function imprimer() {
+  async function imprimer() {
     const titreDoc =
       onglet === 'devis'
         ? 'Devis'
@@ -481,9 +482,36 @@ ${
 </div>
 </body></html>`;
 
-    const blob = new Blob([html], { type: 'text/html' });
-    const url = URL.createObjectURL(blob);
-    window.open(url, '_blank');
+    const conteneur = document.createElement('div');
+    conteneur.style.width = '756px';
+    conteneur.innerHTML = html;
+    const hint = conteneur.querySelector('.print-hint');
+    if (hint) hint.remove();
+    document.body.appendChild(conteneur);
+    try {
+      await Promise.all(
+        Array.from(conteneur.querySelectorAll('img')).map((img: any) =>
+          img.complete && img.naturalHeight !== 0
+            ? Promise.resolve()
+            : new Promise((res) => {
+                img.onload = res;
+                img.onerror = res;
+              })
+        )
+      );
+      await (html2pdf as any)()
+        .set({
+          margin: 8,
+          filename: `${titreDoc}-${numeroDocument() || 'document'}.pdf`,
+          image: { type: 'jpeg', quality: 0.95 },
+          html2canvas: { scale: 2, useCORS: true, windowWidth: 756 },
+          jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+        })
+        .from(conteneur)
+        .save();
+    } finally {
+      document.body.removeChild(conteneur);
+    }
   }
 
   const couleurAgence = dossier?.agences?.couleur_principale || '#2d6a4f';
