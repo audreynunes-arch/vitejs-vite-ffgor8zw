@@ -297,7 +297,7 @@ export default function DevisLibre({ dossierId, onRetour }: Props) {
     const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${titreDoc}${objet ? ' — ' + objet : ''}</title>
 <style>
   * { box-sizing: border-box; }
-  body { font-family: Arial, sans-serif; font-size: 11px; color: #333; margin: 0; padding: 0; }
+  body { font-family: Arial, sans-serif; font-size: 11px; color: #333; margin: 0; padding: 0.15cm 0.6cm; }
   table { width: 100%; border-collapse: collapse; }
   .print-hint { background: #EEF2FF; border: 1px solid ${couleur}; border-radius: 8px; padding: 0.75rem; margin-bottom: 1rem; font-size: 12px; color: ${couleur}; text-align: center; }
   @media print { .print-hint { display: none; } body { font-size: 10.5px; } }
@@ -501,7 +501,7 @@ ${
       );
       await (html2pdf as any)()
         .set({
-          margin: 8,
+          margin: 4,
           filename: `${titreDoc}-${numeroDocument() || 'document'}.pdf`,
           image: { type: 'jpeg', quality: 0.95 },
           html2canvas: { scale: 2, useCORS: true, windowWidth: 756 },
