@@ -1492,7 +1492,12 @@ export default function NouveauDossier({ onRetour }: Props) {
               <option>Tante</option>
               <option>Cousin</option>
               <option>Cousine</option>
+              <option>Neveu</option>
+              <option>Nièce</option>
               <option>Ami</option>
+              <option>Amie</option>
+              <option>Voisin</option>
+              <option>Voisine</option>
             </select>
           </div>
           <div>
