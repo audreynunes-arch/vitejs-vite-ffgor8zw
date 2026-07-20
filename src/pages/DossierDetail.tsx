@@ -1497,6 +1497,14 @@ export default function DossierDetail({
                 <option>Grand-Mère</option>
                 <option>Oncle</option>
                 <option>Tante</option>
+                <option>Cousin</option>
+                <option>Cousine</option>
+                <option>Neveu</option>
+                <option>Nièce</option>
+                <option>Ami</option>
+                <option>Amie</option>
+                <option>Voisin</option>
+                <option>Voisine</option>
               </select>
             </div>
             <div>
