@@ -118,6 +118,9 @@ export default function Documents({ dossierId, onRetour }: Props) {
         })
       : '...............';
 
+  // Heure sans les secondes : "11:15:00" → "11:15"
+  const fmtHeure = (h?: string) => (h ? h.slice(0, 5) : '');
+
   // Date de NAISSANCE : parfois incomplète (état civil ancien / certains pays).
   // On affiche selon la précision enregistrée.
   const fmtNaissance = () => {
@@ -1744,7 +1747,7 @@ export default function Documents({ dossierId, onRetour }: Props) {
         lignes: [
           [
             dossier.date_toilette ? fmtLong(dossier.date_toilette) : '',
-            dossier.heure_toilette ? `à ${dossier.heure_toilette}` : '',
+            dossier.heure_toilette ? `à ${fmtHeure(dossier.heure_toilette)}` : '',
           ]
             .filter(Boolean)
             .join(' '),
@@ -1757,7 +1760,7 @@ export default function Documents({ dossierId, onRetour }: Props) {
         lignes: [
           [
             dossier.date_meb ? fmtLong(dossier.date_meb) : '',
-            dossier.heure_meb ? `à ${dossier.heure_meb}` : '',
+            dossier.heure_meb ? `à ${fmtHeure(dossier.heure_meb)}` : '',
           ]
             .filter(Boolean)
             .join(' '),
@@ -1773,7 +1776,7 @@ export default function Documents({ dossierId, onRetour }: Props) {
               ? fmtLong(dossier.date_fermeture_depart)
               : '',
             dossier.heure_fermeture_depart
-              ? `à ${dossier.heure_fermeture_depart}`
+              ? `à ${fmtHeure(dossier.heure_fermeture_depart)}`
               : '',
           ]
             .filter(Boolean)
@@ -1785,7 +1788,7 @@ export default function Documents({ dossierId, onRetour }: Props) {
         type: 'salat',
         label: 'Salat Al Janāza',
         lignes: [
-          dossier.heure_salat ? `à ${dossier.heure_salat}` : 'Après Salât du Dohr',
+          dossier.heure_salat ? `à ${fmtHeure(dossier.heure_salat)}` : 'Après Salât du Dohr',
           lieuSalat === 'chambre'
             ? etab || ''
             : lieuSalat === 'cimetiere'
@@ -1799,7 +1802,7 @@ export default function Documents({ dossierId, onRetour }: Props) {
         lignes: [
           [
             dossier.date_inhumation ? fmtLong(dossier.date_inhumation) : '',
-            dossier.heure_inhumation ? `à ${dossier.heure_inhumation}` : '',
+            dossier.heure_inhumation ? `à ${fmtHeure(dossier.heure_inhumation)}` : '',
           ]
             .filter(Boolean)
             .join(' '),
@@ -1973,14 +1976,28 @@ export default function Documents({ dossierId, onRetour }: Props) {
                   >
                     {e.label}
                   </div>
-                  {e.lignes.map((l: string, j: number) => (
-                    <div
-                      key={j}
-                      style={{ color: '#4A4A44', fontSize: '14px', lineHeight: 1.4 }}
-                    >
-                      {l}
-                    </div>
-                  ))}
+                  {e.lignes.map((l: string, j: number) => {
+                    // Met l'heure en gras : "...à 11:15" → l'heure en <strong>
+                    const m = l.match(/^(.*\bà)\s+(\d{1,2}:\d{2})$/);
+                    return (
+                      <div
+                        key={j}
+                        style={{
+                          color: '#4A4A44',
+                          fontSize: '14px',
+                          lineHeight: 1.4,
+                        }}
+                      >
+                        {m ? (
+                          <>
+                            {m[1]} <strong>{m[2]}</strong>
+                          </>
+                        ) : (
+                          l
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
               ))}
             </div>
